@@ -1,0 +1,6 @@
+@CafeRMS.Api_HostAddress = http://localhost:5179
+
+GET {{CafeRMS.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
