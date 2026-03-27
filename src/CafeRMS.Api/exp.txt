@@ -1,0 +1,55 @@
+Essentials
+1. TaxRate (Name, Description, Rate)
+
+General / Organization
+2. Company (Name, Currency, TimeZone etc.)
+3. Outlet (Name, Address, etc.)
+4. Table (Name or Code?)
+
+Users & Roles
+5. Role
+6. RoleClaim
+7. User
+8. UserRole
+
+Settings
+9. UserSettings (Theme, UI Settings, etc.)
+
+Sales Config / Channels
+10. PriceGroup (Name)
+11. SalesChannel (Name, IsTakeout?)
+
+Modifiers
+12. ModifierGroup (Name)
+13. Modifier (Name)
+
+Product Items & Related
+14. Tag (Name, ImageUrl)
+15. Allergen (Name)
+16. Product (Name, Description, Barcode, TaxRate, ...)
+17. ProductImage
+18. ProductTag
+19. ProductAllergen
+20. ProductPrice
+21. ProductModifierGroup
+22. ProductList (Products)
+23. ProductListItem (ProductListId, ProductId)
+
+Orders & Promotions
+26. PromotionCode (Code, DiscountPercentage)
+24. Order (UserId, Name, Lines, Discount, LoyaltyPointsUsed, Event?)
+25. OrderLine (Quantity, NetPerOne, VatPerOne)
+
+Loyalty Program
+27. LoyaltyPointLog (UserId, Points)
+
+Personal / Extras
+28. Favorite (UserId, ProductId)
+
+Events
+29. Event (Name, Description, ImageUrl?, Days, EventProductList?, PriceGroup?)
+30. EventDay (DateTime)
+
+
+Czy wystarczy? Nie dodałem płatności..
+Czy mozna dodać później więcej tabel / pól?
