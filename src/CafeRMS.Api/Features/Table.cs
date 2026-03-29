@@ -1,15 +1,8 @@
-namespace CafeRMS.Api;
+namespace CafeRMS.Api.Features;
 
 public class Table
 {
-    public int Id { get; init; }
-    public string Name { get; set; }
-    public int AreaId { get; set; }
-
-    public Table(int id, string name, int areaId)
-    {
-        Id = id;
-        Name = name;
-        AreaId = areaId;
-    }
+    public int Id { get; private init; }
+    public string Code { get; init; } = "";
+    public int OutletId { get; set; }
 }

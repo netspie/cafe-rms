@@ -1,14 +1,8 @@
-namespace CafeRMS.Api;
+namespace CafeRMS.Api.Features;
 
 public class Tag
 {
-    public int Id { get; init; }
-    public string Name { get; set; }
-    public string ImageUrl { get; set; }
-
-    public Tag(string name, string imageUrl)
-    {
-        Name = name;
-        ImageUrl = imageUrl;
-    }
+    public int Id { get; private init; }
+    public string Name { get; init; } = "";
+    public string ImageUrl { get; init; } = "";
 }

@@ -1,9 +1,8 @@
 namespace CafeRMS.Api.Features;
 
-public class TaxRate
+public class SalesChannel
 {
     public int Id { get; private init; }
     public string Name { get; init; } = "";
-    public string Description { get; init; } = "";
-    public decimal Rate { get; set; }
+    public bool IsTakeout { get; set; }
 }

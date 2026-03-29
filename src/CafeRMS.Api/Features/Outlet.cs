@@ -1,17 +1,9 @@
-namespace CafeRMS.Api;
+namespace CafeRMS.Api.Features;
 
 public class Outlet
 {
-    public int Id { get; init; }
-    public string Name { get; set; }
-    public string Address { get; set; }
+    public int Id { get; private init; }
+    public string Name { get; init; } = "";
+    public string Address { get; init; } = "";
     public int CompanyId { get; set; }
-
-    public Outlet(int id, string name, string address, int companyId)
-    {
-        Id = id;
-        Name = name;
-        Address = address;
-        CompanyId = companyId;
-    }
 }

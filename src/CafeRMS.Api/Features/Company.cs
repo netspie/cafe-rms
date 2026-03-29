@@ -1,17 +1,9 @@
-namespace CafeRMS.Api;
+namespace CafeRMS.Api.Features;
 
 public class Company
 {
     public int Id { get; private init; }
-    public string Name { get; set; }
-    public string Address { get; set; }
-    public string TaxId { get; set; }
-
-    public Company(int id, string name, string address, string taxId)
-    {
-        Id = id;
-        Name = name;
-        Address = address;
-        TaxId = taxId;
-    }
+    public string Name { get; init; } = "";
+    public string Currency { get; init; } = "";
+    public string TimeZone { get; init; } = "";
 }

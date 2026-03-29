@@ -1,12 +1,7 @@
-namespace CafeRMS.Api;
+namespace CafeRMS.Api.Features;
 
 public class Allergen
 {
-    public int Id { get; init; }
-    public string Name { get; set; }
-
-    public Allergen(string name)
-    {
-        Name = name;
-    }
+    public int Id { get; private init; }
+    public string Name { get; init; } = "";
 }
