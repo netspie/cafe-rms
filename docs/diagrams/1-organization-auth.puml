@@ -1,0 +1,81 @@
+@startuml Organization & Auth
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty methods
+
+package "Auth" {
+    class AppUser {
+        +Id : Guid
+        +Email : string
+        +FirstName : string
+        +LastName : string
+        +CreatedAt : DateTimeOffset
+    }
+
+    class AppRole {
+        +Id : Guid
+        +Name : string
+    }
+}
+
+package "Organization" {
+    class Company {
+        +Id : Guid
+        +Name : string
+        +Address : string
+        +TaxId : string
+        +Currency : string
+        +TimeZone : string
+        +CreatedAt : DateTimeOffset
+        +CreatedBy : Guid?
+        +UpdatedAt : DateTimeOffset?
+        +UpdatedBy : Guid?
+        +DeletedAt : DateTimeOffset?
+        +DeletedBy : Guid?
+    }
+
+    class Outlet {
+        +Id : Guid
+        +Name : string
+        +Address : string
+        +CompanyId : Guid
+        +CreatedAt : DateTimeOffset
+        +CreatedBy : Guid?
+        +UpdatedAt : DateTimeOffset?
+        +UpdatedBy : Guid?
+        +DeletedAt : DateTimeOffset?
+        +DeletedBy : Guid?
+    }
+
+    class Table {
+        +Id : Guid
+        +Name : string
+        +OutletId : Guid
+        +CreatedAt : DateTimeOffset
+        +CreatedBy : Guid?
+        +UpdatedAt : DateTimeOffset?
+        +UpdatedBy : Guid?
+        +DeletedAt : DateTimeOffset?
+        +DeletedBy : Guid?
+    }
+}
+
+package "Settings" {
+    class UserSettings {
+        +Id : Guid
+        +UserId : Guid
+        +Theme : string
+        +UiSettingsJson : string
+        +CreatedAt : DateTimeOffset
+        +CreatedBy : Guid?
+        +UpdatedAt : DateTimeOffset?
+        +UpdatedBy : Guid?
+    }
+}
+
+AppUser "*" -- "*" AppRole
+AppUser "1" -- "0..1" UserSettings
+Company "1" -- "*" Outlet
+Outlet "1" -- "*" Table
+
+@enduml

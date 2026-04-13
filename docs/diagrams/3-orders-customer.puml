@@ -1,0 +1,103 @@
+@startuml Orders & Customer
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty methods
+
+enum OrderStatus {
+    Open
+    Paid
+    Cancelled
+}
+
+class Order {
+    +Id : Guid
+    +OutletId : Guid
+    +TableId : Guid?
+    +SalesChannelId : Guid?
+    +UserId : Guid?
+    +Status : OrderStatus
+    +Discount : decimal
+    +LoyaltyPointsUsed : int
+    +EventId : Guid?
+    +CreatedAt : DateTimeOffset
+    +CreatedBy : Guid?
+    +UpdatedAt : DateTimeOffset?
+    +UpdatedBy : Guid?
+    +DeletedAt : DateTimeOffset?
+    +DeletedBy : Guid?
+}
+
+class OrderLine {
+    +Id : Guid
+    +OrderId : Guid
+    +ProductId : Guid
+    +Quantity : int
+    +QuantityRealized : int
+    +NetPerOne : decimal
+    +VatPerOne : decimal
+}
+
+class SalesChannel {
+    +Id : Guid
+    +Name : string
+    +IsTakeout : bool
+}
+
+class SalesChannelPriceGroup {
+    +SalesChannelId : Guid
+    +PriceGroupId : Guid
+}
+
+class PromotionCode {
+    +Id : Guid
+    +Code : string
+    +DiscountPercentage : decimal
+}
+
+class Event {
+    +Id : Guid
+    +Name : string
+    +Description : string?
+    +ImageUrl : string?
+    +ProductListId : Guid?
+    +PriceGroupId : Guid?
+    +CreatedAt : DateTimeOffset
+    +CreatedBy : Guid?
+    +UpdatedAt : DateTimeOffset?
+    +UpdatedBy : Guid?
+    +DeletedAt : DateTimeOffset?
+    +DeletedBy : Guid?
+}
+
+class EventDay {
+    +Id : Guid
+    +EventId : Guid
+    +Date : DateOnly
+}
+
+class Favorite {
+    +UserId : Guid
+    +ProductId : Guid
+}
+
+class LoyaltyPointLog {
+    +Id : Guid
+    +UserId : Guid
+    +Points : int
+    +Reason : string?
+}
+
+class PrintoutTemplate {
+    +Id : Guid
+    +Name : string
+    +TemplateFileUrl : string
+}
+
+Order -- OrderStatus
+Order "1" -- "*" OrderLine
+Order "*" -- "0..1" SalesChannel
+Order "*" -- "0..1" Event
+SalesChannel "1" -- "*" SalesChannelPriceGroup
+Event "1" -- "*" EventDay
+
+@enduml

@@ -1,0 +1,273 @@
+@startuml CafeRMS - Full Class Diagram
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 40
+hide empty methods
+
+package "Auth" #F5F5F5 {
+    class AppUser {
+        +Id : Guid
+        +Email : string
+        +FirstName : string
+        +LastName : string
+        +CreatedAt : DateTimeOffset
+    }
+
+    class AppRole {
+        +Id : Guid
+        +Name : string
+    }
+}
+
+package "Organization" #F0F8FF {
+    class Company {
+        +Id : Guid
+        +Name : string
+        +Address : string
+        +TaxId : string
+        +Currency : string
+        +TimeZone : string
+    }
+
+    class Outlet {
+        +Id : Guid
+        +Name : string
+        +Address : string
+        +CompanyId : Guid
+    }
+
+    class Table {
+        +Id : Guid
+        +Name : string
+        +OutletId : Guid
+    }
+}
+
+package "Sales Config" #FFF8F0 {
+    class TaxRate {
+        +Id : Guid
+        +Name : string
+        +Description : string
+        +Rate : decimal
+    }
+
+    class PriceGroup {
+        +Id : Guid
+        +Name : string
+    }
+
+    class SalesChannel {
+        +Id : Guid
+        +Name : string
+        +IsTakeout : bool
+    }
+
+    class SalesChannelPriceGroup {
+        +SalesChannelId : Guid
+        +PriceGroupId : Guid
+    }
+}
+
+package "Products & Menu" #F0FFF0 {
+    class Product {
+        +Id : Guid
+        +Name : string
+        +Description : string?
+        +Barcode : string?
+        +TaxRateId : Guid
+    }
+
+    class ProductImage {
+        +Id : Guid
+        +ProductId : Guid
+        +Url : string
+    }
+
+    class Tag {
+        +Id : Guid
+        +Name : string
+        +ImageUrl : string?
+    }
+
+    class Allergen {
+        +Id : Guid
+        +Name : string
+    }
+
+    class ProductTag {
+        +ProductId : Guid
+        +TagId : Guid
+    }
+
+    class ProductAllergen {
+        +ProductId : Guid
+        +AllergenId : Guid
+    }
+
+    class ProductPrice {
+        +Id : Guid
+        +ProductId : Guid
+        +PriceGroupId : Guid
+        +Net : decimal
+    }
+
+    class ModifierGroup {
+        +Id : Guid
+        +Name : string
+    }
+
+    class Modifier {
+        +Id : Guid
+        +Name : string
+        +ModifierGroupId : Guid
+    }
+
+    class ProductModifierGroup {
+        +ProductId : Guid
+        +ModifierGroupId : Guid
+    }
+
+    class ProductList {
+        +Id : Guid
+        +Name : string
+    }
+
+    class ProductListItem {
+        +ProductListId : Guid
+        +ProductId : Guid
+    }
+}
+
+package "Orders" #FFF0F0 {
+    enum OrderStatus {
+        Open
+        Paid
+        Cancelled
+    }
+
+    class Order {
+        +Id : Guid
+        +OutletId : Guid
+        +TableId : Guid?
+        +SalesChannelId : Guid?
+        +UserId : Guid?
+        +Status : OrderStatus
+        +Discount : decimal
+        +LoyaltyPointsUsed : int
+        +EventId : Guid?
+    }
+
+    class OrderLine {
+        +Id : Guid
+        +OrderId : Guid
+        +ProductId : Guid
+        +Quantity : int
+        +QuantityRealized : int
+        +NetPerOne : decimal
+        +VatPerOne : decimal
+    }
+
+    class PromotionCode {
+        +Id : Guid
+        +Code : string
+        +DiscountPercentage : decimal
+    }
+}
+
+package "Events" #F8F0FF {
+    class Event {
+        +Id : Guid
+        +Name : string
+        +Description : string?
+        +ImageUrl : string?
+        +ProductListId : Guid?
+        +PriceGroupId : Guid?
+    }
+
+    class EventDay {
+        +Id : Guid
+        +EventId : Guid
+        +Date : DateOnly
+    }
+}
+
+package "Customer" #FFFFF0 {
+    class Favorite {
+        +UserId : Guid
+        +ProductId : Guid
+    }
+
+    class LoyaltyPointLog {
+        +Id : Guid
+        +UserId : Guid
+        +Points : int
+        +Reason : string?
+    }
+
+    class UserSettings {
+        +Id : Guid
+        +UserId : Guid
+        +Theme : string
+        +UiSettingsJson : string
+    }
+}
+
+package "Printouts" #F5F5F5 {
+    class PrintoutTemplate {
+        +Id : Guid
+        +Name : string
+        +TemplateFileUrl : string
+    }
+}
+
+' === Relationships ===
+
+' Auth
+AppUser "*" -- "*" AppRole
+AppUser "1" -- "0..1" UserSettings
+
+' Organization
+Company "1" -- "*" Outlet
+Outlet "1" -- "*" Table
+
+' Products
+Product "*" -- "1" TaxRate
+Product "1" -- "*" ProductImage
+Product "1" -- "*" ProductTag
+ProductTag "*" -- "1" Tag
+Product "1" -- "*" ProductAllergen
+ProductAllergen "*" -- "1" Allergen
+Product "1" -- "*" ProductPrice
+ProductPrice "*" -- "1" PriceGroup
+Product "1" -- "*" ProductModifierGroup
+ProductModifierGroup "*" -- "1" ModifierGroup
+ModifierGroup "1" -- "*" Modifier
+ProductList "1" -- "*" ProductListItem
+ProductListItem "*" -- "1" Product
+
+' Sales Config
+SalesChannel "1" -- "*" SalesChannelPriceGroup
+SalesChannelPriceGroup "*" -- "1" PriceGroup
+
+' Orders
+Order -- OrderStatus
+Order "1" -- "*" OrderLine
+OrderLine "*" -- "1" Product
+Order "*" -- "1" Outlet
+Order "*" -- "0..1" Table
+Order "*" -- "0..1" SalesChannel
+Order "*" -- "0..1" AppUser
+Order "*" -- "0..1" Event
+
+' Events
+Event "1" -- "*" EventDay
+Event "*" -- "0..1" ProductList
+Event "*" -- "0..1" PriceGroup
+
+' Customer
+Favorite "*" -- "1" AppUser
+Favorite "*" -- "1" Product
+LoyaltyPointLog "*" -- "1" AppUser
+
+@enduml

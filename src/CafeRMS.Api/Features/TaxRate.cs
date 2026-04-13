@@ -1,9 +1,0 @@
-namespace CafeRMS.Api.Features;
-
-public class TaxRate
-{
-    public int Id { get; private init; }
-    public string Name { get; init; } = "";
-    public string Description { get; init; } = "";
-    public decimal Rate { get; set; }
-}
