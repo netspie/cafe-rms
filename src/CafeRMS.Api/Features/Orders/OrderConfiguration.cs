@@ -8,7 +8,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>, IEntityTypeCo
     public void Configure(EntityTypeBuilder<Order> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
+        builder.Ignore(x => x.IsClosed);
+        builder.Ignore(x => x.IsCancelled);
         builder.Property(x => x.Discount).HasPrecision(18, 2);
         builder.HasOne(x => x.Outlet).WithMany().HasForeignKey(x => x.OutletId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Table).WithMany().HasForeignKey(x => x.TableId).OnDelete(DeleteBehavior.SetNull);

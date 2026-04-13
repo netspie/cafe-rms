@@ -140,22 +140,19 @@ package "Products & Menu" #F0FFF0 {
 }
 
 package "Orders" #FFF0F0 {
-    enum OrderStatus {
-        Open
-        Paid
-        Cancelled
-    }
-
     class Order {
         +Id : Guid
         +OutletId : Guid
         +TableId : Guid?
         +SalesChannelId : Guid?
         +UserId : Guid?
-        +Status : OrderStatus
+        +ClosedAt : DateTimeOffset?
+        +CancelledAt : DateTimeOffset?
         +Discount : decimal
         +LoyaltyPointsUsed : int
         +EventId : Guid?
+        +IsClosed : bool «computed»
+        +IsCancelled : bool «computed»
     }
 
     class OrderLine {
@@ -251,7 +248,6 @@ SalesChannel "1" -- "*" SalesChannelPriceGroup
 SalesChannelPriceGroup "*" -- "1" PriceGroup
 
 ' Orders
-Order -- OrderStatus
 Order "1" -- "*" OrderLine
 OrderLine "*" -- "1" Product
 Order "*" -- "1" Outlet

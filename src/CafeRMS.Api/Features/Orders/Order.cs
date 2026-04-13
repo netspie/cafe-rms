@@ -18,11 +18,15 @@ public class Order : IAuditable, ISoftDeletable
     public SalesChannel? SalesChannel { get; private init; }
     public Guid? UserId { get; private init; }
     public AppUser? User { get; private init; }
-    public OrderStatus Status { get; private set; }
+    public DateTimeOffset? ClosedAt { get; private set; }
+    public DateTimeOffset? CancelledAt { get; private set; }
     public decimal Discount { get; private set; }
     public int LoyaltyPointsUsed { get; private set; }
     public Guid? EventId { get; private init; }
     public Event? Event { get; private init; }
+
+    public bool IsClosed => ClosedAt is not null;
+    public bool IsCancelled => CancelledAt is not null;
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid? CreatedBy { get; private init; }
@@ -45,7 +49,6 @@ public class Order : IAuditable, ISoftDeletable
             SalesChannelId = salesChannelId,
             UserId = userId,
             EventId = eventId,
-            Status = OrderStatus.Open,
             Discount = discount,
             LoyaltyPointsUsed = loyaltyPointsUsed,
             CreatedAt = DateTimeOffset.UtcNow,

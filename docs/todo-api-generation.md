@@ -185,7 +185,7 @@ src/CafeRMS.Api/
 │   │
 │   ├── Orders/
 │   │   ├── Order.cs                             ← OutletId (FK), TableId? (FK), SalesChannelId? (FK),
-│   │   │                                           UserId? (FK), Status (enum: Open/Paid/Cancelled),
+│   │   │                                           UserId? (FK), ClosedAt?, CancelledAt? (dynamic status — no enum),
 │   │   │                                           Discount, LoyaltyPointsUsed, EventId? (FK)
 │   │   ├── OrderLine.cs                         ← OrderId (FK), ProductId (FK), Quantity,
 │   │   │                                           QuantityRealized, NetPerOne, VatPerOne
