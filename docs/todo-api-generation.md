@@ -88,7 +88,8 @@ src/CafeRMS.Api/
 │   │
 │   ├── SalesChannels/
 │   │   ├── SalesChannel.cs                      ← Name, IsTakeout
-│   │   ├── SalesChannelConfiguration.cs
+│   │   ├── SalesChannelPriceGroup.cs            ← SalesChannelId + PriceGroupId (composite PK)
+│   │   ├── SalesChannelConfiguration.cs         ← configures SalesChannel + SalesChannelPriceGroup
 │   │   └── UseCases/
 │   │       ├── AddSalesChannel.cs
 │   │       ├── GetSalesChannelById.cs
@@ -225,6 +226,16 @@ src/CafeRMS.Api/
 │   │       ├── AddEventDay.cs
 │   │       └── RemoveEventDay.cs
 │   │
+│   ├── PrintoutTemplates/
+│   │   ├── PrintoutTemplate.cs                  ← Name, TemplateFileUrl
+│   │   ├── PrintoutTemplateConfiguration.cs
+│   │   └── UseCases/
+│   │       ├── AddPrintoutTemplate.cs
+│   │       ├── GetPrintoutTemplateById.cs
+│   │       ├── GetPrintoutTemplates.cs
+│   │       ├── UpdatePrintoutTemplate.cs
+│   │       └── DeletePrintoutTemplate.cs
+│   │
 │   └── UserSettings/
 │       ├── UserSettings.cs                      ← UserId (FK, unique), Theme, UiSettingsJson
 │       ├── UserSettingsConfiguration.cs
@@ -260,7 +271,7 @@ src/CafeRMS.Api.Tests/
 |---|---|---|
 | Identity | asp_net_users, asp_net_roles, asp_net_user_roles, asp_net_role_claims | 4 |
 | Organization | companies, outlets, tables | 3 |
-| Sales config | tax_rates, price_groups, sales_channels | 3 |
+| Sales config | tax_rates, price_groups, sales_channels, sales_channel_price_groups | 4 |
 | Products | products, product_images, product_tags, product_allergens, product_prices, product_modifier_groups | 6 |
 | Product lists | product_lists, product_list_items | 2 |
 | Modifiers | modifier_groups, modifiers | 2 |
@@ -269,10 +280,9 @@ src/CafeRMS.Api.Tests/
 | Loyalty | loyalty_point_logs | 1 |
 | Favorites | favorites | 1 |
 | Events | events, event_days | 2 |
+| Printouts | printout_templates | 1 |
 | Settings | user_settings | 1 |
-| **Total** | | **28** |
-
-Pending supervisor answer on whether Identity tables count. Need 2 more if not.
+| **Total** | | **30** |
 
 ---
 
@@ -321,7 +331,7 @@ Soft delete on all real entities — NOT on join tables (product_tags, product_a
 - [ ] Table + TableConfiguration
 - [ ] TaxRate + TaxRateConfiguration
 - [ ] PriceGroup + PriceGroupConfiguration
-- [ ] SalesChannel + SalesChannelConfiguration
+- [ ] SalesChannel, SalesChannelPriceGroup + SalesChannelConfiguration
 - [ ] Tag + TagConfiguration
 - [ ] Allergen + AllergenConfiguration
 - [ ] Product, ProductImage, ProductTag, ProductAllergen, ProductPrice, ProductModifierGroup + ProductConfiguration
@@ -333,6 +343,7 @@ Soft delete on all real entities — NOT on join tables (product_tags, product_a
 - [ ] LoyaltyPointLog + LoyaltyPointLogConfiguration
 - [ ] Favorite + FavoriteConfiguration
 - [ ] Event, EventDay + EventConfiguration
+- [ ] PrintoutTemplate + PrintoutTemplateConfiguration
 - [ ] UserSettings + UserSettingsConfiguration
 - [ ] DbSets registered in AppDbContext
 
