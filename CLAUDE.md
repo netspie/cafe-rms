@@ -1,50 +1,70 @@
-# CLAUDE.md
+# CLAUDE.md — CafeRMS (monorepo root)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **DO NOT submit this file to the university portal. Remove all CLAUDE.md files before submission.**
 
-## Project Overview
+Instructions for Claude Code. Read this before touching any code.
 
-Cafe RMS is a Restaurant Management System API built with .NET 10.0 using ASP.NET Core minimal APIs. Early-stage project with domain models defined and API endpoints yet to be implemented.
+---
 
-## Common Commands
+## Project overview
 
-```bash
-# Run the application
-dotnet run --project src/CafeRMS.Api
+Engineering thesis (projekt inżynierski) — a management system for small, themed cafes that combine food service with event hosting. Supports online ordering, loyalty, events, and product management. **Payments are out of scope.**
 
-# Build
-dotnet build
+## System components
 
-# Run tests (once test project exists)
-dotnet test
+| Component | Path | Technology |
+|---|---|---|
+| API / Backend | `src/CafeRMS.Api/` | ASP.NET Core, PostgreSQL, EF Core |
+| Admin Panel | `src/cafe-rms-admin/` | Next.js, TypeScript |
+| Mobile App | `src/cafe-rms-mobile/` | React Native (Expo) |
+
+Each component has its own `CLAUDE.md` with specific conventions. This root file covers shared rules.
+
+## Monorepo structure
+
+```
+cafe-rms/
+  CLAUDE.md                      ← you are here (shared rules)
+  README.md
+  docs/
+    todo-api-generation.md
+  src/
+    CafeRMS.Api/                 ← .NET API + tests
+      CLAUDE.md                  ← API-specific conventions
+    cafe-rms-admin/              ← Next.js admin panel (later)
+      CLAUDE.md
+    cafe-rms-mobile/             ← React Native Expo (later)
+      CLAUDE.md
 ```
 
-The API runs on `http://localhost:5179` (HTTP) or `https://localhost:7039` (HTTPS) in development.
+---
 
-## Architecture
+## Hard requirements (from university "Wymagania" PDF)
 
-**Single project:** `src/CafeRMS.Api/` — no separate layers yet.
+These are non-negotiable. Every item must be visibly covered in the final project.
 
-**Feature-based organization:** `Features/` contains one file per domain entity. `Classes.cs` holds 30+ domain model definitions spanning the full domain:
-- Organization: `Company`, `Outlet`, `OutletArea`, `Table`
-- Users & Auth: `User`, `Role`, `RoleClaim`, `UserRole`
-- Products: `Product`, `ProductPrice`, `ProductImage`, `Tag`, `Allergen`, `ModifierGroup`, `Modifier`
-- Orders: `Order`, `OrderLine`
-- Sales config: `SalesChannel`, `PriceGroup`, `PromotionCode`
-- Events: `Event`, `EventDay`, `ProductList`, `ProductListItem`
-- Loyalty: `LoyaltyPointLog`
+- **Min 30 DB tables** (Identity tables may count — pending supervisor confirmation)
+- **DB views, stored procedures, functions, indexing** — required, likely for reporting
+- **CRUD + filtering + sorting** on all business entity tables
+- **Auth + permission group management** via system UI (not just static roles)
+- **2–3 business reports** with PDF/Excel export
+- **Parameterized printouts** from Word templates (user-changeable)
+- **Min 50 professional UI views** (frontend concern, but API must support them all)
+- **All visible content** (texts, images) managed from admin panel — no hardcoded content
+- **3 fully closed business processes** (e.g., full order lifecycle)
+- **Well-known architecture pattern** — Vertical Slices + CQRS
 
-**Model conventions:**
-- `Id` uses `init` accessor (immutable after construction)
-- Constructor-based initialization for required fields
-- No ORM/database context exists yet — models are POCO only
+---
 
-**API layer:** Minimal APIs in `Program.cs`. Only a placeholder `/weatherforecast` endpoint exists — all real endpoints are yet to be added.
+## Shared rules — What Claude must never do without asking
 
-**OpenAPI:** `Microsoft.AspNetCore.OpenApi` is included; Swagger UI is available in development.
+- Do not push to remote or create PRs without explicit confirmation
+- Do not add co-author attributions to commit messages
+- Do not add features or refactors beyond what was asked
+- Do not rename or restructure files/folders without being asked
 
-## Tech Stack
+---
 
-- .NET 10.0, ASP.NET Core minimal APIs
-- Nullable reference types and implicit usings enabled
-- `CafeRMS.Api.http` — VS Code REST Client file for manual endpoint testing
+## What's coming later (don't build yet)
+
+- Reporting / analytics dashboard
