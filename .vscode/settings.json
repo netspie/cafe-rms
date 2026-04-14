@@ -1,0 +1,12 @@
+{
+  "files.exclude": {
+    "**/CLAUDE.md": true,
+    "**/.claude": true,
+    "docs/todo-api-generation.md": true
+  },
+  "search.exclude": {
+    "**/CLAUDE.md": true,
+    "**/.claude": true,
+    "docs/todo-api-generation.md": true
+  }
+}
