@@ -47,7 +47,7 @@ src/CafeRMS.Api/
 │   │       └── DeleteCompany.cs
 │   │
 │   ├── Outlets/
-│   │   ├── Outlet.cs                            ← Name, Address, CompanyId (FK)
+│   │   ├── Outlet.cs                            ← Name, Address, Currency (enum), CompanyId (FK)
 │   │   ├── OutletConfiguration.cs
 │   │   └── UseCases/
 │   │       ├── AddOutlet.cs
@@ -188,7 +188,7 @@ src/CafeRMS.Api/
 │   │   │                                           UserId? (FK), ClosedAt?, CancelledAt? (dynamic status — no enum),
 │   │   │                                           Discount, LoyaltyPointsUsed, EventId? (FK)
 │   │   ├── OrderLine.cs                         ← OrderId (FK), ProductId (FK), Quantity,
-│   │   │                                           QuantityRealized, NetPerOne, VatPerOne
+│   │   │                                           NetPerOne, VatPerOne
 │   │   ├── OrderConfiguration.cs                ← configures Order + OrderLine
 │   │   └── UseCases/
 │   │       ├── CreateOrder.cs

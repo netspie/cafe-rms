@@ -11,7 +11,6 @@ public class OrderLine : IAuditable
     public Guid ProductId { get; private init; }
     public Product? Product { get; private init; }
     public int Quantity { get; private set; }
-    public int QuantityRealized { get; private set; }
     public decimal NetPerOne { get; private set; }
     public decimal VatPerOne { get; private set; }
 
@@ -31,7 +30,6 @@ public class OrderLine : IAuditable
             OrderId = orderId,
             ProductId = productId,
             Quantity = quantity,
-            QuantityRealized = 0,
             NetPerOne = netPerOne,
             VatPerOne = vatPerOne,
             CreatedAt = DateTimeOffset.UtcNow,

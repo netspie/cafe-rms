@@ -8,6 +8,7 @@ public class Outlet : IAuditable, ISoftDeletable
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
     public string Address { get; private set; } = "";
+    public Currency Currency { get; private set; }
     public Guid CompanyId { get; private init; }
     public Company? Company { get; private init; }
 
@@ -20,13 +21,14 @@ public class Outlet : IAuditable, ISoftDeletable
 
     private Outlet() { }
 
-    public static Outlet Create(string name, string address, Guid companyId, Guid? createdBy = null)
+    public static Outlet Create(string name, string address, Currency currency, Guid companyId, Guid? createdBy = null)
     {
         return new Outlet
         {
             Id = Guid.NewGuid(),
             Name = name,
             Address = address,
+            Currency = currency,
             CompanyId = companyId,
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = createdBy
