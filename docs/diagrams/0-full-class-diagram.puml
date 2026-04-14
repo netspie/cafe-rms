@@ -35,6 +35,7 @@ package "Organization" #F0F8FF {
         +Name : string
         +Address : string
         +CompanyId : Guid
+        +Currency : Currency
     }
 
     class Table {
@@ -160,7 +161,6 @@ package "Orders" #FFF0F0 {
         +OrderId : Guid
         +ProductId : Guid
         +Quantity : int
-        +QuantityRealized : int
         +NetPerOne : decimal
         +VatPerOne : decimal
     }
