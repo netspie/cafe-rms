@@ -7,9 +7,3 @@ public interface IAuditable
     DateTimeOffset? UpdatedAt { get; }
     Guid? UpdatedBy { get; }
 }
-
-public interface ISoftDeletable
-{
-    DateTimeOffset? DeletedAt { get; }
-    Guid? DeletedBy { get; }
-}
