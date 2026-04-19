@@ -11,6 +11,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>, IEntityTypeCo
         builder.Ignore(x => x.IsClosed);
         builder.Ignore(x => x.IsCancelled);
         builder.Property(x => x.Discount).HasPrecision(18, 2);
+        builder.Property(x => x.CancellationReason).HasMaxLength(500);
         builder.HasOne(x => x.Outlet).WithMany().HasForeignKey(x => x.OutletId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Table).WithMany().HasForeignKey(x => x.TableId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.SalesChannel).WithMany().HasForeignKey(x => x.SalesChannelId).OnDelete(DeleteBehavior.SetNull);

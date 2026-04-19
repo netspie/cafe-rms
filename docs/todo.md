@@ -11,9 +11,9 @@ Ordered by phase. Reports & printouts intentionally last.
   - [x] Global fallback auth policy (`RequireAuthenticatedUser`) — no base class; controllers use `[ApiController]` + `[Route("api/[controller]")]`, opt out of auth with `[AllowAnonymous]`
   - [x] Convert `ValidationFilter` from `IEndpointFilter` → `IAsyncActionFilter`, register globally
   - [ ] New top-level `Controllers/` folder — thin HTTP layer, one controller per feature; actual feature controllers added per-feature during Phase 4
-- [ ] Make `CreatedBy` non-nullable (+ migration)
-- [ ] Add order cancellation reason — update `Order` entity (nullable `CancellationReason`) + migration
-- [ ] During an event, keep a standard menu available for customers not participating in the event — update `Event` entity (flag / relation for standard menu availability) + migration
+- [x] Make `CreatedBy` non-nullable (+ migration)
+- [x] Add order cancellation reason — update `Order` entity (nullable `CancellationReason`) + migration
+- [x] During an event, keep a standard menu available for customers not participating in the event — no API change; mobile app concern (shows both menus, customer picks)
 - [ ] Shared **filter / sort / paginate** convention — `?sort=name,-createdAt&page=1&pageSize=20` (`-` prefix = DESC)
   - [ ] `PagedQuery` record (`Page`, `PageSize`, `Sort` + feature-specific filter fields via inheritance)
   - [ ] `PagedResult<T>` response (`Items`, `Page`, `PageSize`, `Total`)

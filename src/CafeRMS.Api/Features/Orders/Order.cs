@@ -20,6 +20,7 @@ public class Order : IAuditable, ISoftDeletable
     public AppUser? User { get; private init; }
     public DateTimeOffset? ClosedAt { get; private set; }
     public DateTimeOffset? CancelledAt { get; private set; }
+    public string? CancellationReason { get; private set; }
     public decimal Discount { get; private set; }
     public int LoyaltyPointsUsed { get; private set; }
     public Guid? EventId { get; private init; }

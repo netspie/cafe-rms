@@ -27,6 +27,7 @@ cafe-rms/
   CLAUDE.md                      ← you are here (shared rules)
   README.md
   docs/
+    todo.md                        ← living, phased plan for finishing the API; check + update as work progresses
     todo-api-generation.md
   src/
     CafeRMS.Api/                 ← .NET API + tests
