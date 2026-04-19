@@ -15,14 +15,14 @@ public class OrderLine : IAuditable
     public decimal VatPerOne { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
 
     private OrderLine() { }
 
     public static OrderLine Create(Guid orderId, Guid productId, int quantity, decimal netPerOne, decimal vatPerOne,
-        Guid? createdBy = null)
+        Guid createdBy)
     {
         return new OrderLine
         {

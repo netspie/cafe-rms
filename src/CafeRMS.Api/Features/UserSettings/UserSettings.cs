@@ -12,13 +12,13 @@ public class UserSettings : IAuditable
     public string UiSettingsJson { get; private set; } = "{}";
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
 
     private UserSettings() { }
 
-    public static UserSettings Create(Guid userId, string theme = "light", string uiSettingsJson = "{}", Guid? createdBy = null)
+    public static UserSettings Create(Guid userId, Guid createdBy, string theme = "light", string uiSettingsJson = "{}")
     {
         return new UserSettings
         {

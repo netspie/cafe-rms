@@ -10,13 +10,13 @@ public class ProductImage : IAuditable
     public string Url { get; private set; } = "";
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
 
     private ProductImage() { }
 
-    public static ProductImage Create(Guid productId, string url, Guid? createdBy = null)
+    public static ProductImage Create(Guid productId, string url, Guid createdBy)
     {
         return new ProductImage
         {

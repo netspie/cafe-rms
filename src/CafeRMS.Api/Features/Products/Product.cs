@@ -13,7 +13,7 @@ public class Product : IAuditable, ISoftDeletable
     public TaxRate? TaxRate { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -21,7 +21,7 @@ public class Product : IAuditable, ISoftDeletable
 
     private Product() { }
 
-    public static Product Create(string name, Guid taxRateId, string? description = null, string? barcode = null, Guid? createdBy = null)
+    public static Product Create(string name, Guid taxRateId, Guid createdBy, string? description = null, string? barcode = null)
     {
         return new Product
         {

@@ -10,7 +10,7 @@ public class TaxRate : IAuditable, ISoftDeletable
     public decimal Rate { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -18,7 +18,7 @@ public class TaxRate : IAuditable, ISoftDeletable
 
     private TaxRate() { }
 
-    public static TaxRate Create(string name, string description, decimal rate, Guid? createdBy = null)
+    public static TaxRate Create(string name, string description, decimal rate, Guid createdBy)
     {
         return new TaxRate
         {

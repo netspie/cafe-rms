@@ -9,7 +9,7 @@ public class PromotionCode : IAuditable, ISoftDeletable
     public decimal DiscountPercentage { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -17,7 +17,7 @@ public class PromotionCode : IAuditable, ISoftDeletable
 
     private PromotionCode() { }
 
-    public static PromotionCode Create(string code, decimal discountPercentage, Guid? createdBy = null)
+    public static PromotionCode Create(string code, decimal discountPercentage, Guid createdBy)
     {
         return new PromotionCode
         {

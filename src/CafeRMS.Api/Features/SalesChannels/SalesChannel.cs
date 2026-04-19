@@ -9,7 +9,7 @@ public class SalesChannel : IAuditable, ISoftDeletable
     public bool IsTakeout { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -17,7 +17,7 @@ public class SalesChannel : IAuditable, ISoftDeletable
 
     private SalesChannel() { }
 
-    public static SalesChannel Create(string name, bool isTakeout, Guid? createdBy = null)
+    public static SalesChannel Create(string name, bool isTakeout, Guid createdBy)
     {
         return new SalesChannel
         {

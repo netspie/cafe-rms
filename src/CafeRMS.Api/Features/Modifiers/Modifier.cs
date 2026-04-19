@@ -11,7 +11,7 @@ public class Modifier : IAuditable, ISoftDeletable
     public ModifierGroup? ModifierGroup { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -19,7 +19,7 @@ public class Modifier : IAuditable, ISoftDeletable
 
     private Modifier() { }
 
-    public static Modifier Create(string name, Guid modifierGroupId, Guid? createdBy = null)
+    public static Modifier Create(string name, Guid modifierGroupId, Guid createdBy)
     {
         return new Modifier
         {

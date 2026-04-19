@@ -13,13 +13,13 @@ public class ProductPrice : IAuditable
     public decimal Net { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
 
     private ProductPrice() { }
 
-    public static ProductPrice Create(Guid productId, Guid priceGroupId, decimal net, Guid? createdBy = null)
+    public static ProductPrice Create(Guid productId, Guid priceGroupId, decimal net, Guid createdBy)
     {
         return new ProductPrice
         {

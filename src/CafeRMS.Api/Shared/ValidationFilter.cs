@@ -1,12 +1,14 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace CafeRMS.Api.Shared;
 
-public class ValidationFilter : IEndpointFilter
+public class ValidationFilter : IAsyncActionFilter
 {
-    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        foreach (var argument in context.Arguments)
+        foreach (var argument in context.ActionArguments.Values)
         {
             if (argument is null) continue;
 
@@ -24,10 +26,17 @@ public class ValidationFilter : IEndpointFilter
                     .GroupBy(x => x.PropertyName)
                     .ToDictionary(x => x.Key, x => x.Select(e => e.ErrorMessage).ToArray());
 
-                return Results.ValidationProblem(errors);
+                context.Result = new ObjectResult(new ValidationProblemDetails(errors)
+                {
+                    Status = StatusCodes.Status400BadRequest
+                })
+                {
+                    StatusCode = StatusCodes.Status400BadRequest
+                };
+                return;
             }
         }
 
-        return await next(context);
+        await next();
     }
 }

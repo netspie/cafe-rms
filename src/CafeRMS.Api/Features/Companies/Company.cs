@@ -12,7 +12,7 @@ public class Company : IAuditable, ISoftDeletable
     public string TimeZone { get; private set; } = "";
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -20,7 +20,7 @@ public class Company : IAuditable, ISoftDeletable
 
     private Company() { }
 
-    public static Company Create(string name, string address, string taxId, string currency, string timeZone, Guid? createdBy = null)
+    public static Company Create(string name, string address, string taxId, string currency, string timeZone, Guid createdBy)
     {
         return new Company
         {

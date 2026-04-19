@@ -13,7 +13,7 @@ public class Outlet : IAuditable, ISoftDeletable
     public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -21,7 +21,7 @@ public class Outlet : IAuditable, ISoftDeletable
 
     private Outlet() { }
 
-    public static Outlet Create(string name, string address, Currency currency, Guid companyId, Guid? createdBy = null)
+    public static Outlet Create(string name, string address, Currency currency, Guid companyId, Guid createdBy)
     {
         return new Outlet
         {

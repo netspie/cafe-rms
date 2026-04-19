@@ -9,7 +9,7 @@ public class Tag : IAuditable, ISoftDeletable
     public string? ImageUrl { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -17,7 +17,7 @@ public class Tag : IAuditable, ISoftDeletable
 
     private Tag() { }
 
-    public static Tag Create(string name, string? imageUrl = null, Guid? createdBy = null)
+    public static Tag Create(string name, Guid createdBy, string? imageUrl = null)
     {
         return new Tag
         {

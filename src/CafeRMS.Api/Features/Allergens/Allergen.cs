@@ -8,7 +8,7 @@ public class Allergen : IAuditable, ISoftDeletable
     public string Name { get; private set; } = "";
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -16,7 +16,7 @@ public class Allergen : IAuditable, ISoftDeletable
 
     private Allergen() { }
 
-    public static Allergen Create(string name, Guid? createdBy = null)
+    public static Allergen Create(string name, Guid createdBy)
     {
         return new Allergen
         {

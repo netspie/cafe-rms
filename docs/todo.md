@@ -6,7 +6,11 @@ Ordered by phase. Reports & printouts intentionally last.
 
 ## Phase 0 — Immediate fixes & foundations
 
-- [ ] Convert from Minimal APIs to Controllers (route definitions separated from use case handlers)
+- [x] Set up Controllers infrastructure (no endpoints exist yet — this is setup, not migration)
+  - [x] `AddControllers()` + `MapControllers()` in `Program.cs`, drop `MapGroup("/api")` scaffold
+  - [x] Global fallback auth policy (`RequireAuthenticatedUser`) — no base class; controllers use `[ApiController]` + `[Route("api/[controller]")]`, opt out of auth with `[AllowAnonymous]`
+  - [x] Convert `ValidationFilter` from `IEndpointFilter` → `IAsyncActionFilter`, register globally
+  - [ ] New top-level `Controllers/` folder — thin HTTP layer, one controller per feature; actual feature controllers added per-feature during Phase 4
 - [ ] Make `CreatedBy` non-nullable (+ migration)
 - [ ] Add order cancellation reason — update `Order` entity (nullable `CancellationReason`) + migration
 - [ ] During an event, keep a standard menu available for customers not participating in the event — update `Event` entity (flag / relation for standard menu availability) + migration

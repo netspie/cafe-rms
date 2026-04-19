@@ -16,7 +16,7 @@ public class Event : IAuditable, ISoftDeletable
     public PriceGroup? PriceGroup { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -24,8 +24,8 @@ public class Event : IAuditable, ISoftDeletable
 
     private Event() { }
 
-    public static Event Create(string name, string? description = null, string? imageUrl = null,
-        Guid? productListId = null, Guid? priceGroupId = null, Guid? createdBy = null)
+    public static Event Create(string name, Guid createdBy, string? description = null, string? imageUrl = null,
+        Guid? productListId = null, Guid? priceGroupId = null)
     {
         return new Event
         {

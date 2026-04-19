@@ -9,7 +9,7 @@ public class PrintoutTemplate : IAuditable, ISoftDeletable
     public string TemplateFileUrl { get; private set; } = "";
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -17,7 +17,7 @@ public class PrintoutTemplate : IAuditable, ISoftDeletable
 
     private PrintoutTemplate() { }
 
-    public static PrintoutTemplate Create(string name, string templateFileUrl, Guid? createdBy = null)
+    public static PrintoutTemplate Create(string name, string templateFileUrl, Guid createdBy)
     {
         return new PrintoutTemplate
         {

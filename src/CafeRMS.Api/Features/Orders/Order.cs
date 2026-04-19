@@ -29,7 +29,7 @@ public class Order : IAuditable, ISoftDeletable
     public bool IsCancelled => CancelledAt is not null;
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
@@ -37,9 +37,8 @@ public class Order : IAuditable, ISoftDeletable
 
     private Order() { }
 
-    public static Order Create(Guid outletId, Guid? tableId = null, Guid? salesChannelId = null,
-        Guid? userId = null, Guid? eventId = null, decimal discount = 0, int loyaltyPointsUsed = 0,
-        Guid? createdBy = null)
+    public static Order Create(Guid outletId, Guid createdBy, Guid? tableId = null, Guid? salesChannelId = null,
+        Guid? userId = null, Guid? eventId = null, decimal discount = 0, int loyaltyPointsUsed = 0)
     {
         return new Order
         {

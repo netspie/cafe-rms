@@ -12,13 +12,13 @@ public class LoyaltyPointLog : IAuditable
     public string? Reason { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
-    public Guid? CreatedBy { get; private init; }
+    public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public Guid? UpdatedBy { get; private set; }
 
     private LoyaltyPointLog() { }
 
-    public static LoyaltyPointLog Create(Guid userId, int points, string? reason = null, Guid? createdBy = null)
+    public static LoyaltyPointLog Create(Guid userId, int points, Guid createdBy, string? reason = null)
     {
         return new LoyaltyPointLog
         {
