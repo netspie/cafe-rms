@@ -23,7 +23,7 @@ Ordered by phase. Reports & printouts intentionally last.
   - [ ] Document usage pattern for list use cases (filter record → `ApplySort` → `ToPagedResultAsync`) — deferred to first list use case in Phase 4
 - [x] CORS config (admin panel + mobile app origins) — origins read from `Cors:AllowedOrigins` in config
 - [x] Basic request logging via built-in `UseHttpLogging` (method, path, query, status, duration)
-- [ ] Health check endpoint (`/health`)
+- [x] Health check endpoint (`/health`) — built-in `AddHealthChecks`, anonymous; DB probe deferred until `AspNetCore.HealthChecks.EntityFrameworkCore` is approved
 - [ ] Verify `GlobalExceptionHandler` maps all domain exceptions → `ProblemDetails`
   - [ ] Brainstorm full domain exception taxonomy — candidates: `NotFoundException`, `DomainException` (base), `ValidationException`, `ConflictException`, `ForbiddenException`, `InsufficientStockException`, `EventFullException`, `OrderAlreadyCancelledException`, `PromotionExpiredException`, `LoyaltyPointsInsufficientException`, etc.
   - [ ] Decide granularity: fewer generic types (e.g., just `DomainException` w/ codes) vs. more specific subclasses
