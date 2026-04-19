@@ -64,6 +64,13 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 - Do not add features or refactors beyond what was asked
 - Do not rename or restructure files/folders without being asked
 
+## Committing
+
+- **One commit per `docs/todo.md` item.** When the user asks to commit completed work, split it into separate commits — one per TODO checkbox that was ticked. Bundle items only when they're genuinely inseparable (e.g. a shared refactor touched by multiple items).
+- Meta changes (convention rules, rename sweeps, CLAUDE.md edits) get their own commits, separate from feature work.
+- `docs/todo.md` checkbox edits go with the commit that completes the item they reference, not in a trailing "tick boxes" commit.
+- Only commit when the user explicitly asks.
+
 ---
 
 ## What's coming later (don't build yet)
