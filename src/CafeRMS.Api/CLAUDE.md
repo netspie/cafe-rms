@@ -146,6 +146,33 @@ File names = the action. No `Command`, `Query`, `Handler` suffixes.
 - Use modern C# 14 / .NET 10 syntax: collection expressions, primary constructors, pattern matching, file-scoped namespaces, etc.
 - FluentValidation for input validation.
 - `ProblemDetails` for all error responses.
+- **Boolean names start with `Is` / `Has` / `Can` / `Should` / `Will` / `Does`** and use an affirmative phrase. Applies to properties, fields, parameters, and locals. This follows the Microsoft .NET Framework Design Guidelines (["Names of Type Members"](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/names-of-type-members#names-of-properties)).
+  ```csharp
+  // ✔
+  public bool IsClosed => ClosedAt is not null;
+  var isDescending = field.StartsWith('-');
+  bool HasChildren(Node n) => n.Children.Count > 0;
+
+  // ✘ banned — missing prefix / negative phrasing
+  public bool Closed;
+  var descending = field.StartsWith('-');
+  public bool CantSeek;  // use !CanSeek instead
+  ```
+- **Never write single-line `if` / `foreach` / `while` statements.** The body always goes on its own line. For a **single** statement body, **omit the braces** — body on its own indented line. Only add braces when the body has two or more statements.
+  ```csharp
+  // ✔ single statement — no braces, body on its own line
+  if (string.IsNullOrWhiteSpace(value))
+      return query;
+
+  // ✘ banned — single line
+  if (string.IsNullOrWhiteSpace(value)) return query;
+
+  // ✘ banned — braces around a single statement
+  if (string.IsNullOrWhiteSpace(value))
+  {
+      return query;
+  }
+  ```
 
 ---
 
