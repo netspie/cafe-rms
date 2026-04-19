@@ -14,13 +14,13 @@ Ordered by phase. Reports & printouts intentionally last.
 - [x] Make `CreatedBy` non-nullable (+ migration)
 - [x] Add order cancellation reason — update `Order` entity (nullable `CancellationReason`) + migration
 - [x] During an event, keep a standard menu available for customers not participating in the event — no API change; mobile app concern (shows both menus, customer picks)
-- [ ] Shared **filter / sort / paginate** convention — `?sort=name,-createdAt&page=1&pageSize=20` (`-` prefix = DESC)
-  - [ ] `PagedQuery` record (`Page`, `PageSize`, `Sort` + feature-specific filter fields via inheritance)
-  - [ ] `PagedResult<T>` response (`Items`, `Page`, `PageSize`, `Total`)
-  - [ ] `IQueryable<T>` extension `ApplySort(string sort, Dictionary<string, Expression> whitelist)` — mandatory whitelist, never pass raw user input to `OrderBy`
-  - [ ] `IQueryable<T>` extension `ApplyPaging(PagedQuery)`
-  - [ ] Default `PageSize` + max `PageSize` cap
-  - [ ] Document usage pattern for list use cases (filter record → `ApplySort` → `ApplyPaging` → `ToListAsync`)
+- [x] Shared **filter / sort / paginate** convention — `?sort=name,-createdAt&page=1&pageSize=20` (`-` prefix = DESC)
+  - [x] `PagedQuery` record (`Page`, `PageSize`, `Sort` + feature-specific filter fields via inheritance)
+  - [x] `PagedResult<T>` response (`Items`, `Page`, `PageSize`, `Total`)
+  - [x] `IQueryable<T>` extension `ApplySort(string sortExpression, SortMap<T> allowedFields)` — mandatory allow-list, typed via `SortMap.Add<TKey>(name, selector)` so no `object`-boxing in `OrderBy`
+  - [x] `IQueryable<T>` extension `ToPagedResultAsync(PagedQuery)` (dropped separate `ApplyPaging` — no caller needed just-paging without count; add back when infinite-scroll endpoint appears)
+  - [x] Default + max `PageSize` as consts on `PagedQuery` (20 / 100)
+  - [ ] Document usage pattern for list use cases (filter record → `ApplySort` → `ToPagedResultAsync`) — deferred to first list use case in Phase 4
 - [ ] CORS config (admin panel + mobile app origins)
 - [ ] Basic request logging via built-in `ILogger` (skip Serilog — not required for thesis)
 - [ ] Health check endpoint (`/health`)
