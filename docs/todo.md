@@ -24,10 +24,10 @@ Ordered by phase. Reports & printouts intentionally last.
 - [x] CORS config (admin panel + mobile app origins) — origins read from `Cors:AllowedOrigins` in config
 - [x] Basic request logging via built-in `UseHttpLogging` (method, path, query, status, duration)
 - [x] Health check endpoint (`/health`) — built-in `AddHealthChecks`, anonymous; DB probe deferred until `AspNetCore.HealthChecks.EntityFrameworkCore` is approved
-- [ ] Verify `GlobalExceptionHandler` maps all domain exceptions → `ProblemDetails`
-  - [ ] Brainstorm full domain exception taxonomy — candidates: `NotFoundException`, `DomainException` (base), `ValidationException`, `ConflictException`, `ForbiddenException`, `InsufficientStockException`, `EventFullException`, `OrderAlreadyCancelledException`, `PromotionExpiredException`, `LoyaltyPointsInsufficientException`, etc.
-  - [ ] Decide granularity: fewer generic types (e.g., just `DomainException` w/ codes) vs. more specific subclasses
-  - [ ] Ensure each mapped to correct HTTP status in handler (404 / 400 / 403 / 409 / 422)
+- [x] Verify `GlobalExceptionHandler` maps all domain exceptions → `ProblemDetails`
+  - [x] Brainstorm full domain exception taxonomy — decided on minimal generic set: `DomainException` (base, 400), `NotFoundException` (404), `ConflictException` (409), `ForbiddenException` (403). Feature-specific exceptions (`InsufficientStockException`, `EventFullException`, etc.) added per-feature in Phase 4 by extending the right generic.
+  - [x] Decided: **fewer generic types**, feature-specific subclasses per-feature. Rejected a separate `ValidationException` (422) — input validation is FluentValidation → `ValidationFilter` → 400; business-rule violations extend `DomainException` / `ConflictException`.
+  - [x] Handler maps DomainException/NotFound/Conflict/Forbidden → 400/404/409/403; unknown → 500 (logged); only emits `Detail` for DomainException subtypes so internal 500 messages aren't leaked.
 
 ---
 
