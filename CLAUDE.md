@@ -69,7 +69,7 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 - **One commit per `docs/todo.md` item.** When the user asks to commit completed work, split it into separate commits — one per TODO checkbox that was ticked. Bundle items only when they're genuinely inseparable (e.g. a shared refactor touched by multiple items).
 - Meta changes (convention rules, rename sweeps, CLAUDE.md edits) get their own commits, separate from feature work.
 - `docs/todo.md` checkbox edits go with the commit that completes the item they reference, not in a trailing "tick boxes" commit.
-- Only commit when the user explicitly asks.
+- Only commit when the user explicitly asks — but at natural checkpoints (after a TODO item ticks off, after a non-trivial edit lands and builds clean) drop a short, easy-to-ignore nudge asking whether to commit or keep going. One sentence, not a ceremony. Never commit without their answer.
 
 ---
 
