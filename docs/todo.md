@@ -21,7 +21,7 @@ Ordered by phase. Reports & printouts intentionally last.
   - [x] `IQueryable<T>` extension `ToPagedResultAsync(PagedQuery)` (dropped separate `ApplyPaging` — no caller needed just-paging without count; add back when infinite-scroll endpoint appears)
   - [x] Default + max `PageSize` as consts on `PagedQuery` (20 / 100)
   - [ ] Document usage pattern for list use cases (filter record → `ApplySort` → `ToPagedResultAsync`) — deferred to first list use case in Phase 4
-- [ ] CORS config (admin panel + mobile app origins)
+- [x] CORS config (admin panel + mobile app origins) — origins read from `Cors:AllowedOrigins` in config
 - [ ] Basic request logging via built-in `ILogger` (skip Serilog — not required for thesis)
 - [ ] Health check endpoint (`/health`)
 - [ ] Verify `GlobalExceptionHandler` maps all domain exceptions → `ProblemDetails`
