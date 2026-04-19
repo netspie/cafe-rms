@@ -22,7 +22,7 @@ Ordered by phase. Reports & printouts intentionally last.
   - [x] Default + max `PageSize` as consts on `PagedQuery` (20 / 100)
   - [ ] Document usage pattern for list use cases (filter record → `ApplySort` → `ToPagedResultAsync`) — deferred to first list use case in Phase 4
 - [x] CORS config (admin panel + mobile app origins) — origins read from `Cors:AllowedOrigins` in config
-- [ ] Basic request logging via built-in `ILogger` (skip Serilog — not required for thesis)
+- [x] Basic request logging via built-in `UseHttpLogging` (method, path, query, status, duration)
 - [ ] Health check endpoint (`/health`)
 - [ ] Verify `GlobalExceptionHandler` maps all domain exceptions → `ProblemDetails`
   - [ ] Brainstorm full domain exception taxonomy — candidates: `NotFoundException`, `DomainException` (base), `ValidationException`, `ConflictException`, `ForbiddenException`, `InsufficientStockException`, `EventFullException`, `OrderAlreadyCancelledException`, `PromotionExpiredException`, `LoyaltyPointsInsufficientException`, etc.
