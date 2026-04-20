@@ -37,7 +37,7 @@ public sealed class AuditableSaveChangesInterceptor(IHttpContextAccessor httpCon
             return;
     
         var utcNow = DateTimeOffset.UtcNow;
-        var currentUserId = ResolveCurrentUserId();
+        var currentUserId = httpContextAccessor.CurrentUserId;
 
         foreach (var entry in auditEntries)
             if (entry.State == EntityState.Added)
@@ -50,14 +50,5 @@ public sealed class AuditableSaveChangesInterceptor(IHttpContextAccessor httpCon
                 entry.Property(x => x.UpdatedAt).CurrentValue = utcNow;
                 entry.Property(x => x.UpdatedBy).CurrentValue = currentUserId;
             }
-    }
-
-    private Guid ResolveCurrentUserId()
-    {
-        var httpContext = httpContextAccessor.HttpContext
-            ?? throw new InvalidOperationException(
-                "Cannot audit entity change: no HTTP context is available on the current request.");
-
-        return httpContext.User.UserId;
     }
 }

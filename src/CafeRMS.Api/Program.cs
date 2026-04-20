@@ -22,11 +22,14 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditableSaveChangesInterceptor>();
+builder.Services.AddScoped<SoftDeletableSaveChangesInterceptor>();
 
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
            .UseSnakeCaseNamingConvention()
-           .AddInterceptors(serviceProvider.GetRequiredService<AuditableSaveChangesInterceptor>()));
+           .AddInterceptors(
+               serviceProvider.GetRequiredService<AuditableSaveChangesInterceptor>(),
+               serviceProvider.GetRequiredService<SoftDeletableSaveChangesInterceptor>()));
 
 builder.Services.AddIdentityCore<AppUser>(options =>
     {
