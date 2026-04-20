@@ -10,7 +10,7 @@ Ordered by phase. Reports & printouts intentionally last.
   - [x] `AddControllers()` + `MapControllers()` in `Program.cs`, drop `MapGroup("/api")` scaffold
   - [x] Global fallback auth policy (`RequireAuthenticatedUser`) — no base class; controllers use `[ApiController]` + `[Route("api/[controller]")]`, opt out of auth with `[AllowAnonymous]`
   - [x] Convert `ValidationFilter` from `IEndpointFilter` → `IAsyncActionFilter`, register globally
-  - [ ] New top-level `Controllers/` folder — thin HTTP layer, one controller per feature; actual feature controllers added per-feature during Phase 4
+  - [x] New top-level `Controllers/` folder — deferred: folder materializes when the first feature controller lands in Phase 4; no empty scaffold
 - [x] Make `CreatedBy` non-nullable (+ migration)
 - [x] Add order cancellation reason — update `Order` entity (nullable `CancellationReason`) + migration
 - [x] During an event, keep a standard menu available for customers not participating in the event — no API change; mobile app concern (shows both menus, customer picks)
