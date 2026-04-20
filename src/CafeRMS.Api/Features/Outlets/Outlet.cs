@@ -21,7 +21,7 @@ public class Outlet : IAuditable, ISoftDeletable
 
     private Outlet() { }
 
-    public static Outlet Create(string name, string address, Currency currency, Guid companyId, Guid createdBy)
+    public static Outlet Create(string name, string address, Currency currency, Guid companyId)
     {
         return new Outlet
         {
@@ -29,9 +29,7 @@ public class Outlet : IAuditable, ISoftDeletable
             Name = name,
             Address = address,
             Currency = currency,
-            CompanyId = companyId,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            CompanyId = companyId
         };
     }
 }

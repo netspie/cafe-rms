@@ -21,8 +21,7 @@ public class OrderLine : IAuditable
 
     private OrderLine() { }
 
-    public static OrderLine Create(Guid orderId, Guid productId, int quantity, decimal netPerOne, decimal vatPerOne,
-        Guid createdBy)
+    public static OrderLine Create(Guid orderId, Guid productId, int quantity, decimal netPerOne, decimal vatPerOne)
     {
         return new OrderLine
         {
@@ -31,9 +30,7 @@ public class OrderLine : IAuditable
             ProductId = productId,
             Quantity = quantity,
             NetPerOne = netPerOne,
-            VatPerOne = vatPerOne,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            VatPerOne = vatPerOne
         };
     }
 }

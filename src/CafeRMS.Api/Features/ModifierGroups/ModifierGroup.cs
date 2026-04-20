@@ -16,14 +16,12 @@ public class ModifierGroup : IAuditable, ISoftDeletable
 
     private ModifierGroup() { }
 
-    public static ModifierGroup Create(string name, Guid createdBy)
+    public static ModifierGroup Create(string name)
     {
         return new ModifierGroup
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Name = name
         };
     }
 }

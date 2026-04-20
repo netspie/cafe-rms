@@ -18,16 +18,14 @@ public class UserSettings : IAuditable
 
     private UserSettings() { }
 
-    public static UserSettings Create(Guid userId, Guid createdBy, string theme = "light", string uiSettingsJson = "{}")
+    public static UserSettings Create(Guid userId, string theme = "light", string uiSettingsJson = "{}")
     {
         return new UserSettings
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             Theme = theme,
-            UiSettingsJson = uiSettingsJson,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            UiSettingsJson = uiSettingsJson
         };
     }
 }

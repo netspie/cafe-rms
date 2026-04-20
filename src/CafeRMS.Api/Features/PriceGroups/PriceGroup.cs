@@ -16,14 +16,12 @@ public class PriceGroup : IAuditable, ISoftDeletable
 
     private PriceGroup() { }
 
-    public static PriceGroup Create(string name, Guid createdBy)
+    public static PriceGroup Create(string name)
     {
         return new PriceGroup
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Name = name
         };
     }
 }

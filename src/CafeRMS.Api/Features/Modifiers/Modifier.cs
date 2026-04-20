@@ -19,15 +19,13 @@ public class Modifier : IAuditable, ISoftDeletable
 
     private Modifier() { }
 
-    public static Modifier Create(string name, Guid modifierGroupId, Guid createdBy)
+    public static Modifier Create(string name, Guid modifierGroupId)
     {
         return new Modifier
         {
             Id = Guid.NewGuid(),
             Name = name,
-            ModifierGroupId = modifierGroupId,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            ModifierGroupId = modifierGroupId
         };
     }
 }

@@ -16,14 +16,12 @@ public class ProductList : IAuditable, ISoftDeletable
 
     private ProductList() { }
 
-    public static ProductList Create(string name, Guid createdBy)
+    public static ProductList Create(string name)
     {
         return new ProductList
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Name = name
         };
     }
 }

@@ -17,15 +17,13 @@ public class PromotionCode : IAuditable, ISoftDeletable
 
     private PromotionCode() { }
 
-    public static PromotionCode Create(string code, decimal discountPercentage, Guid createdBy)
+    public static PromotionCode Create(string code, decimal discountPercentage)
     {
         return new PromotionCode
         {
             Id = Guid.NewGuid(),
             Code = code,
-            DiscountPercentage = discountPercentage,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            DiscountPercentage = discountPercentage
         };
     }
 }

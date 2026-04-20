@@ -21,7 +21,7 @@ public class Product : IAuditable, ISoftDeletable
 
     private Product() { }
 
-    public static Product Create(string name, Guid taxRateId, Guid createdBy, string? description = null, string? barcode = null)
+    public static Product Create(string name, Guid taxRateId, string? description = null, string? barcode = null)
     {
         return new Product
         {
@@ -29,9 +29,7 @@ public class Product : IAuditable, ISoftDeletable
             Name = name,
             Description = description,
             Barcode = barcode,
-            TaxRateId = taxRateId,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            TaxRateId = taxRateId
         };
     }
 }

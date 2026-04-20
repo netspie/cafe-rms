@@ -17,15 +17,13 @@ public class Tag : IAuditable, ISoftDeletable
 
     private Tag() { }
 
-    public static Tag Create(string name, Guid createdBy, string? imageUrl = null)
+    public static Tag Create(string name, string? imageUrl = null)
     {
         return new Tag
         {
             Id = Guid.NewGuid(),
             Name = name,
-            ImageUrl = imageUrl,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            ImageUrl = imageUrl
         };
     }
 }

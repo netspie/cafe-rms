@@ -38,7 +38,7 @@ public class Order : IAuditable, ISoftDeletable
 
     private Order() { }
 
-    public static Order Create(Guid outletId, Guid createdBy, Guid? tableId = null, Guid? salesChannelId = null,
+    public static Order Create(Guid outletId, Guid? tableId = null, Guid? salesChannelId = null,
         Guid? userId = null, Guid? eventId = null, decimal discount = 0, int loyaltyPointsUsed = 0)
     {
         return new Order
@@ -50,9 +50,7 @@ public class Order : IAuditable, ISoftDeletable
             UserId = userId,
             EventId = eventId,
             Discount = discount,
-            LoyaltyPointsUsed = loyaltyPointsUsed,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            LoyaltyPointsUsed = loyaltyPointsUsed
         };
     }
 }

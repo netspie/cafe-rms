@@ -17,15 +17,13 @@ public class PrintoutTemplate : IAuditable, ISoftDeletable
 
     private PrintoutTemplate() { }
 
-    public static PrintoutTemplate Create(string name, string templateFileUrl, Guid createdBy)
+    public static PrintoutTemplate Create(string name, string templateFileUrl)
     {
         return new PrintoutTemplate
         {
             Id = Guid.NewGuid(),
             Name = name,
-            TemplateFileUrl = templateFileUrl,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            TemplateFileUrl = templateFileUrl
         };
     }
 }

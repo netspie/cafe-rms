@@ -2,6 +2,7 @@ using System.Text;
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Infrastructure;
 using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Persistence.Interceptors;
 using CafeRMS.Api.Shared;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,9 +20,13 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditableSaveChangesInterceptor>();
+
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
-           .UseSnakeCaseNamingConvention());
+           .UseSnakeCaseNamingConvention()
+           .AddInterceptors(serviceProvider.GetRequiredService<AuditableSaveChangesInterceptor>()));
 
 builder.Services.AddIdentityCore<AppUser>(options =>
     {

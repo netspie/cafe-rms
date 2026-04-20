@@ -18,16 +18,14 @@ public class TaxRate : IAuditable, ISoftDeletable
 
     private TaxRate() { }
 
-    public static TaxRate Create(string name, string description, decimal rate, Guid createdBy)
+    public static TaxRate Create(string name, string description, decimal rate)
     {
         return new TaxRate
         {
             Id = Guid.NewGuid(),
             Name = name,
             Description = description,
-            Rate = rate,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Rate = rate
         };
     }
 }

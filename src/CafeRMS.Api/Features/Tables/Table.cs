@@ -19,15 +19,13 @@ public class Table : IAuditable, ISoftDeletable
 
     private Table() { }
 
-    public static Table Create(string name, Guid outletId, Guid createdBy)
+    public static Table Create(string name, Guid outletId)
     {
         return new Table
         {
             Id = Guid.NewGuid(),
             Name = name,
-            OutletId = outletId,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            OutletId = outletId
         };
     }
 }

@@ -18,16 +18,14 @@ public class LoyaltyPointLog : IAuditable
 
     private LoyaltyPointLog() { }
 
-    public static LoyaltyPointLog Create(Guid userId, int points, Guid createdBy, string? reason = null)
+    public static LoyaltyPointLog Create(Guid userId, int points, string? reason = null)
     {
         return new LoyaltyPointLog
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             Points = points,
-            Reason = reason,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Reason = reason
         };
     }
 }

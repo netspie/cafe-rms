@@ -16,15 +16,13 @@ public class EventDay : IAuditable
 
     private EventDay() { }
 
-    public static EventDay Create(Guid eventId, DateOnly date, Guid createdBy)
+    public static EventDay Create(Guid eventId, DateOnly date)
     {
         return new EventDay
         {
             Id = Guid.NewGuid(),
             EventId = eventId,
-            Date = date,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Date = date
         };
     }
 }

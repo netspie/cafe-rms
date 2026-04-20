@@ -16,15 +16,13 @@ public class ProductImage : IAuditable
 
     private ProductImage() { }
 
-    public static ProductImage Create(Guid productId, string url, Guid createdBy)
+    public static ProductImage Create(Guid productId, string url)
     {
         return new ProductImage
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
-            Url = url,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Url = url
         };
     }
 }

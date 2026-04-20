@@ -16,14 +16,12 @@ public class Allergen : IAuditable, ISoftDeletable
 
     private Allergen() { }
 
-    public static Allergen Create(string name, Guid createdBy)
+    public static Allergen Create(string name)
     {
         return new Allergen
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Name = name
         };
     }
 }

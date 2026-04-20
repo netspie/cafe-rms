@@ -20,7 +20,7 @@ public class Company : IAuditable, ISoftDeletable
 
     private Company() { }
 
-    public static Company Create(string name, string address, string taxId, string currency, string timeZone, Guid createdBy)
+    public static Company Create(string name, string address, string taxId, string currency, string timeZone)
     {
         return new Company
         {
@@ -29,9 +29,7 @@ public class Company : IAuditable, ISoftDeletable
             Address = address,
             TaxId = taxId,
             Currency = currency,
-            TimeZone = timeZone,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            TimeZone = timeZone
         };
     }
 }

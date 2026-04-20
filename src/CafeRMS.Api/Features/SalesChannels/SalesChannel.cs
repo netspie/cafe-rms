@@ -17,15 +17,13 @@ public class SalesChannel : IAuditable, ISoftDeletable
 
     private SalesChannel() { }
 
-    public static SalesChannel Create(string name, bool isTakeout, Guid createdBy)
+    public static SalesChannel Create(string name, bool isTakeout)
     {
         return new SalesChannel
         {
             Id = Guid.NewGuid(),
             Name = name,
-            IsTakeout = isTakeout,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            IsTakeout = isTakeout
         };
     }
 }

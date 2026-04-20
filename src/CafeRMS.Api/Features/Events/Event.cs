@@ -24,7 +24,7 @@ public class Event : IAuditable, ISoftDeletable
 
     private Event() { }
 
-    public static Event Create(string name, Guid createdBy, string? description = null, string? imageUrl = null,
+    public static Event Create(string name, string? description = null, string? imageUrl = null,
         Guid? productListId = null, Guid? priceGroupId = null)
     {
         return new Event
@@ -34,9 +34,7 @@ public class Event : IAuditable, ISoftDeletable
             Description = description,
             ImageUrl = imageUrl,
             ProductListId = productListId,
-            PriceGroupId = priceGroupId,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            PriceGroupId = priceGroupId
         };
     }
 }

@@ -19,16 +19,14 @@ public class ProductPrice : IAuditable
 
     private ProductPrice() { }
 
-    public static ProductPrice Create(Guid productId, Guid priceGroupId, decimal net, Guid createdBy)
+    public static ProductPrice Create(Guid productId, Guid priceGroupId, decimal net)
     {
         return new ProductPrice
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
             PriceGroupId = priceGroupId,
-            Net = net,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            Net = net
         };
     }
 }
