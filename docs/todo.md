@@ -33,6 +33,8 @@ Ordered by phase. Reports & printouts intentionally last.
 
 ## Phase 1 — Use case brainstorm (per feature)
 
+> Output: [`docs/use-cases.md`](./use-cases.md). Open questions at the bottom need a decision pass before Phase 4.
+
 Go feature by feature and write down every use case. Map each to one of the **3 closed business processes**.
 
 Candidate business processes:
@@ -47,26 +49,26 @@ For each feature folder, list:
 
 Features to walk through:
 
-- [ ] Allergens
-- [ ] Auth
-- [ ] Companies
-- [ ] Events
-- [ ] Favorites
-- [ ] Loyalty
-- [ ] ModifierGroups
-- [ ] Modifiers
-- [ ] Orders
-- [ ] Outlets
-- [ ] PriceGroups
-- [ ] PrintoutTemplates
-- [ ] ProductLists
-- [ ] Products
-- [ ] PromotionCodes
-- [ ] SalesChannels
-- [ ] Tables
-- [ ] Tags
-- [ ] TaxRates
-- [ ] UserSettings
+- [x] Allergens
+- [x] Auth
+- [x] Companies
+- [x] Events
+- [x] Favorites
+- [x] Loyalty
+- [x] ModifierGroups
+- [x] Modifiers
+- [x] Orders
+- [x] Outlets
+- [x] PriceGroups
+- [x] PrintoutTemplates
+- [x] ProductLists
+- [x] Products
+- [x] PromotionCodes
+- [x] SalesChannels
+- [x] Tables
+- [x] Tags
+- [x] TaxRates
+- [x] UserSettings
 
 ---
 
