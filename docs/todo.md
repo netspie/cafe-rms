@@ -146,6 +146,21 @@ Identity tables: 4 only (`asp_net_users`, `asp_net_roles`, `asp_net_user_roles`,
 
 ---
 
+## Phase 3.5 — Test project setup
+
+Must land **before Phase 4** so every feature slice can ship with its tests in the same commit. Per-endpoint tests are authored **inside Phase 4** alongside their use case; only the shared scaffolding + e2e tests live outside it.
+
+- [ ] Create `CafeRMS.Api.Tests` project (NUnit, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory`, FluentAssertions)
+- [ ] `ApiFactory : WebApplicationFactory<Program>` — overrides `AppDbContext` to use InMemory DB (unique GUID per test) so tests are isolated and parallel-safe
+- [ ] JWT test-token helper — `factory.CreateClientAs(accountType, companyId?, permissions[])` returning an `HttpClient` with `Authorization: Bearer ...` set; exercises the real auth pipeline, no auth bypass
+- [ ] Anonymous-client helper for unauthenticated cases (`factory.CreateAnonymousClient()`)
+- [ ] Common JSON + `ProblemDetails` assertion helpers (colocated, no base class)
+- [ ] Folder layout mirrors `Features/` per `CLAUDE.md`: `CafeRMS.Api.Tests/Features/<Feature>/<UseCase>Tests.cs`
+- [ ] Document philosophy in test project README: **no mocking** unless unavoidable; happy path first, then key failure cases; one test class per use case file
+- [ ] Hook `dotnet test` into local dev loop before the first Phase 4 feature lands
+
+---
+
 ## Phase 4 — Implement use cases
 
 - [ ] Implement every use case from Phase 1, feature by feature
@@ -155,6 +170,7 @@ Identity tables: 4 only (`asp_net_users`, `asp_net_roles`, `asp_net_user_roles`,
 - [ ] Each use case = one file (route + request + command + handler + validator + response)
 - [ ] **Per feature**: add indexes for every sortable + filterable column; composite index where filter + sort combine (e.g., `(outlet_id, created_at DESC)`); always include `deleted_at` in soft-deletable tables (+ migration per feature)
 - [ ] **Per feature**: define sort whitelist (mandatory — never pass raw user input to `OrderBy`) and filter record colocated with the list use case
+- [ ] **Per feature — tests alongside endpoints**: every use case ships with API tests in the same commit (happy path + key failure cases: not-found, unauthorized, forbidden, validation, conflict). Use the shared scaffolding from Phase 3.5. No feature is "done" without its tests green.
 
 ---
 
@@ -182,13 +198,14 @@ Required by university. Design these as the **query layer for the 3 reports in P
 
 ---
 
-## Phase 6 — Tests
+## Phase 6 — End-to-end tests for closed processes
 
-- [ ] NUnit + `WebApplicationFactory` + InMemory DB (unique GUID per test)
-- [ ] JWT test-token helper
-- [ ] **API test per endpoint** — happy path + key failure cases
-- [ ] **3 end-to-end tests**, one per closed business process (order / event / loyalty)
-- [ ] No mocking unless unavoidable
+Test-project scaffolding is in Phase 3.5; per-endpoint tests ship inside Phase 4 alongside each use case. This phase covers only the cross-feature, end-to-end scenarios that can't be written until the relevant features exist.
+
+- [ ] **E2E: Order lifecycle** — register customer → browse menu → place order (with promo + loyalty redemption) → staff accept → start preparing → mark ready → close → loyalty points credited
+- [ ] **E2E: Event lifecycle** — staff create event + days → publish → customer register → staff check-in → close event → loyalty payout for attendees
+- [ ] **E2E: Loyalty lifecycle** — customer enrollment (implicit at registration) → earn from order → earn from event → redeem in next order → balance + history reflect all activity
+- [ ] Sanity pass: all per-feature tests from Phase 4 still green after the system is wired end-to-end
 
 ---
 
