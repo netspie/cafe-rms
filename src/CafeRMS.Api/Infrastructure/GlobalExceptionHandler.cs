@@ -1,6 +1,7 @@
 using CafeRMS.Api.Shared.Errors;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Infrastructure;
 
@@ -14,6 +15,7 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
             ConflictException => (StatusCodes.Status409Conflict, "Conflict"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden"),
             DomainException => (StatusCodes.Status400BadRequest, "Bad Request"),
+            DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Conflict"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
         };
 
@@ -24,11 +26,18 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
 
         httpContext.Response.StatusCode = statusCode;
 
+        var detail = exception switch
+        {
+            DomainException => exception.Message,
+            DbUpdateConcurrencyException => "The record was modified by another user. Reload and try again.",
+            _ => null
+        };
+
         await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
         {
             Status = statusCode,
             Title = title,
-            Detail = exception is DomainException ? exception.Message : null
+            Detail = detail
         }, ct);
 
         return true;

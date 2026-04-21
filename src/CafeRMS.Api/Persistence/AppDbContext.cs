@@ -74,6 +74,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
         ApplySoftDeleteQueryFilters(builder);
+        ApplyXminConcurrencyTokens(builder);
     }
 
     private static void ApplySoftDeleteQueryFilters(ModelBuilder builder)
@@ -89,6 +90,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             var lambda = Expression.Lambda(isNotDeleted, parameter);
 
             entityType.SetQueryFilter(lambda);
+        }
+    }
+
+    private static void ApplyXminConcurrencyTokens(ModelBuilder builder)
+    {
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            builder.Entity(entityType.ClrType)
+                .Property<uint>("xmin")
+                .IsConcurrencyToken()
+                .ValueGeneratedOnAddOrUpdate();
         }
     }
 }
