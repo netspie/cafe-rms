@@ -17,7 +17,6 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>, IEntityTypeCo
         builder.HasOne(x => x.SalesChannel).WithMany().HasForeignKey(x => x.SalesChannelId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.Event).WithMany().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.SetNull);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 
     public void Configure(EntityTypeBuilder<OrderLine> builder)

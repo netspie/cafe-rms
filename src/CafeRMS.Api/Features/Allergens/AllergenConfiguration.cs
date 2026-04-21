@@ -9,6 +9,5 @@ public class AllergenConfiguration : IEntityTypeConfiguration<Allergen>
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }

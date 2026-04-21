@@ -10,6 +10,5 @@ public class ModifierConfiguration : IEntityTypeConfiguration<Modifier>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.HasOne(x => x.ModifierGroup).WithMany().HasForeignKey(x => x.ModifierGroupId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }

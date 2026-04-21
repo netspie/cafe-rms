@@ -18,7 +18,6 @@ public class ProductConfiguration
         builder.Property(x => x.Description).HasMaxLength(1000);
         builder.Property(x => x.Barcode).HasMaxLength(100);
         builder.HasOne(x => x.TaxRate).WithMany().HasForeignKey(x => x.TaxRateId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 
     public void Configure(EntityTypeBuilder<ProductImage> builder)

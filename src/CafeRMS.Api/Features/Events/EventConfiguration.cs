@@ -13,7 +13,6 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>, IEntityTypeCo
         builder.Property(x => x.ImageUrl).HasMaxLength(500);
         builder.HasOne(x => x.ProductList).WithMany().HasForeignKey(x => x.ProductListId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.PriceGroup).WithMany().HasForeignKey(x => x.PriceGroupId).OnDelete(DeleteBehavior.SetNull);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 
     public void Configure(EntityTypeBuilder<EventDay> builder)

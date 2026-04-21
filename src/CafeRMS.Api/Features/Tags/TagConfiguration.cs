@@ -10,6 +10,5 @@ public class TagConfiguration : IEntityTypeConfiguration<Tag>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.Property(x => x.ImageUrl).HasMaxLength(500);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }

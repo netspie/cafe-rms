@@ -9,7 +9,6 @@ public class ProductListConfiguration : IEntityTypeConfiguration<ProductList>, I
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 
     public void Configure(EntityTypeBuilder<ProductListItem> builder)

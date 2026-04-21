@@ -13,6 +13,5 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(x => x.TaxId).IsRequired().HasMaxLength(50);
         builder.Property(x => x.Currency).IsRequired().HasMaxLength(10);
         builder.Property(x => x.TimeZone).IsRequired().HasMaxLength(100);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }

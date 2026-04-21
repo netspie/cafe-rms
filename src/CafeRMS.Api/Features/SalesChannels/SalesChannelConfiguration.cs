@@ -9,7 +9,6 @@ public class SalesChannelConfiguration : IEntityTypeConfiguration<SalesChannel>,
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 
     public void Configure(EntityTypeBuilder<SalesChannelPriceGroup> builder)

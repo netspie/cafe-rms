@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using CafeRMS.Api.Features.Allergens;
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Companies;
@@ -18,6 +19,7 @@ using CafeRMS.Api.Features.Tables;
 using CafeRMS.Api.Features.Tags;
 using CafeRMS.Api.Features.TaxRates;
 using CafeRMS.Api.Features.UserSettings;
+using CafeRMS.Api.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -60,18 +62,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     {
         base.OnModelCreating(builder);
 
-        // Exclude unused Identity tables
         builder.Ignore<IdentityUserClaim<Guid>>();
         builder.Ignore<IdentityUserLogin<Guid>>();
         builder.Ignore<IdentityUserToken<Guid>>();
 
-        // Force snake_case on Identity tables (NamingConventions runs after OnModelCreating,
-        // but Identity sets explicit table names which override the convention)
         builder.Entity<AppUser>().ToTable("asp_net_users");
         builder.Entity<AppRole>().ToTable("asp_net_roles");
         builder.Entity<IdentityUserRole<Guid>>().ToTable("asp_net_user_roles");
         builder.Entity<IdentityRoleClaim<Guid>>().ToTable("asp_net_role_claims");
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        ApplySoftDeleteQueryFilters(builder);
+    }
+
+    private static void ApplySoftDeleteQueryFilters(ModelBuilder builder)
+    {
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            var parameter = Expression.Parameter(entityType.ClrType, "e");
+            var deletedAt = Expression.Property(parameter, nameof(ISoftDeletable.DeletedAt));
+            var isNotDeleted = Expression.Equal(deletedAt, Expression.Constant(null, typeof(DateTimeOffset?)));
+            var lambda = Expression.Lambda(isNotDeleted, parameter);
+
+            entityType.SetQueryFilter(lambda);
+        }
     }
 }

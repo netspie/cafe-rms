@@ -10,6 +10,5 @@ public class PrintoutTemplateConfiguration : IEntityTypeConfiguration<PrintoutTe
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.Property(x => x.TemplateFileUrl).IsRequired().HasMaxLength(500);
-        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }
