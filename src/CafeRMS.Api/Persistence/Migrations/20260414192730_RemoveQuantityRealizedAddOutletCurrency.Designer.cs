@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace CafeRMS.Api.Migrations
+namespace CafeRMS.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260414192730_RemoveQuantityRealizedAddOutletCurrency")]

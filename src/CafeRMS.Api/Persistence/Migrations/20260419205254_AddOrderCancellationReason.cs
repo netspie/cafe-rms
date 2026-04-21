@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace CafeRMS.Api.Migrations
+namespace CafeRMS.Api.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class AddOrderCancellationReason : Migration
