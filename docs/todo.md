@@ -79,71 +79,95 @@ Features to walk through:
 - [x] **Global query filter** for `ISoftDeletable` (skip join tables) — centralized in `AppDbContext.OnModelCreating` via expression-tree over `builder.Model.GetEntityTypes()`; removed 16 duplicated `HasQueryFilter(x => x.DeletedAt == null)` lines from feature configs. No join tables implement `ISoftDeletable`, so none had to be skipped.
 - [ ] **Join-table cleanup on soft-delete — Phase 4 convention**: every `DeleteX` handler whose entity is on one side of a join table must hard-delete the matching join rows in the same unit of work (`await db.ProductTags.Where(pt => pt.TagId == id).ExecuteDeleteAsync()`). Required for: `Tag` (→ ProductTag), `Allergen` (→ ProductAllergen), `ModifierGroup` / `Product` (→ ProductModifierGroup), `ProductList` / `Product` (→ ProductListItem), `SalesChannel` / `PriceGroup` (→ SalesChannelPriceGroup), `Product` (→ Favorite). Rationale: a join row *is* the relationship — when one side logically goes away, the link goes away. Explicit one-liner per handler is easier to explain in thesis defense than an auto-cascade interceptor.
 - [x] **Optimistic concurrency**: use Postgres `xmin` as shadow row-version property on entities edited by multiple users (zero app-logic overhead, native PG); map `DbUpdateConcurrencyException` → `ConflictException` in global handler — applied to every `ISoftDeletable` entity via `ApplyXminConcurrencyTokens` in `AppDbContext.OnModelCreating` (shadow `uint xmin` property, `IsConcurrencyToken + ValueGeneratedOnAddOrUpdate`; Npgsql maps it to the existing Postgres system column, so the migration body is empty — no DDL needed). `GlobalExceptionHandler` now maps `DbUpdateConcurrencyException` → 409 with a "record was modified by another user" detail message. Also moved `Migrations/` → `Persistence/Migrations/` to colocate with `AppDbContext.cs`.
-- [ ] Wrap multi-entity writes in transactions (order placement, event registration, loyalty redemption)
-- [ ] Review every generated migration before applying
+- [x] Review every generated migration before applying — standing discipline; already caught the xmin `AddColumn` mis-emission and emptied the migration body before it hit the DB.
 
 ---
 
 ## Phase 3 — Auth, identity, permissions
 
-Identity tables: 4 only (`asp_net_users`, `asp_net_roles`, `asp_net_user_roles`, `asp_net_role_claims`). Roles are **dynamic, per-company**; claims attached to roles. User / role / role-claim CRUD lives in the **Auth feature use cases** brainstormed in Phase 1 — this phase is cross-cutting infra + data-model decisions.
+Identity tables: **4 only** (`asp_net_users`, `asp_net_roles`, `asp_net_user_roles`, `asp_net_role_claims`) — the 3 default-Identity tables `UserClaims`, `UserLogins`, `UserTokens` are excluded from the schema (see Data model below). Roles are **dynamic, per-company**; claims attached to roles. User / role / role-claim CRUD lives in the **Auth feature use cases** brainstormed in Phase 1 — this phase is cross-cutting infra + data-model decisions.
+
+### Multi-tenancy — `CompanyId` FK sweep
+
+One-time schema sweep before the feature work starts. Every top-level config entity is owned by a company.
+
+- [ ] Add `CompanyId` FK + migration to 13 entities: `Product`, `Event`, `PromotionCode`, `Tag`, `Allergen`, `ModifierGroup`, `Modifier`, `PriceGroup`, `ProductList`, `SalesChannel`, `TaxRate`, `Table`, `PrintoutTemplate` (`Outlet` already has it)
+- [ ] Add `CompanyId` FK + migration to `LoyaltyPointLog` — no transitive path via `UserId` since guests span companies
+- [ ] `ICurrentCompany` service — reads `companyId` from JWT (Staff) or `X-Company-Id` header (SuperAdmin context switch); scoped DI lifetime
+- [ ] **Global query filter** centralized in `AppDbContext.OnModelCreating`: for every entity with `CompanyId`, auto-filter by `_currentCompany.Id` — same loop-over-`builder.Model.GetEntityTypes()` pattern as the existing `ISoftDeletable` filter, so handlers never type `.Where(x => x.CompanyId == …)` by hand
+- [ ] Entities that **don't** need direct `CompanyId` (reach company transitively): `Order` (via `Outlet`), `Favorite` (via `Product`), `EventDay` (via `Event`), `UserSettings` (global per-guest, mobile-app only), all join tables
 
 ### Data model
 
-- [ ] `AppUser.AccountType` enum on `AppUser`: `SuperAdmin` | `Staff` | `Customer` (single source of truth)
-- [ ] `Customer` entity — 1:1 with `AppUser` (AccountType = Customer); holds customer profile (loyalty link, preferences, etc.)
+- [ ] `AppUser.AccountType` enum on `AppUser`: `SuperAdmin` | `Staff` | `Guest` (single source of truth)
+- [ ] `Guest` entity — 1:1 with `AppUser` (AccountType = Guest); holds guest profile (loyalty link, preferences, etc.)
 - [ ] `StaffMember` entity — 1:1 with `AppUser` (AccountType = Staff); FK to `Company`, attached to dynamic roles
 - [ ] `AppRole` scoped per-company (add `CompanyId` FK; null = global, only used by the SuperAdmin flow if at all)
 - [ ] Auto-seed an **`Owner`** role with full claims when a new company is registered (creator of the company → assigned Owner)
-- [ ] Company entity — brainstorm proper fields (legal name, tax id, address, billing/contact, timezone, currency, logo, etc.)
+- [ ] `Company` fields: `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone` — legal/accounting shell; drops today's `Name` / `Address` / `Currency` / `TimeZone` (moved to `Outlet` per the 1:1 split)
+- [ ] `Outlet` fields: rename `Name` → `DisplayName` (customer-facing brand), rename `Address` → `StreetAddress`, add `Phone`, `TimeZone`, `LogoUrl`; keep `Currency` (enum)
+- [ ] Enforce **1:1 Company↔Outlet** via unique index on `Outlet.CompanyId` — all three Company/Outlet changes ship in one migration; staff scoping stays company-wide as a result
+- [ ] `AppUser : IdentityUser<Guid>`, `AppRole : IdentityRole<Guid>`, `AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>` — keeps every user-FK as `uuid`, not `varchar(GUID-as-string)`
+- [ ] In `AppDbContext.OnModelCreating`, `builder.Ignore<IdentityUserClaim<Guid>>()`, `Ignore<IdentityUserLogin<Guid>>()`, `Ignore<IdentityUserToken<Guid>>()` so only the 4 Identity tables materialize in the migration
 
 ### JWT claim design
 
-- [ ] `accountType` — `SuperAdmin` / `Staff` / `Customer`
+- [ ] `accountType` — `SuperAdmin` / `Staff` / `Guest`
 - [ ] `companyId` — Staff only
 - [ ] `permission` — Staff only, multi-valued, flattened from role-claims at login
 - [ ] `sub` — user id
+- [ ] Signing key from `Jwt:SigningKey` — user-secrets in dev, env var in prod, never `appsettings.json`
+- [ ] Token lifetime: **24h** (single value for admin panel + mobile)
 
 ### Policies (two layers)
 
-- [ ] **Type-gate policies**: `RequireCustomer`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin`
+- [ ] **Type-gate policies**: `RequireGuest`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin`
 - [ ] **Permission policies** (Staff granularity): `products:write`, `products:delete`, `orders:refund`, `events:manage`, … — each passes if SuperAdmin, OR Staff with matching `permission` claim
 - [ ] Single custom `PermissionRequirement` + handler to evaluate permission policies uniformly
+- [ ] **Permission constants registry** — `Permissions` static class (e.g. `Permissions.Products.Delete = "products:delete"`) as single source of truth for policy attributes + role-claim seed + admin UI
 
 ### Endpoint scoping (flat routes, gated by policies)
 
-- [ ] Customer-only endpoints → `RequireCustomer` (`POST /api/my/orders`, favorites, loyalty redeem, …)
+- [ ] Guest-only endpoints → `RequireGuest` (`POST /api/my/orders`, favorites, loyalty redeem, …)
 - [ ] Staff config endpoints → permission policy (`DELETE /api/products/{id}` → `products:delete`)
 - [ ] SuperAdmin-only → `RequireSuperAdmin` (`POST /api/companies`, cross-company ops)
 - [ ] Shared endpoints (e.g. `GET /api/products`) — `RequireAuthorization()`; handler adapts response by `accountType`
-- [ ] **Company isolation**: every Staff query must filter by `user.CompanyId` from JWT — enforce in handlers / query helper
+- [ ] **Company isolation**: enforced by the global query filter on `ICurrentCompany` (see multi-tenancy block) — handlers don't re-filter by company
 
 ### Auth use cases (lives in Phase 1 Auth brainstorm; cross-ref here)
 
 - [ ] Single `/auth/login` endpoint (no `/admin` vs `/mobile` split — JWT carries `accountType`)
-- [ ] `POST /auth/register/customer` — self-serve, creates `AppUser` + `Customer`
+- [ ] `POST /auth/register/guest` — self-serve, creates `AppUser` + `Guest`
 - [ ] `POST /auth/register/staff` — Owner/SuperAdmin creates staff in their company, creates `AppUser` + `StaffMember`
-- [ ] No email verification, no refresh tokens (skipped for scope)
+- [ ] `PUT /auth/password` — logged-in user changes own password (current + new)
+- [ ] No email verification, no refresh tokens, no forgotten-password reset (skipped for scope)
+- [ ] Logout: client drops the token (stateless JWT, no server-side invalidation)
 
 ### Seeding
 
-- [ ] **Startup seed**: SuperAdmin account (email + initial password from config / env var, never hardcoded; idempotent — only created if no SuperAdmin exists)
+- [ ] **Startup seed** runs when `ASPNETCORE_ENVIRONMENT != "Testing"` — `ApiFactory` overrides env to `Testing`, so tests get an empty DB automatically (no extra flag)
+- [ ] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword` (user-secrets in dev, env var in prod, never hardcoded). Idempotent — only created if no SuperAdmin exists.
 - [ ] Seed demo company + Owner user for dev/demo
-- [ ] On `POST /api/companies` (SuperAdmin): auto-create default `Owner` role with full claims
+- [ ] On `POST /api/companies` (SuperAdmin): auto-create default `Owner` role with full claims + assign creator
 
 ### SuperAdmin company-context switching
 
 - [ ] SuperAdmin frontend lists all companies; picks one to work on (context switcher)
 - [ ] Request carries `X-Company-Id` header (or company id re-baked into JWT on switch)
-- [ ] Server: if `accountType = SuperAdmin`, scope queries to selected context company instead of `companyId` claim
+- [ ] Server: if `accountType = SuperAdmin`, `ICurrentCompany` resolves from `X-Company-Id` instead of the `companyId` claim; global query filter Just Works
 - [ ] Owner-style endpoints (products, outlets, events) work normally for the selected context
 - [ ] Promotion path `POST /api/superadmins` (SuperAdmin-only) — optional, skip for thesis scope unless needed
 - [ ] **Thesis note**: in real SaaS, silent cross-tenant impersonation has GDPR / contract implications (needs audit logging, tenant consent, etc.). For this thesis it's acceptable as a scoped simplification — mention as a compliance consideration in the thesis documentation and log SuperAdmin actions for audit.
 
+### Safeguards
+
+- [ ] Cannot delete/demote the **last user holding the `Owner` role** in a company (prevents orphaning)
+- [ ] Role-CRUD endpoints (create role, assign claims, assign users to roles) are Owner-only — prevents a Staff user from self-granting elevated permissions
+
 ### Other
 
 - [ ] `ClaimsPrincipal` extensions: `UserId`, `AccountType`, `CompanyId`, `HasPermission(string)`
-- [ ] Brainstorm **resource-based authorization** (user A can't mutate user B's order / favorite / loyalty via passed IDs) — options: `IAuthorizationService` + handlers, endpoint filters, or inline ownership check; decide per resource (Orders, Favorites, UserSettings, Loyalty, …)
+- [ ] Brainstorm **resource-based authorization** (guest A can't mutate guest B's order / favorite via passed IDs) — options: `IAuthorizationService` + handlers, endpoint filters, or inline ownership check; decide per resource (Orders, Favorites, UserSettings, Loyalty, …)
 
 ---
 
@@ -172,6 +196,7 @@ Must land **before Phase 4** so every feature slice can ship with its tests in t
 - [ ] **Per feature**: add indexes for every sortable + filterable column; composite index where filter + sort combine (e.g., `(outlet_id, created_at DESC)`); always include `deleted_at` in soft-deletable tables (+ migration per feature)
 - [ ] **Per feature**: define sort whitelist (mandatory — never pass raw user input to `OrderBy`) and filter record colocated with the list use case
 - [ ] **Per feature — tests alongside endpoints**: every use case ships with API tests in the same commit (happy path + key failure cases: not-found, unauthorized, forbidden, validation, conflict). Use the shared scaffolding from Phase 3.5. No feature is "done" without its tests green.
+- [ ] **Wrap multi-entity writes in transactions** — order placement, event registration, loyalty redemption, etc. Each handler that mutates multiple entities wraps the work in `db.Database.BeginTransactionAsync()` (or relies on the `SaveChanges` implicit transaction when a single call suffices). Moved here from Phase 2 — can't be done before the handlers exist.
 
 ---
 
