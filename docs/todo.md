@@ -107,8 +107,8 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 - [x] `Company` fields: `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone` — legal/accounting shell; drops today's `Name` / `Address` / `Currency` / `TimeZone` (moved to `Outlet` per the 1:1 split)
 - [x] `Outlet` fields: rename `Name` → `DisplayName` (customer-facing brand), rename `Address` → `StreetAddress`, add `Phone`, `TimeZone`, `LogoUrl`; keep `Currency` (enum)
 - [x] Enforce **1:1 Company↔Outlet** via unique index on `Outlet.CompanyId` — all three Company/Outlet changes ship in one migration; staff scoping stays company-wide as a result
-- [ ] `AppUser : IdentityUser<Guid>`, `AppRole : IdentityRole<Guid>`, `AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>` — keeps every user-FK as `uuid`, not `varchar(GUID-as-string)`
-- [ ] In `AppDbContext.OnModelCreating`, `builder.Ignore<IdentityUserClaim<Guid>>()`, `Ignore<IdentityUserLogin<Guid>>()`, `Ignore<IdentityUserToken<Guid>>()` so only the 4 Identity tables materialize in the migration
+- [x] `AppUser : IdentityUser<Guid>`, `AppRole : IdentityRole<Guid>`, `AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>` — keeps every user-FK as `uuid`, not `varchar(GUID-as-string)`
+- [x] In `AppDbContext.OnModelCreating`, `builder.Ignore<IdentityUserClaim<Guid>>()`, `Ignore<IdentityUserLogin<Guid>>()`, `Ignore<IdentityUserToken<Guid>>()` so only the 4 Identity tables materialize in the migration
 
 ### JWT claim design
 
@@ -116,7 +116,7 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 - [ ] `companyId` — Staff only
 - [ ] `permission` — Staff only, multi-valued, flattened from role-claims at login
 - [ ] `sub` — user id
-- [ ] Signing key from `Jwt:SigningKey` — user-secrets in dev, env var in prod, never `appsettings.json`
+- [x] Signing key from `Jwt:Key` — user-secrets in dev, env var in prod, never `appsettings.json`
 - [ ] Token lifetime: **24h** (single value for admin panel + mobile)
 
 ### Policies (two layers)
@@ -124,7 +124,7 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 - [ ] **Type-gate policies**: `RequireGuest`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin`
 - [ ] **Permission policies** (Staff granularity): `products:write`, `products:delete`, `orders:refund`, `events:manage`, … — each passes if SuperAdmin, OR Staff with matching `permission` claim
 - [ ] Single custom `PermissionRequirement` + handler to evaluate permission policies uniformly
-- [ ] **Permission constants registry** — `Permissions` static class (e.g. `Permissions.Products.Delete = "products:delete"`) as single source of truth for policy attributes + role-claim seed + admin UI
+- [x] **Permission constants registry** — `Permissions` static class (flat PascalCase: `Permissions.ProductsManage = "ProductsManage"`; no `permissions:` prefix since the claim type already carries "permission"; staff-config only — Guest actions like `PlaceOrders` / `ManageFavorites` excluded) as single source of truth for policy attributes + role-claim seed + admin UI
 
 ### Endpoint scoping (flat routes, gated by policies)
 

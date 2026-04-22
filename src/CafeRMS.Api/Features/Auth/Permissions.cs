@@ -2,40 +2,30 @@ namespace CafeRMS.Api.Features.Auth;
 
 public static class Permissions
 {
-    public const string ManageCompanies = "permissions:manage_companies";
-    public const string ManageOutlets = "permissions:manage_outlets";
-    public const string ManageTables = "permissions:manage_tables";
-    public const string ManageProducts = "permissions:manage_products";
-    public const string ManageModifiers = "permissions:manage_modifiers";
-    public const string ManageMenus = "permissions:manage_menus";
-    public const string ManageTaxRates = "permissions:manage_tax_rates";
-    public const string ManagePricing = "permissions:manage_pricing";
-    public const string ManageSalesChannels = "permissions:manage_sales_channels";
-    public const string ManagePromotions = "permissions:manage_promotions";
-    public const string ManageEvents = "permissions:manage_events";
-    public const string ManageUsers = "permissions:manage_users";
-    public const string ManageRoles = "permissions:manage_roles";
-    public const string ManagePrintoutTemplates = "permissions:manage_printout_templates";
-    public const string ViewOrders = "permissions:view_orders";
-    public const string ManageOrders = "permissions:manage_orders";
-    public const string ViewReports = "permissions:view_reports";
-    public const string PlaceOrders = "permissions:place_orders";
-    public const string ManageFavorites = "permissions:manage_favorites";
-    public const string ManageLoyalty = "permissions:manage_loyalty";
+    public const string OutletManage = "OutletManage";
+    public const string TablesManage = "TablesManage";
+    public const string ProductsManage = "ProductsManage";
+    public const string ModifiersManage = "ModifiersManage";
+    public const string MenusManage = "MenusManage";
+    public const string TaxRatesManage = "TaxRatesManage";
+    public const string PricingManage = "PricingManage";
+    public const string SalesChannelsManage = "SalesChannelsManage";
+    public const string PromotionsManage = "PromotionsManage";
+    public const string EventsManage = "EventsManage";
+    public const string UsersManage = "UsersManage";
+    public const string RolesManage = "RolesManage";
+    public const string PrintoutTemplatesManage = "PrintoutTemplatesManage";
+    public const string OrdersView = "OrdersView";
+    public const string OrdersManage = "OrdersManage";
+    public const string ReportsView = "ReportsView";
+    public const string LoyaltyManage = "LoyaltyManage";
 
     public static readonly string[] All =
     [
-        ManageCompanies, ManageOutlets, ManageTables, ManageProducts,
-        ManageModifiers, ManageMenus, ManageTaxRates, ManagePricing,
-        ManageSalesChannels, ManagePromotions, ManageEvents, ManageUsers,
-        ManageRoles, ManagePrintoutTemplates, ViewOrders, ManageOrders,
-        ViewReports, PlaceOrders, ManageFavorites, ManageLoyalty
+        OutletManage, TablesManage, ProductsManage, ModifiersManage,
+        MenusManage, TaxRatesManage, PricingManage, SalesChannelsManage,
+        PromotionsManage, EventsManage, UsersManage, RolesManage,
+        PrintoutTemplatesManage, OrdersView, OrdersManage, ReportsView,
+        LoyaltyManage
     ];
-}
-
-public static class Roles
-{
-    public const string Admin = "Admin";
-    public const string Staff = "Staff";
-    public const string Customer = "Customer";
 }
