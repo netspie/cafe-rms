@@ -6,9 +6,12 @@ namespace CafeRMS.Api.Features.Outlets;
 public class Outlet : IAuditable, ISoftDeletable
 {
     public Guid Id { get; private init; }
-    public string Name { get; private set; } = "";
-    public string Address { get; private set; } = "";
+    public string DisplayName { get; private set; } = "";
+    public string StreetAddress { get; private set; } = "";
+    public string Phone { get; private set; } = "";
+    public string TimeZone { get; private set; } = "";
     public Currency Currency { get; private set; }
+    public string? LogoUrl { get; private set; }
     public Guid CompanyId { get; private init; }
     public Company? Company { get; private init; }
 
@@ -21,15 +24,18 @@ public class Outlet : IAuditable, ISoftDeletable
 
     private Outlet() { }
 
-    public static Outlet Create(string name, string address, Currency currency, Guid companyId)
+    public static Outlet Create(string displayName, string streetAddress, string phone, string timeZone, Currency currency, Guid companyId, string? logoUrl = null)
     {
         return new Outlet
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            Address = address,
+            DisplayName = displayName,
+            StreetAddress = streetAddress,
+            Phone = phone,
+            TimeZone = timeZone,
             Currency = currency,
-            CompanyId = companyId
+            CompanyId = companyId,
+            LogoUrl = logoUrl
         };
     }
 }

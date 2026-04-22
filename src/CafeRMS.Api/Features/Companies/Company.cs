@@ -5,11 +5,11 @@ namespace CafeRMS.Api.Features.Companies;
 public class Company : IAuditable, ISoftDeletable
 {
     public Guid Id { get; private init; }
-    public string Name { get; private set; } = "";
-    public string Address { get; private set; } = "";
+    public string LegalName { get; private set; } = "";
     public string TaxId { get; private set; } = "";
-    public string Currency { get; private set; } = "";
-    public string TimeZone { get; private set; } = "";
+    public string InvoicingAddress { get; private set; } = "";
+    public string BillingEmail { get; private set; } = "";
+    public string BillingPhone { get; private set; } = "";
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -20,16 +20,16 @@ public class Company : IAuditable, ISoftDeletable
 
     private Company() { }
 
-    public static Company Create(string name, string address, string taxId, string currency, string timeZone)
+    public static Company Create(string legalName, string taxId, string invoicingAddress, string billingEmail, string billingPhone)
     {
         return new Company
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            Address = address,
+            LegalName = legalName,
             TaxId = taxId,
-            Currency = currency,
-            TimeZone = timeZone
+            InvoicingAddress = invoicingAddress,
+            BillingEmail = billingEmail,
+            BillingPhone = billingPhone
         };
     }
 }

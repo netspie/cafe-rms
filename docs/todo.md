@@ -104,9 +104,9 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 - [ ] `StaffMember` entity — 1:1 with `AppUser` (AccountType = Staff); FK to `Company`, attached to dynamic roles
 - [ ] `AppRole` scoped per-company (add `CompanyId` FK; null = global, only used by the SuperAdmin flow if at all)
 - [ ] Auto-seed an **`Owner`** role with full claims when a new company is registered (creator of the company → assigned Owner)
-- [ ] `Company` fields: `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone` — legal/accounting shell; drops today's `Name` / `Address` / `Currency` / `TimeZone` (moved to `Outlet` per the 1:1 split)
-- [ ] `Outlet` fields: rename `Name` → `DisplayName` (customer-facing brand), rename `Address` → `StreetAddress`, add `Phone`, `TimeZone`, `LogoUrl`; keep `Currency` (enum)
-- [ ] Enforce **1:1 Company↔Outlet** via unique index on `Outlet.CompanyId` — all three Company/Outlet changes ship in one migration; staff scoping stays company-wide as a result
+- [x] `Company` fields: `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone` — legal/accounting shell; drops today's `Name` / `Address` / `Currency` / `TimeZone` (moved to `Outlet` per the 1:1 split)
+- [x] `Outlet` fields: rename `Name` → `DisplayName` (customer-facing brand), rename `Address` → `StreetAddress`, add `Phone`, `TimeZone`, `LogoUrl`; keep `Currency` (enum)
+- [x] Enforce **1:1 Company↔Outlet** via unique index on `Outlet.CompanyId` — all three Company/Outlet changes ship in one migration; staff scoping stays company-wide as a result
 - [ ] `AppUser : IdentityUser<Guid>`, `AppRole : IdentityRole<Guid>`, `AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>` — keeps every user-FK as `uuid`, not `varchar(GUID-as-string)`
 - [ ] In `AppDbContext.OnModelCreating`, `builder.Ignore<IdentityUserClaim<Guid>>()`, `Ignore<IdentityUserLogin<Guid>>()`, `Ignore<IdentityUserToken<Guid>>()` so only the 4 Identity tables materialize in the migration
 
