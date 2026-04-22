@@ -91,7 +91,7 @@ Identity tables: **4 only** (`asp_net_users`, `asp_net_roles`, `asp_net_user_rol
 
 One-time schema sweep before the feature work starts. Every top-level config entity is owned by a company.
 
-- [ ] Add `CompanyId` FK + migration to 13 entities: `Product`, `Event`, `PromotionCode`, `Tag`, `Allergen`, `ModifierGroup`, `Modifier`, `PriceGroup`, `ProductList`, `SalesChannel`, `TaxRate`, `Table`, `PrintoutTemplate` (`Outlet` already has it)
+- [x] Add `CompanyId` FK + migration to 13 entities: `Product`, `Event`, `PromotionCode`, `Tag`, `Allergen`, `ModifierGroup`, `Modifier`, `PriceGroup`, `ProductList`, `SalesChannel`, `TaxRate`, `Table`, `PrintoutTemplate` (`Outlet` already has it); `PromotionCode` unique index flipped to composite `(CompanyId, Code)` so the same promo string can coexist across companies
 - [ ] Add `CompanyId` FK + migration to `LoyaltyPointLog` — no transitive path via `UserId` since guests span companies
 - [ ] `ICurrentCompany` service — reads `companyId` from JWT (Staff) or `X-Company-Id` header (SuperAdmin context switch); scoped DI lifetime
 - [ ] **Global query filter** centralized in `AppDbContext.OnModelCreating`: for every entity with `CompanyId`, auto-filter by `_currentCompany.Id` — same loop-over-`builder.Model.GetEntityTypes()` pattern as the existing `ISoftDeletable` filter, so handlers never type `.Where(x => x.CompanyId == …)` by hand

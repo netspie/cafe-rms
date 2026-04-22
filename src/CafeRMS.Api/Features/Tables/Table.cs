@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Shared;
 
@@ -9,6 +10,8 @@ public class Table : IAuditable, ISoftDeletable
     public string Name { get; private set; } = "";
     public Guid OutletId { get; private init; }
     public Outlet? Outlet { get; private init; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -19,13 +22,14 @@ public class Table : IAuditable, ISoftDeletable
 
     private Table() { }
 
-    public static Table Create(string name, Guid outletId)
+    public static Table Create(string name, Guid outletId, Guid companyId)
     {
         return new Table
         {
             Id = Guid.NewGuid(),
             Name = name,
-            OutletId = outletId
+            OutletId = outletId,
+            CompanyId = companyId
         };
     }
 }

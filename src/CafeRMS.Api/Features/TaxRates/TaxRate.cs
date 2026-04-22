@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.TaxRates;
@@ -8,6 +9,8 @@ public class TaxRate : IAuditable, ISoftDeletable
     public string Name { get; private set; } = "";
     public string Description { get; private set; } = "";
     public decimal Rate { get; private set; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -18,14 +21,15 @@ public class TaxRate : IAuditable, ISoftDeletable
 
     private TaxRate() { }
 
-    public static TaxRate Create(string name, string description, decimal rate)
+    public static TaxRate Create(string name, string description, decimal rate, Guid companyId)
     {
         return new TaxRate
         {
             Id = Guid.NewGuid(),
             Name = name,
             Description = description,
-            Rate = rate
+            Rate = rate,
+            CompanyId = companyId
         };
     }
 }

@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.PromotionCodes;
@@ -7,6 +8,8 @@ public class PromotionCode : IAuditable, ISoftDeletable
     public Guid Id { get; private init; }
     public string Code { get; private set; } = "";
     public decimal DiscountPercentage { get; private set; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -17,13 +20,14 @@ public class PromotionCode : IAuditable, ISoftDeletable
 
     private PromotionCode() { }
 
-    public static PromotionCode Create(string code, decimal discountPercentage)
+    public static PromotionCode Create(string code, decimal discountPercentage, Guid companyId)
     {
         return new PromotionCode
         {
             Id = Guid.NewGuid(),
             Code = code,
-            DiscountPercentage = discountPercentage
+            DiscountPercentage = discountPercentage,
+            CompanyId = companyId
         };
     }
 }

@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.Tags;
@@ -7,6 +8,8 @@ public class Tag : IAuditable, ISoftDeletable
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
     public string? ImageUrl { get; private set; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -17,13 +20,14 @@ public class Tag : IAuditable, ISoftDeletable
 
     private Tag() { }
 
-    public static Tag Create(string name, string? imageUrl = null)
+    public static Tag Create(string name, Guid companyId, string? imageUrl = null)
     {
         return new Tag
         {
             Id = Guid.NewGuid(),
             Name = name,
-            ImageUrl = imageUrl
+            ImageUrl = imageUrl,
+            CompanyId = companyId
         };
     }
 }

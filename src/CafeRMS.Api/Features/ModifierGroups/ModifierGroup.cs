@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.ModifierGroups;
@@ -6,6 +7,8 @@ public class ModifierGroup : IAuditable, ISoftDeletable
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -16,12 +19,13 @@ public class ModifierGroup : IAuditable, ISoftDeletable
 
     private ModifierGroup() { }
 
-    public static ModifierGroup Create(string name)
+    public static ModifierGroup Create(string name, Guid companyId)
     {
         return new ModifierGroup
         {
             Id = Guid.NewGuid(),
-            Name = name
+            Name = name,
+            CompanyId = companyId
         };
     }
 }

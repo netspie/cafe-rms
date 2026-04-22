@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.TaxRates;
 using CafeRMS.Api.Shared;
 
@@ -11,6 +12,8 @@ public class Product : IAuditable, ISoftDeletable
     public string? Barcode { get; private set; }
     public Guid TaxRateId { get; private init; }
     public TaxRate? TaxRate { get; private init; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -21,7 +24,7 @@ public class Product : IAuditable, ISoftDeletable
 
     private Product() { }
 
-    public static Product Create(string name, Guid taxRateId, string? description = null, string? barcode = null)
+    public static Product Create(string name, Guid taxRateId, Guid companyId, string? description = null, string? barcode = null)
     {
         return new Product
         {
@@ -29,7 +32,8 @@ public class Product : IAuditable, ISoftDeletable
             Name = name,
             Description = description,
             Barcode = barcode,
-            TaxRateId = taxRateId
+            TaxRateId = taxRateId,
+            CompanyId = companyId
         };
     }
 }

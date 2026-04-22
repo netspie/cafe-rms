@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.SalesChannels;
@@ -7,6 +8,8 @@ public class SalesChannel : IAuditable, ISoftDeletable
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
     public bool IsTakeout { get; private set; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -17,13 +20,14 @@ public class SalesChannel : IAuditable, ISoftDeletable
 
     private SalesChannel() { }
 
-    public static SalesChannel Create(string name, bool isTakeout)
+    public static SalesChannel Create(string name, bool isTakeout, Guid companyId)
     {
         return new SalesChannel
         {
             Id = Guid.NewGuid(),
             Name = name,
-            IsTakeout = isTakeout
+            IsTakeout = isTakeout,
+            CompanyId = companyId
         };
     }
 }

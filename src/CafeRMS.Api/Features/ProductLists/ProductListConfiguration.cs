@@ -9,6 +9,7 @@ public class ProductListConfiguration : IEntityTypeConfiguration<ProductList>, I
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
     }
 
     public void Configure(EntityTypeBuilder<ProductListItem> builder)

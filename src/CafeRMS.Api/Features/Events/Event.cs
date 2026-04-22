@@ -1,3 +1,4 @@
+using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.PriceGroups;
 using CafeRMS.Api.Features.ProductLists;
 using CafeRMS.Api.Shared;
@@ -14,6 +15,8 @@ public class Event : IAuditable, ISoftDeletable
     public ProductList? ProductList { get; private init; }
     public Guid? PriceGroupId { get; private init; }
     public PriceGroup? PriceGroup { get; private init; }
+    public Guid CompanyId { get; private init; }
+    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -24,7 +27,7 @@ public class Event : IAuditable, ISoftDeletable
 
     private Event() { }
 
-    public static Event Create(string name, string? description = null, string? imageUrl = null,
+    public static Event Create(string name, Guid companyId, string? description = null, string? imageUrl = null,
         Guid? productListId = null, Guid? priceGroupId = null)
     {
         return new Event
@@ -34,7 +37,8 @@ public class Event : IAuditable, ISoftDeletable
             Description = description,
             ImageUrl = imageUrl,
             ProductListId = productListId,
-            PriceGroupId = priceGroupId
+            PriceGroupId = priceGroupId,
+            CompanyId = companyId
         };
     }
 }
