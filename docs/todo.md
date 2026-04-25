@@ -206,8 +206,9 @@ All scoped to the current company via the global `ICompanyOwned` query filter on
 ### Seeding
 
 - [x] **Startup seed** runs when `ASPNETCORE_ENVIRONMENT != "Testing"` — `ApiFactory` (Phase 3.5) will override env to `Testing`, so tests get an empty DB automatically. In Development we also auto-`MigrateAsync()` first; in Production migrations are applied out-of-band (CI/CD) and only seeding runs.
-- [x] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword` (user-secrets in dev, env var in prod, never hardcoded). Idempotent — only created if no SuperAdmin exists. Skipped (with warning log) if config values missing.
+- [x] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword`. Idempotent — only created if no SuperAdmin exists. Skipped (with warning log) if config values missing.
 - [x] Seed demo company + Outlet + Owner role + demo Owner Staff user for dev/demo. Demo Owner password from `Seed:DemoOwnerPassword`; if missing, the demo block is skipped. Owner-role lookup uses `IgnoreQueryFilters()` because the seeder runs without an HTTP context (so `CurrentCompanyId == Guid.Empty` and the global `ICompanyOwned` filter would hide the role).
+- [ ] **Where the seed values live**: dev defaults committed in `appsettings.Development.json` (only loaded when `ASPNETCORE_ENVIRONMENT=Development` — Production won't see them) so an evaluator can clone + `dotnet run` and log in immediately. Production deployments override via environment variables (`Seed__SuperAdminPassword` etc.). Never put real prod secrets in any committed file. Trade-off documented for thesis defense: clean config layering, throwaway dev creds are public-repo-safe because they protect nothing real.
 
 ### SuperAdmin company-context switching
 
