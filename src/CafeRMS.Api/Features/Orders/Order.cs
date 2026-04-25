@@ -3,11 +3,11 @@ using CafeRMS.Api.Features.Events;
 using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Features.SalesChannels;
 using CafeRMS.Api.Features.Tables;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Orders;
 
-public class Order : IAuditable, ISoftDeletable
+public class Order : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public Guid OutletId { get; private init; }
@@ -28,13 +28,6 @@ public class Order : IAuditable, ISoftDeletable
 
     public bool IsClosed => ClosedAt is not null;
     public bool IsCancelled => CancelledAt is not null;
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
-    public DateTimeOffset? DeletedAt { get; private set; }
-    public Guid? DeletedBy { get; private set; }
 
     private Order() { }
 

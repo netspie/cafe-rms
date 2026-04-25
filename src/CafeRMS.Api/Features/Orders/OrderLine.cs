@@ -1,9 +1,9 @@
 using CafeRMS.Api.Features.Products;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Orders;
 
-public class OrderLine : IAuditable
+public class OrderLine : Entity
 {
     public Guid Id { get; private init; }
     public Guid OrderId { get; private init; }
@@ -13,11 +13,6 @@ public class OrderLine : IAuditable
     public int Quantity { get; private set; }
     public decimal NetPerOne { get; private set; }
     public decimal VatPerOne { get; private set; }
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
 
     private OrderLine() { }
 

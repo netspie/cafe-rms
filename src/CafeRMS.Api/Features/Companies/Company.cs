@@ -1,8 +1,8 @@
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Companies;
 
-public class Company : IAuditable, ISoftDeletable
+public class Company : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string LegalName { get; private set; } = "";
@@ -10,13 +10,6 @@ public class Company : IAuditable, ISoftDeletable
     public string InvoicingAddress { get; private set; } = "";
     public string BillingEmail { get; private set; } = "";
     public string BillingPhone { get; private set; } = "";
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
-    public DateTimeOffset? DeletedAt { get; private set; }
-    public Guid? DeletedBy { get; private set; }
 
     private Company() { }
 

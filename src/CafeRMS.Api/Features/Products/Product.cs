@@ -1,10 +1,9 @@
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.TaxRates;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Products;
 
-public class Product : IAuditable, ISoftDeletable, ICompanyScoped
+public class Product : CompanyOwnedSoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -12,15 +11,6 @@ public class Product : IAuditable, ISoftDeletable, ICompanyScoped
     public string? Barcode { get; private set; }
     public Guid TaxRateId { get; private init; }
     public TaxRate? TaxRate { get; private init; }
-    public Guid CompanyId { get; private init; }
-    public Company? Company { get; private init; }
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
-    public DateTimeOffset? DeletedAt { get; private set; }
-    public Guid? DeletedBy { get; private set; }
 
     private Product() { }
 

@@ -1,6 +1,6 @@
 namespace CafeRMS.Api.Shared;
 
-public interface ICompanyScoped
+public interface ICompanyOwned
 {
     Guid CompanyId { get; }
 }

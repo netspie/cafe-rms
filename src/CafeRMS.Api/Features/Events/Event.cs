@@ -1,11 +1,10 @@
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.PriceGroups;
 using CafeRMS.Api.Features.ProductLists;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Events;
 
-public class Event : IAuditable, ISoftDeletable, ICompanyScoped
+public class Event : CompanyOwnedSoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -15,15 +14,6 @@ public class Event : IAuditable, ISoftDeletable, ICompanyScoped
     public ProductList? ProductList { get; private init; }
     public Guid? PriceGroupId { get; private init; }
     public PriceGroup? PriceGroup { get; private init; }
-    public Guid CompanyId { get; private init; }
-    public Company? Company { get; private init; }
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
-    public DateTimeOffset? DeletedAt { get; private set; }
-    public Guid? DeletedBy { get; private set; }
 
     private Event() { }
 

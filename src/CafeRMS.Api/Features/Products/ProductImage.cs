@@ -1,18 +1,13 @@
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Products;
 
-public class ProductImage : IAuditable
+public class ProductImage : Entity
 {
     public Guid Id { get; private init; }
     public Guid ProductId { get; private init; }
     public Product? Product { get; private init; }
     public string Url { get; private set; } = "";
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
 
     private ProductImage() { }
 

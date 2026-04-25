@@ -102,13 +102,13 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 
 Cross-cutting cleanup once the multi-tenant query filter is in place. Removes duplicated audit/soft-delete property declarations across 22 entities, and corrects two entities (`Order`, `Event`) whose soft-delete shape was wrong — they're append-only history once committed, voided via `CancelledAt`, not deleted.
 
-- [ ] Rename `ICompanyScoped` → `ICompanyOwned` (interface + all `IsCompanyScoped` / `ApplyCompanyScopeFilter` / `ApplyCompanyScopeAndSoftDeleteFilter` references in `AppDbContext`) to match the `CompanyOwnedEntity` base-class naming
-- [ ] Add base classes in `src/CafeRMS.Api/Shared/Entities/`:
+- [x] Rename `ICompanyScoped` → `ICompanyOwned` (interface + all `IsCompanyScoped` / `ApplyCompanyScopeFilter` / `ApplyCompanyScopeAndSoftDeleteFilter` references in `AppDbContext`) to match the `CompanyOwnedEntity` base-class naming
+- [x] Add base classes in `src/CafeRMS.Api/Shared/Entities/`:
   - `Entity` — `IAuditable` props
   - `SoftDeletableEntity : Entity, ISoftDeletable`
   - `CompanyOwnedEntity : Entity, ICompanyOwned`
   - `CompanyOwnedSoftDeletableEntity : SoftDeletableEntity, ICompanyOwned`
-- [ ] Reparent all 22 business entities to the right base, delete now-redundant property declarations:
+- [x] Reparent all 22 business entities to the right base, delete now-redundant property declarations:
   - `Entity` (6): EventDay, OrderLine, UserSettings, ProductImage, ProductPrice, **Order** (after soft-delete drop)
   - `SoftDeletableEntity` (1): Company
   - `CompanyOwnedEntity` (2): LoyaltyPointLog, **Event** (after soft-delete drop)

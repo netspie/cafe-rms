@@ -81,21 +81,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
     {
         var softDeleteOnly = typeof(AppDbContext)
             .GetMethod(nameof(ApplySoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var companyScopeOnly = typeof(AppDbContext)
-            .GetMethod(nameof(ApplyCompanyScopeFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var companyOwnedOnly = typeof(AppDbContext)
+            .GetMethod(nameof(ApplyCompanyOwnedFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
         var both = typeof(AppDbContext)
-            .GetMethod(nameof(ApplyCompanyScopeAndSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+            .GetMethod(nameof(ApplyCompanyOwnedAndSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
             var clrType = entityType.ClrType;
             var isSoftDeletable = typeof(ISoftDeletable).IsAssignableFrom(clrType);
-            var isCompanyScoped = typeof(ICompanyScoped).IsAssignableFrom(clrType);
+            var isCompanyOwned = typeof(ICompanyOwned).IsAssignableFrom(clrType);
 
-            MethodInfo? method = (isCompanyScoped, isSoftDeletable) switch
+            MethodInfo? method = (isCompanyOwned, isSoftDeletable) switch
             {
                 (true, true) => both,
-                (true, false) => companyScopeOnly,
+                (true, false) => companyOwnedOnly,
                 (false, true) => softDeleteOnly,
                 _ => null
             };
@@ -107,10 +107,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
     private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : class, ISoftDeletable =>
         builder.Entity<T>().HasQueryFilter(e => e.DeletedAt == null);
 
-    private void ApplyCompanyScopeFilter<T>(ModelBuilder builder) where T : class, ICompanyScoped =>
+    private void ApplyCompanyOwnedFilter<T>(ModelBuilder builder) where T : class, ICompanyOwned =>
         builder.Entity<T>().HasQueryFilter(e => e.CompanyId == CurrentCompanyId);
 
-    private void ApplyCompanyScopeAndSoftDeleteFilter<T>(ModelBuilder builder) where T : class, ICompanyScoped, ISoftDeletable =>
+    private void ApplyCompanyOwnedAndSoftDeleteFilter<T>(ModelBuilder builder) where T : class, ICompanyOwned, ISoftDeletable =>
         builder.Entity<T>().HasQueryFilter(e => e.CompanyId == CurrentCompanyId && e.DeletedAt == null);
 
     private static void ApplyXminConcurrencyTokens(ModelBuilder builder)

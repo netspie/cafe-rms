@@ -1,22 +1,12 @@
-using CafeRMS.Api.Features.Companies;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.PromotionCodes;
 
-public class PromotionCode : IAuditable, ISoftDeletable, ICompanyScoped
+public class PromotionCode : CompanyOwnedSoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Code { get; private set; } = "";
     public decimal DiscountPercentage { get; private set; }
-    public Guid CompanyId { get; private init; }
-    public Company? Company { get; private init; }
-
-    public DateTimeOffset CreatedAt { get; private init; }
-    public Guid CreatedBy { get; private init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
-    public Guid? UpdatedBy { get; private set; }
-    public DateTimeOffset? DeletedAt { get; private set; }
-    public Guid? DeletedBy { get; private set; }
 
     private PromotionCode() { }
 
