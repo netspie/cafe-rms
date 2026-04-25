@@ -19,6 +19,7 @@ using CafeRMS.Api.Features.Tables;
 using CafeRMS.Api.Features.Tags;
 using CafeRMS.Api.Features.TaxRates;
 using CafeRMS.Api.Features.UserSettings;
+using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -131,8 +132,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
     {
         get
         {
-            var claim = httpContextAccessor.HttpContext?.User.FindFirst("companyId")?.Value;
-            return Guid.TryParse(claim, out var id) ? id : Guid.Empty;
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext is null)
+                return Guid.Empty;
+
+            // SuperAdmin context-switches to a specific tenant via the X-Company-Id header.
+            // Other account types (Staff, Guest) use the companyId claim baked into their JWT.
+            var raw = httpContext.User.AccountType == AccountType.SuperAdmin
+                ? httpContext.Request.Headers[ClaimsPrincipalExtensions.CompanyIdSwitchHeader].FirstOrDefault()
+                : httpContext.User.FindFirst(ClaimsPrincipalExtensions.CompanyIdClaim)?.Value;
+
+            return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
         }
     }
 }

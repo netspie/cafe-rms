@@ -85,7 +85,6 @@ Desktop.ini
 ############################
 .env
 .env.*
-appsettings.Development.json
 secrets.json
 
 ############################

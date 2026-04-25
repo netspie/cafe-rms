@@ -8,6 +8,7 @@ public static class ClaimsPrincipalExtensions
     public const string AccountTypeClaim = "accountType";
     public const string CompanyIdClaim = "companyId";
     public const string PermissionClaim = "permission";
+    public const string CompanyIdSwitchHeader = "X-Company-Id";
 
     extension(ClaimsPrincipal user)
     {

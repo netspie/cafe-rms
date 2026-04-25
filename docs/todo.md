@@ -163,9 +163,9 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 Small infra pieces landing **before** the auth endpoints. Not strict blockers, but cleaner if in place day one.
 
-- [ ] Strongly-typed `JwtOptions` record (`Issuer`, `Audience`, `Key`, `ExpiryHours`) bound from the `Jwt:` config section + registered via `IOptions<JwtOptions>`. Single source for both the JWT validation block in `Program.cs` and the upcoming token-generation code.
-- [ ] `AppDbContext.CurrentCompanyId` upgrade: when `accountType = SuperAdmin`, read the `X-Company-Id` header instead of the `companyId` claim. Lets SuperAdmin endpoints target a specific tenant without bypassing the global filter.
-- [ ] **`Company.IsPublic`** — boolean, NOT NULL, default `false`. Marks which companies are visible to guests in the public mobile-app discovery listing. SuperAdmin-managed (only flipped by `PUT /api/companies/{id}`). Default-false means new tenants are private until promoted; demo and internal tenants stay invisible until SuperAdmin enables them.
+- [x] Strongly-typed `JwtOptions` record (`Issuer`, `Audience`, `Key`, `ExpiryHours`) bound from the `Jwt:` config section + registered via `IOptions<JwtOptions>`. Single source for both the JWT validation block in `Program.cs` and the upcoming token-generation code.
+- [x] `AppDbContext.CurrentCompanyId` upgrade: when `accountType = SuperAdmin`, read the `X-Company-Id` header instead of the `companyId` claim. Lets SuperAdmin endpoints target a specific tenant without bypassing the global filter. Header constant lives on `ClaimsPrincipalExtensions.CompanyIdSwitchHeader`.
+- [x] **`Company.IsPublic`** — boolean, NOT NULL, default `false`, public setter. Marks which companies are visible to guests in the public mobile-app discovery listing. SuperAdmin-managed (only flipped by `PUT /api/companies/{id}`). Default-false means new tenants are private until promoted; demo and internal tenants stay invisible until SuperAdmin enables them. Migration `AddCompanyIsPublic` adds the column.
 
 ### Auth endpoints
 
@@ -208,7 +208,7 @@ All scoped to the current company via the global `ICompanyOwned` query filter on
 - [x] **Startup seed** runs when `ASPNETCORE_ENVIRONMENT != "Testing"` — `ApiFactory` (Phase 3.5) will override env to `Testing`, so tests get an empty DB automatically. In Development we also auto-`MigrateAsync()` first; in Production migrations are applied out-of-band (CI/CD) and only seeding runs.
 - [x] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword`. Idempotent — only created if no SuperAdmin exists. Skipped (with warning log) if config values missing.
 - [x] Seed demo company + Outlet + Owner role + demo Owner Staff user for dev/demo. Demo Owner password from `Seed:DemoOwnerPassword`; if missing, the demo block is skipped. Owner-role lookup uses `IgnoreQueryFilters()` because the seeder runs without an HTTP context (so `CurrentCompanyId == Guid.Empty` and the global `ICompanyOwned` filter would hide the role).
-- [ ] **Where the seed values live**: dev defaults committed in `appsettings.Development.json` (only loaded when `ASPNETCORE_ENVIRONMENT=Development` — Production won't see them) so an evaluator can clone + `dotnet run` and log in immediately. Production deployments override via environment variables (`Seed__SuperAdminPassword` etc.). Never put real prod secrets in any committed file. Trade-off documented for thesis defense: clean config layering, throwaway dev creds are public-repo-safe because they protect nothing real.
+- [x] **Where the seed values live**: dev defaults committed in `appsettings.Development.json` (only loaded when `ASPNETCORE_ENVIRONMENT=Development` — Production won't see them) so an evaluator can clone + `dotnet run` and log in immediately. Production deployments override via environment variables (`Seed__SuperAdminPassword` etc.). Never put real prod secrets in any committed file. Trade-off documented for thesis defense: clean config layering, throwaway dev creds are public-repo-safe because they protect nothing real.
 
 ### SuperAdmin company-context switching
 

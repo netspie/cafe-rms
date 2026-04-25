@@ -10,6 +10,7 @@ public class Company : SoftDeletableEntity
     public string InvoicingAddress { get; private set; } = "";
     public string BillingEmail { get; private set; } = "";
     public string BillingPhone { get; private set; } = "";
+    public bool IsPublic { get; set; }
 
     private Company() { }
 
