@@ -64,6 +64,10 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 - Do not add features or refactors beyond what was asked
 - Do not rename or restructure files/folders without being asked
 
+## Communication
+
+- **Questions are not pushback.** When the user asks "why?" / "what for?" / "how does X work?", answer the question. Don't infer an implicit "and now change it" — that's projection. No "you're right to question it", no preemptive "want me to remove/refactor?", no list of alternative options unless they asked for alternatives. If they want a change, they'll ask. If you're unsure whether a question is rhetorical or actionable, ask back briefly — don't act.
+
 ## Planning
 
 - **Non-trivial work (more than 1–2 subtasks) goes into `docs/todo.md` before implementation starts.** If the work isn't already represented there, draft the bullets under the right phase/section and reach alignment with the user before writing code. Lets the user see the slope of the work in advance and keeps the plan as the single source of truth.
