@@ -1,4 +1,4 @@
-namespace CafeRMS.Api.Shared;
+namespace CafeRMS.Api.Shared.Entities;
 
 public interface ICompanyOwned
 {

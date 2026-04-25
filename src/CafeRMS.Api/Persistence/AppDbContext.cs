@@ -19,7 +19,7 @@ using CafeRMS.Api.Features.Tables;
 using CafeRMS.Api.Features.Tags;
 using CafeRMS.Api.Features.TaxRates;
 using CafeRMS.Api.Features.UserSettings;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;

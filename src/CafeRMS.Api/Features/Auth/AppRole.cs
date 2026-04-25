@@ -1,5 +1,5 @@
 using CafeRMS.Api.Features.Companies;
-using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace CafeRMS.Api.Features.Auth;

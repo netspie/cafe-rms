@@ -1,4 +1,5 @@
 using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
