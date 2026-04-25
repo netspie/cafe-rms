@@ -113,10 +113,10 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
   - `SoftDeletableEntity` (1): Company
   - `CompanyOwnedEntity` (2): LoyaltyPointLog, **Event** (after soft-delete drop)
   - `CompanyOwnedSoftDeletableEntity` (13): Allergen, Modifier, ModifierGroup, Outlet, PriceGroup, PrintoutTemplate, Product, ProductList, PromotionCode, SalesChannel, Table, Tag, TaxRate
-- [ ] Drop `ISoftDeletable` from `Order` (no `DeletedAt` / `DeletedBy`); orders are append-only history, voided via existing `CancelledAt` / `CancellationReason`
-- [ ] Drop `ISoftDeletable` from `Event`; add `CancelledAt` (`DateTimeOffset?`) + `CancellationReason` (`string?`) + `IsCancelled` computed prop — same lifecycle as Order (history once committed)
-- [ ] Broaden `ApplyXminConcurrencyTokens` walk: key off `IAuditable` instead of `ISoftDeletable` so mutable non-soft-delete entities (`Order`, `OrderLine`, `Event`) get concurrency tokens too
-- [ ] Migration: drop `orders.deleted_at` / `orders.deleted_by` / `events.deleted_at` / `events.deleted_by`; add `events.cancelled_at` / `events.cancellation_reason`
+- [x] Drop `ISoftDeletable` from `Order` (no `DeletedAt` / `DeletedBy`); orders are append-only history, voided via existing `CancelledAt` / `CancellationReason`
+- [x] Drop `ISoftDeletable` from `Event`; add `CancelledAt` (`DateTimeOffset?`) + `CancellationReason` (`string?`) + `IsCancelled` computed prop — same lifecycle as Order (history once committed)
+- [x] Broaden `ApplyXminConcurrencyTokens` walk: key off `IAuditable` instead of `ISoftDeletable` so mutable non-soft-delete entities (`Order`, `OrderLine`, `Event`) get concurrency tokens too
+- [x] Migration `OrderEventLifecycleCleanup`: drops `orders.deleted_at` / `orders.deleted_by` / `events.deleted_by`, renames `events.deleted_at` → `events.cancelled_at` (cleanest DDL — empty dev DB), adds `events.cancellation_reason`. The xmin broadening generated 6 spurious `AddColumn<uint>("xmin", ...)` calls that were stripped by hand (Postgres provides `xmin` as a system column on every table; Npgsql maps to it directly, so no DDL is needed).
 
 ### Data model
 

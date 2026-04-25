@@ -117,7 +117,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
     {
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
-            if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+            if (!typeof(IAuditable).IsAssignableFrom(entityType.ClrType))
                 continue;
 
             builder.Entity(entityType.ClrType)

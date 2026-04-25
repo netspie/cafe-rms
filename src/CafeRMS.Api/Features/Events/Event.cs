@@ -4,7 +4,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Events;
 
-public class Event : CompanyOwnedSoftDeletableEntity
+public class Event : CompanyOwnedEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -14,6 +14,10 @@ public class Event : CompanyOwnedSoftDeletableEntity
     public ProductList? ProductList { get; private init; }
     public Guid? PriceGroupId { get; private init; }
     public PriceGroup? PriceGroup { get; private init; }
+    public DateTimeOffset? CancelledAt { get; private set; }
+    public string? CancellationReason { get; private set; }
+
+    public bool IsCancelled => CancelledAt is not null;
 
     private Event() { }
 

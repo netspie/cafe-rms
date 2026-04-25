@@ -7,7 +7,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Orders;
 
-public class Order : SoftDeletableEntity
+public class Order : Entity
 {
     public Guid Id { get; private init; }
     public Guid OutletId { get; private init; }
