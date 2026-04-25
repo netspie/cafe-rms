@@ -170,7 +170,7 @@ Small infra pieces landing **before** the auth endpoints. Not strict blockers, b
 ### Auth endpoints
 
 - [x] `POST /api/auth/login` — email + password → JWT (24h) carrying every claim from the JWT design above. No `/admin` vs `/mobile` split — JWT carries `accountType`. Returns same generic message on bad email vs bad password to prevent user-enumeration. Owner role-claim emission skips permission flattening (Owner bypasses).
-- [ ] `POST /api/auth/register/guest` — `[AllowAnonymous]`, self-serve; creates `AppUser` (`AccountType = Guest`, `CompanyId = null`).
+- [x] `POST /api/auth/register/guest` — `[AllowAnonymous]`, self-serve; creates `AppUser` (`AccountType = Guest`, `CompanyId = null`). Auto-login: returns a JWT on success (mirrors Login response). Email duplicate returns 409 via explicit `FindByEmailAsync` precheck. Identity password complexity errors surface as `DomainException` (400) with the original messages joined.
 - [ ] `POST /api/auth/register/staff` — `Permissions.UsersManage`; creates `AppUser` (`AccountType = Staff`, `CompanyId` from the current context) and assigns role(s).
 - [ ] `PUT /api/auth/password` — `RequireAuthorization`; current + new password.
 - [ ] No email verification, no refresh tokens, no forgotten-password reset (skipped for scope).
