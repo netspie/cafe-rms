@@ -17,15 +17,15 @@ public static class ListPublicCompanies
 
     public static async Task<IReadOnlyList<Item>> Execute(AppDbContext db) =>
         await db.Outlets
-            .Where(o => o.Company!.IsPublic)
-            .Select(o => new Item(
-                o.CompanyId,
-                o.Company!.LegalName,
-                o.DisplayName,
-                o.StreetAddress,
-                o.Phone,
-                o.TimeZone,
-                o.Currency.ToString(),
-                o.LogoUrl))
+            .Where(x => x.Company!.IsPublic)
+            .Select(x => new Item(
+                x.CompanyId,
+                x.Company!.LegalName,
+                x.DisplayName,
+                x.StreetAddress,
+                x.Phone,
+                x.TimeZone,
+                x.Currency.ToString(),
+                x.LogoUrl))
             .ToListAsync();
 }
