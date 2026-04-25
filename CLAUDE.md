@@ -78,6 +78,13 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 
 - **Non-trivial work (more than 1–2 subtasks) goes into `docs/todo.md` before implementation starts.** If the work isn't already represented there, draft the bullets under the right phase/section and reach alignment with the user before writing code. Lets the user see the slope of the work in advance and keeps the plan as the single source of truth.
 
+## Pushing
+
+- **Default: ask before pushing.** When a slice is done, stop and ask "push or continue?" — do not push spontaneously.
+- **"push" is one-shot.** When the user says "push" (or "push and continue", "push and move on"), push exactly once. The implicit permission expires immediately. Next slice → ask again.
+- **"push from now on always"** (or any equivalent like "auto-push until I say stop") flips the mode: push every commit without asking. Stays in effect until the user says "stop pushing", "ask before pushing", or similar. Treat ambiguous follow-ups as a return to default-ask.
+- **Never chain `dotnet build && git commit && git push` in one shell call.** Always inspect the build result before committing, and inspect the commit before pushing. If you bundle them and the build fails, the commit/push can still run, and broken code lands on `main`. Run them separately, eyes on each stage.
+
 ## Committing
 
 - **One commit per `docs/todo.md` item.** When the user asks to commit completed work, split it into separate commits — one per TODO checkbox that was ticked. Bundle items only when they're genuinely inseparable (e.g. a shared refactor touched by multiple items).
