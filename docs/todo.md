@@ -182,9 +182,9 @@ Small infra pieces landing **before** the auth endpoints. Not strict blockers, b
 - [x] **Follow-up cleanup**: add unique index on `Company.TaxId` so duplicate creation hits 23505 at the DB level instead of slipping through the app-level race window. `HasIndex(x => x.TaxId).IsUnique()` in `CompanyConfiguration` + migration `AddCompanyTaxIdUniqueIndex`.
 - [ ] **Follow-up cleanup**: extract a shared `CreateCompanyWithOwner` flow used by both `StartupSeeder.SeedDemoCompanyAsync` and `CreateCompany.Execute`, so the bootstrap logic has one source.
 - [x] `GET /api/companies` — `RequireSuperAdmin`; alphabetical list of all companies (id, LegalName, TaxId, BillingEmail, IsPublic, CreatedAt). No paging yet — thesis-scale list. Add `PagedQuery` filter+sort wiring later if it becomes useful.
-- [ ] `GET /api/companies/{id}` — `RequireAuthorization` + handler check: SuperAdmin sees any; Staff sees only their own (`user.CompanyId == id`), otherwise 403.
-- [ ] `PUT /api/companies/{id}` — `RequireSuperAdmin`; edits `LegalName`, `TaxId`, billing fields, `IsPublic`.
-- [ ] `DELETE /api/companies/{id}` — `RequireSuperAdmin`; soft-delete (cascades to Outlet, roles, users via FKs).
+- [x] `GET /api/companies/{id}` — `RequireAuthorization` + handler check: SuperAdmin sees any; Staff sees only their own (`user.CompanyId == id`), otherwise 403. Returns the Company fields plus the 1:1 Outlet (DisplayName, address, phone, timezone, currency, logo).
+- [x] `PUT /api/companies/{id}` — `RequireSuperAdmin`; edits `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone`, `IsPublic`. Added `Company.Update(...)` method since the entity uses `private set` on most fields. TaxId uniqueness re-checked at app level (excluding self); the DB unique index would also catch duplicates. Returns 204.
+- [x] `DELETE /api/companies/{id}` — `RequireSuperAdmin`. The `SoftDeletableSaveChangesInterceptor` converts `Remove(company)` into a soft-delete (sets `DeletedAt` / `DeletedBy`). The row stays; child records (Outlet, roles, users) keep their FKs intact and disappear from filtered queries once the parent is filtered out. Returns 204.
 - [x] `GET /api/companies/public` — `[AllowAnonymous]`; lists `IsPublic = true` companies with the Outlet's customer-facing fields (DisplayName, StreetAddress, Phone, TimeZone, Currency, LogoUrl) for the mobile app's discover view. Auto-skips soft-deleted companies via the global filter. No paging — thesis-scale list.
 
 ### Role management endpoints
