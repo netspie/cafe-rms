@@ -173,6 +173,31 @@ File names = the action. No `Command`, `Query`, `Handler` suffixes.
       return query;
   }
   ```
+- **Logical operators `&&` / `||` go at the END of the previous line on multi-line expressions.** Other operators (`??`, ternary `?` / `:`, arithmetic, etc.) go at the **START** of the next line — same convention as the existing `?? throw` and conditional-expression style.
+  ```csharp
+  // ✔ logical && / || — at end of line
+  if (user.AccountType == AccountType.SuperAdmin ||
+      user.IsInRole(SystemRoles.Owner) ||
+      user.HasPermission(requirement.Permission))
+      context.Succeed(requirement);
+
+  // ✔ ?? / ?: — at start of next line
+  var id = user.FindFirstValue(ClaimTypes.NameIdentifier)
+      ?? throw new UnauthorizedAccessException("...");
+
+  var label = isOpen
+      ? "Open"
+      : "Closed";
+
+  // ✘ banned — && / || at start
+  if (user.AccountType == AccountType.SuperAdmin
+      || user.IsInRole(SystemRoles.Owner))
+      context.Succeed(requirement);
+
+  // ✘ banned — ?? at end
+  var id = user.FindFirstValue(ClaimTypes.NameIdentifier) ??
+      throw new UnauthorizedAccessException("...");
+  ```
 
 ---
 
