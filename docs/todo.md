@@ -93,7 +93,7 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 
 - [x] Add `CompanyId` FK + migration to 13 entities: `Product`, `Event`, `PromotionCode`, `Tag`, `Allergen`, `ModifierGroup`, `Modifier`, `PriceGroup`, `ProductList`, `SalesChannel`, `TaxRate`, `Table`, `PrintoutTemplate` (`Outlet` already has it); `PromotionCode` unique index flipped to composite `(CompanyId, Code)` so the same promo string can coexist across companies
 - [x] Add `CompanyId` FK + migration to `LoyaltyPointLog` — no transitive path via `UserId` since guests span companies
-- [x] `ICurrentCompany` service — reads `companyId` claim from JWT; scoped DI lifetime. `X-Company-Id` header branch for SuperAdmin context switch is deferred to the SuperAdmin section below.
+- [x] `AppDbContext.CurrentCompanyId` — reads the `companyId` claim from JWT directly via `IHttpContextAccessor` (no separate `ICurrentCompany` service — single-impl interface was unnecessary). `X-Company-Id` header branch for SuperAdmin context switch is deferred to the SuperAdmin section below.
 - [x] **Global query filter** centralized in `AppDbContext.OnModelCreating`: the 15 tenant-scoped entities now implement `ICompanyScoped` (marker interface). `ApplyQueryFilters` loops `builder.Model.GetEntityTypes()` and dispatches via reflection to three generic helpers (soft-delete only, company-scope only, or both combined) so each entity gets a single `HasQueryFilter(...)` expression — EF allows only one filter per entity, so soft-delete + company filters are merged into `e.CompanyId == CurrentCompanyId && e.DeletedAt == null` for entities that need both.
 
 > **Note (design intent, not a TODO):** entities that reach company transitively don't get their own `CompanyId` / `ICompanyOwned` marker — they're filtered by walking the parent: `Order` (via `Outlet`), `Favorite` (via `Product`), `EventDay` (via `Event`), `UserSettings` (per-guest, mobile-app only), all join tables. EF query filters don't traverse navigations, so handlers must filter through the parent explicitly (e.g. `_db.Orders.Where(o => o.Outlet.CompanyId == _ctx.CurrentCompanyId)`).
@@ -120,11 +120,12 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### Data model
 
-- [ ] `AppUser.AccountType` enum on `AppUser`: `SuperAdmin` | `Staff` | `Guest` (single source of truth)
-- [ ] `Guest` entity — 1:1 with `AppUser` (AccountType = Guest); holds guest profile (loyalty link, preferences, etc.)
-- [ ] `StaffMember` entity — 1:1 with `AppUser` (AccountType = Staff); FK to `Company`, attached to dynamic roles
-- [ ] `AppRole` scoped per-company (add `CompanyId` FK; null = global, only used by the SuperAdmin flow if at all)
-- [ ] Auto-seed an **`Owner`** role with full claims when a new company is registered (creator of the company → assigned Owner)
+- [ ] `AppUser.AccountType` enum on `AppUser`: `SuperAdmin` | `Staff` | `Guest`. Stored as **string** column (DB-inspectable, thesis-explainable).
+- [ ] `AppUser.CompanyId` — nullable FK to `Company`, set **only** when `AccountType = Staff`. **No separate `Guest` / `StaffMember` 1:1 entities** — they'd carry no fields beyond what's already on `AppUser` / `UserSettings` / `LoyaltyPointLog`, so they'd be empty wrappers. Add a sub-table later only if a Staff- or Guest-only field appears that genuinely doesn't fit on `AppUser`.
+- [ ] `AppRole.CompanyId` FK to `Company`, **NOT NULL** — every role belongs to exactly one company. SuperAdmin works off `AccountType`, not roles, so no "global role" branch.
+- [ ] Override `AppRole`'s default unique index on `NormalizedName` with a composite **`(CompanyId, NormalizedName)`** so two companies can each have their own "Owner" / "Cashier" / etc. role.
+- [ ] Auto-seed an **`Owner`** role with every permission when a new company is registered. Permissions enumerated via **reflection** over `typeof(Permissions).GetFields()` (every `public const string` becomes a role-claim) — single line, no manual `Permissions.All` to drift out of sync. The creator of the company gets the seeded `Owner` role assigned.
+- [ ] Company registration is **atomic** — Company + Outlet (1:1) + auto-seeded `Owner` role + (if the endpoint creates one) the first Owner Staff user + role assignment all succeed together or none do, in a single EF transaction.
 - [x] `Company` fields: `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone` — legal/accounting shell; drops today's `Name` / `Address` / `Currency` / `TimeZone` (moved to `Outlet` per the 1:1 split)
 - [x] `Outlet` fields: rename `Name` → `DisplayName` (customer-facing brand), rename `Address` → `StreetAddress`, add `Phone`, `TimeZone`, `LogoUrl`; keep `Currency` (enum)
 - [x] Enforce **1:1 Company↔Outlet** via unique index on `Outlet.CompanyId` — all three Company/Outlet changes ship in one migration; staff scoping stays company-wide as a result
@@ -143,23 +144,23 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 ### Policies (two layers)
 
 - [ ] **Type-gate policies**: `RequireGuest`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin`
-- [ ] **Permission policies** (Staff granularity): `products:write`, `products:delete`, `orders:refund`, `events:manage`, … — each passes if SuperAdmin, OR Staff with matching `permission` claim
+- [ ] **Permission policies** (Staff granularity): `Permissions.ProductsManage`, `Permissions.ProductsDelete`, `Permissions.OrdersRefund`, `Permissions.EventsManage`, … (flat PascalCase — see Permission constants registry above). Each passes if SuperAdmin, OR Staff with matching `permission` claim.
 - [ ] Single custom `PermissionRequirement` + handler to evaluate permission policies uniformly
 - [x] **Permission constants registry** — `Permissions` static class (flat PascalCase: `Permissions.ProductsManage = "ProductsManage"`; no `permissions:` prefix since the claim type already carries "permission"; staff-config only — Guest actions like `PlaceOrders` / `ManageFavorites` excluded) as single source of truth for policy attributes + role-claim seed + admin UI
 
 ### Endpoint scoping (flat routes, gated by policies)
 
 - [ ] Guest-only endpoints → `RequireGuest` (`POST /api/my/orders`, favorites, loyalty redeem, …)
-- [ ] Staff config endpoints → permission policy (`DELETE /api/products/{id}` → `products:delete`)
+- [ ] Staff config endpoints → permission policy (`DELETE /api/products/{id}` → `Permissions.ProductsDelete`)
 - [ ] SuperAdmin-only → `RequireSuperAdmin` (`POST /api/companies`, cross-company ops)
 - [ ] Shared endpoints (e.g. `GET /api/products`) — `RequireAuthorization()`; handler adapts response by `accountType`
-- [ ] **Company isolation**: enforced by the global query filter on `ICurrentCompany` (see multi-tenancy block) — handlers don't re-filter by company
+- [ ] **Company isolation**: enforced by the global query filter (`CompanyId == AppDbContext.CurrentCompanyId`, see multi-tenancy block) — handlers don't re-filter by company
 
 ### Auth use cases (lives in Phase 1 Auth brainstorm; cross-ref here)
 
 - [ ] Single `/auth/login` endpoint (no `/admin` vs `/mobile` split — JWT carries `accountType`)
-- [ ] `POST /auth/register/guest` — self-serve, creates `AppUser` + `Guest`
-- [ ] `POST /auth/register/staff` — Owner/SuperAdmin creates staff in their company, creates `AppUser` + `StaffMember`
+- [ ] `POST /auth/register/guest` — self-serve, creates `AppUser` (`AccountType = Guest`, `CompanyId = null`)
+- [ ] `POST /auth/register/staff` — Owner/SuperAdmin creates staff in a company; creates `AppUser` (`AccountType = Staff`, `CompanyId` set) and assigns role(s)
 - [ ] `PUT /auth/password` — logged-in user changes own password (current + new)
 - [ ] No email verification, no refresh tokens, no forgotten-password reset (skipped for scope)
 - [ ] Logout: client drops the token (stateless JWT, no server-side invalidation)
@@ -169,13 +170,12 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 - [ ] **Startup seed** runs when `ASPNETCORE_ENVIRONMENT != "Testing"` — `ApiFactory` overrides env to `Testing`, so tests get an empty DB automatically (no extra flag)
 - [ ] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword` (user-secrets in dev, env var in prod, never hardcoded). Idempotent — only created if no SuperAdmin exists.
 - [ ] Seed demo company + Owner user for dev/demo
-- [ ] On `POST /api/companies` (SuperAdmin): auto-create default `Owner` role with full claims + assign creator
 
 ### SuperAdmin company-context switching
 
 - [ ] SuperAdmin frontend lists all companies; picks one to work on (context switcher)
 - [ ] Request carries `X-Company-Id` header (or company id re-baked into JWT on switch)
-- [ ] Server: if `accountType = SuperAdmin`, `ICurrentCompany` resolves from `X-Company-Id` instead of the `companyId` claim; global query filter Just Works
+- [ ] Server: if `accountType = SuperAdmin`, `AppDbContext.CurrentCompanyId` resolves from the `X-Company-Id` header instead of the `companyId` claim; global query filter Just Works
 - [ ] Owner-style endpoints (products, outlets, events) work normally for the selected context
 - [ ] Promotion path `POST /api/superadmins` (SuperAdmin-only) — optional, skip for thesis scope unless needed
 - [ ] **Thesis note**: in real SaaS, silent cross-tenant impersonation has GDPR / contract implications (needs audit logging, tenant consent, etc.). For this thesis it's acceptable as a scoped simplification — mention as a compliance consideration in the thesis documentation and log SuperAdmin actions for audit.
