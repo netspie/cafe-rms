@@ -13,5 +13,6 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(x => x.InvoicingAddress).IsRequired().HasMaxLength(500);
         builder.Property(x => x.BillingEmail).IsRequired().HasMaxLength(256);
         builder.Property(x => x.BillingPhone).IsRequired().HasMaxLength(50);
+        builder.HasIndex(x => x.TaxId).IsUnique();
     }
 }
