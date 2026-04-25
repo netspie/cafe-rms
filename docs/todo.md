@@ -134,13 +134,15 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### JWT claim design
 
+> **Design notes (consumer side already wired in `ClaimsPrincipalExtensions` / policies / handler — these tick when the Phase 4 login endpoint emits them):**
+
 - [ ] `accountType` — `SuperAdmin` / `Staff` / `Guest`
 - [ ] `companyId` — Staff only
 - [ ] `role` — Staff only, multi-valued; emitted automatically by Identity's default `UserClaimsPrincipalFactory` from the user's role assignments. The Owner-bypass policy reads this claim.
 - [ ] `permission` — Staff only, multi-valued, flattened from role-claims at login (skipped for Owners since they bypass).
 - [ ] `sub` — user id
 - [x] Signing key from `Jwt:Key` — user-secrets in dev, env var in prod, never `appsettings.json`
-- [ ] Token lifetime: **24h** (single value for admin panel + mobile)
+- [x] Token lifetime: **24h** — `Jwt:ExpiryHours = 24` in `appsettings.json` (single value for admin panel + mobile). Read by the Phase 4 token-generation code.
 
 ### Policies (two layers)
 
