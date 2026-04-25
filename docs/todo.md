@@ -159,14 +159,49 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 - [ ] Shared endpoints (e.g. `GET /api/products`) — `RequireAuthorization()`; handler adapts response by `accountType`
 - [ ] **Company isolation**: enforced by the global query filter (`CompanyId == AppDbContext.CurrentCompanyId`, see multi-tenancy block) — handlers don't re-filter by company
 
-### Auth use cases (lives in Phase 1 Auth brainstorm; cross-ref here)
+### Auth infrastructure prep
 
-- [ ] Single `/auth/login` endpoint (no `/admin` vs `/mobile` split — JWT carries `accountType`)
-- [ ] `POST /auth/register/guest` — self-serve, creates `AppUser` (`AccountType = Guest`, `CompanyId = null`)
-- [ ] `POST /auth/register/staff` — Owner/SuperAdmin creates staff in a company; creates `AppUser` (`AccountType = Staff`, `CompanyId` set) and assigns role(s)
-- [ ] `PUT /auth/password` — logged-in user changes own password (current + new)
-- [ ] No email verification, no refresh tokens, no forgotten-password reset (skipped for scope)
-- [ ] Logout: client drops the token (stateless JWT, no server-side invalidation)
+Small infra pieces landing **before** the auth endpoints. Not strict blockers, but cleaner if in place day one.
+
+- [ ] Strongly-typed `JwtOptions` record (`Issuer`, `Audience`, `Key`, `ExpiryHours`) bound from the `Jwt:` config section + registered via `IOptions<JwtOptions>`. Single source for both the JWT validation block in `Program.cs` and the upcoming token-generation code.
+- [ ] `AppDbContext.CurrentCompanyId` upgrade: when `accountType = SuperAdmin`, read the `X-Company-Id` header instead of the `companyId` claim. Lets SuperAdmin endpoints target a specific tenant without bypassing the global filter.
+- [ ] **`Company.IsPublic`** — boolean, NOT NULL, default `false`. Marks which companies are visible to guests in the public mobile-app discovery listing. SuperAdmin-managed (only flipped by `PUT /api/companies/{id}`). Default-false means new tenants are private until promoted; demo and internal tenants stay invisible until SuperAdmin enables them.
+
+### Auth endpoints
+
+- [ ] `POST /api/auth/login` — email + password → JWT (24h) carrying every claim from the JWT design above. No `/admin` vs `/mobile` split — JWT carries `accountType`.
+- [ ] `POST /api/auth/register/guest` — `[AllowAnonymous]`, self-serve; creates `AppUser` (`AccountType = Guest`, `CompanyId = null`).
+- [ ] `POST /api/auth/register/staff` — `Permissions.UsersManage`; creates `AppUser` (`AccountType = Staff`, `CompanyId` from the current context) and assigns role(s).
+- [ ] `PUT /api/auth/password` — `RequireAuthorization`; current + new password.
+- [ ] No email verification, no refresh tokens, no forgotten-password reset (skipped for scope).
+- [ ] Logout: client drops the token (stateless JWT, no server-side invalidation).
+
+### Company management endpoints
+
+- [ ] `POST /api/companies` — `RequireSuperAdmin`. **Atomic** in one transaction: creates Company + Outlet (1:1) + auto-seeded `Owner` role + first Owner Staff user (payload includes their email + name + initial password). Reuses the same Owner-seeding logic as `StartupSeeder` (factor it out into a shared service).
+- [ ] `GET /api/companies` — `RequireSuperAdmin`; paged + filtered + sorted list of all companies.
+- [ ] `GET /api/companies/{id}` — `RequireAuthorization` + handler check: SuperAdmin sees any; Staff sees only their own (`user.CompanyId == id`), otherwise 403.
+- [ ] `PUT /api/companies/{id}` — `RequireSuperAdmin`; edits `LegalName`, `TaxId`, billing fields, `IsPublic`.
+- [ ] `DELETE /api/companies/{id}` — `RequireSuperAdmin`; soft-delete (cascades to Outlet, roles, users via FKs).
+- [ ] `GET /api/companies/public` — `[AllowAnonymous]`; lists `IsPublic = true` companies with the Outlet's customer-facing fields (DisplayName, StreetAddress, LogoUrl, Currency, Phone) for the mobile app's discover view.
+
+### Role management endpoints
+
+All scoped to the current company via the global `ICompanyOwned` query filter on `AppRole`. SuperAdmin operates against the `X-Company-Id`-selected tenant.
+
+- [ ] `GET /api/roles` — `Permissions.RolesManage`; lists roles in the current company (paged).
+- [ ] `POST /api/roles` — `Permissions.RolesManage`; creates a role with its initial permission claims.
+- [ ] `PUT /api/roles/{id}` — `Permissions.RolesManage`; updates name + claims. **Rejects with 400** if the target is the `Owner` role (system-managed).
+- [ ] `DELETE /api/roles/{id}` — `Permissions.RolesManage`; soft-delete. **Rejects** if target is the `Owner` role.
+- [ ] `POST /api/users/{userId}/roles/{roleId}` — `Permissions.RolesManage`; assigns role to user.
+- [ ] `DELETE /api/users/{userId}/roles/{roleId}` — `Permissions.RolesManage`; unassigns role. **Rejects** if it would leave the company with zero Owner-role holders.
+
+### User management endpoints
+
+- [ ] `GET /api/users` — `Permissions.UsersManage`; paged + filtered + sorted list of Staff users in the current company.
+- [ ] `GET /api/users/{id}` — `Permissions.UsersManage`; single user.
+- [ ] `PUT /api/users/{id}` — `Permissions.UsersManage`; edits name, email (NOT password — that's only the user themselves via `PUT /api/auth/password`).
+- [ ] `DELETE /api/users/{id}` — `Permissions.UsersManage`; soft-delete (the `SoftDeletableSaveChangesInterceptor` converts the `UserManager.DeleteAsync` hard-delete into a soft-delete). **Rejects** if user is the last Owner-role holder in the company.
 
 ### Seeding
 
@@ -176,18 +211,19 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### SuperAdmin company-context switching
 
-- [ ] SuperAdmin frontend lists all companies; picks one to work on (context switcher)
+SuperAdmin is **always seeded at startup** (idempotent in `StartupSeeder`) — no API endpoint to create one. Promotion is intentionally not exposed.
+
+- [ ] SuperAdmin frontend lists all companies; picks one to work on (context switcher) — frontend-only concern
 - [ ] Request carries `X-Company-Id` header (or company id re-baked into JWT on switch)
-- [ ] Server: if `accountType = SuperAdmin`, `AppDbContext.CurrentCompanyId` resolves from the `X-Company-Id` header instead of the `companyId` claim; global query filter Just Works
-- [ ] Owner-style endpoints (products, outlets, events) work normally for the selected context
-- [ ] Promotion path `POST /api/superadmins` (SuperAdmin-only) — optional, skip for thesis scope unless needed
+- [ ] Server-side resolution: covered by the **Auth infrastructure prep** bullet (`AppDbContext.CurrentCompanyId` reads `X-Company-Id` when `accountType = SuperAdmin`). Once that lands, the global query filter Just Works for the selected tenant.
+- [ ] Owner-style endpoints (products, outlets, events) work normally for the selected context — no special handling needed once the resolution works
 - [ ] **Thesis note**: in real SaaS, silent cross-tenant impersonation has GDPR / contract implications (needs audit logging, tenant consent, etc.). For this thesis it's acceptable as a scoped simplification — mention as a compliance consideration in the thesis documentation and log SuperAdmin actions for audit.
 
 ### Safeguards
 
-- [ ] Cannot delete/demote the **last user holding the `Owner` role** in a company (prevents orphaning)
-- [ ] **`Owner` role is system-managed** — cannot be renamed or deleted, since the permission bypass keys off the role name. Role-CRUD endpoints reject mutations targeting the Owner role.
-- [ ] Role-CRUD endpoints (create role, assign claims, assign users to roles) are Owner-only — prevents a Staff user from self-granting elevated permissions
+- [ ] Cannot delete/demote the **last user holding the `Owner` role** in a company. Multiple Owners are allowed — the rule is "at least one." Enforced inline in `DELETE /api/users/{id}` and `DELETE /api/users/{userId}/roles/{roleId}`.
+- [ ] **`Owner` role is system-managed** — cannot be renamed or deleted (the permission bypass keys off the role name `"Owner"`). `PUT/DELETE /api/roles/{id}` reject when the target is the Owner role.
+- [ ] **`Owner` role membership** is gated by `Permissions.RolesManage` (which Owners always have via bypass). A lower-rank Staff user cannot grant themselves the Owner role unless an Owner explicitly gave them `RolesManage` first.
 
 ### Other
 
@@ -196,18 +232,27 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ---
 
-## Phase 3.5 — Test project setup
+## Phase 3.5 — Test project setup + retroactive auth tests
 
-Must land **before Phase 4** so every feature slice can ship with its tests in the same commit. Per-endpoint tests are authored **inside Phase 4** alongside their use case; only the shared scaffolding + e2e tests live outside it.
+Lands **after the Phase 3 auth / role / user / company endpoints** (their tests get written here, retroactively) and **before Phase 4** so every subsequent feature slice can ship with its tests in the same commit. Phase 4 features are authored test-first (or tests-alongside) using the scaffolding set up here.
+
+**Scaffolding:**
 
 - [ ] Create `CafeRMS.Api.Tests` project (NUnit, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory`, FluentAssertions)
-- [ ] `ApiFactory : WebApplicationFactory<Program>` — overrides `AppDbContext` to use InMemory DB (unique GUID per test) so tests are isolated and parallel-safe
-- [ ] JWT test-token helper — `factory.CreateClientAs(accountType, companyId?, permissions[])` returning an `HttpClient` with `Authorization: Bearer ...` set; exercises the real auth pipeline, no auth bypass
+- [ ] `ApiFactory : WebApplicationFactory<Program>` — overrides `AppDbContext` to use InMemory DB (unique GUID per test) so tests are isolated and parallel-safe; forces `ASPNETCORE_ENVIRONMENT = "Testing"` so `StartupSeeder` skips
+- [ ] JWT test-token helper — `factory.CreateClientAs(accountType, companyId?, permissions[])` returning an `HttpClient` with `Authorization: Bearer ...` set; uses the same `JwtOptions` as the app, exercises the real auth pipeline (no bypass)
 - [ ] Anonymous-client helper for unauthenticated cases (`factory.CreateAnonymousClient()`)
 - [ ] Common JSON + `ProblemDetails` assertion helpers (colocated, no base class)
 - [ ] Folder layout mirrors `Features/` per `CLAUDE.md`: `CafeRMS.Api.Tests/Features/<Feature>/<UseCase>Tests.cs`
 - [ ] Document philosophy in test project README: **no mocking** unless unavoidable; happy path first, then key failure cases; one test class per use case file
-- [ ] Hook `dotnet test` into local dev loop before the first Phase 4 feature lands
+- [ ] Hook `dotnet test` into local dev loop
+
+**Retroactive tests for the Phase 3 endpoints:**
+
+- [ ] Auth — login (happy / wrong password / non-existent), register/guest (happy / duplicate email / weak password), register/staff (happy / forbidden by permission / forbidden by no-company), password change (happy / wrong current).
+- [ ] Companies — create (happy / non-SuperAdmin forbidden / duplicate tax id), list, get-own / get-other gating, edit (`IsPublic` flip), delete; public listing returns only `IsPublic = true`.
+- [ ] Roles — CRUD with permission gating; `Owner` role rename/delete rejection; last-Owner orphan prevention.
+- [ ] Users — list / get / delete with permission gating; last-Owner-deletion rejection.
 
 ---
 
