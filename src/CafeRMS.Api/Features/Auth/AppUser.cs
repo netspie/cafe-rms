@@ -1,16 +1,23 @@
 using CafeRMS.Api.Features.Companies;
+using CafeRMS.Api.Shared;
 using Microsoft.AspNetCore.Identity;
 
 namespace CafeRMS.Api.Features.Auth;
 
-public class AppUser : IdentityUser<Guid>
+public class AppUser : IdentityUser<Guid>, IAuditable, ISoftDeletable
 {
     public string FirstName { get; private set; } = "";
     public string LastName { get; private set; } = "";
     public AccountType AccountType { get; private init; }
     public Guid? CompanyId { get; private init; }
     public Company? Company { get; private init; }
+
     public DateTimeOffset CreatedAt { get; private init; }
+    public Guid CreatedBy { get; private init; }
+    public DateTimeOffset? UpdatedAt { get; private set; }
+    public Guid? UpdatedBy { get; private set; }
+    public DateTimeOffset? DeletedAt { get; private set; }
+    public Guid? DeletedBy { get; private set; }
 
     private AppUser() { }
 
@@ -24,8 +31,7 @@ public class AppUser : IdentityUser<Guid>
             FirstName = firstName,
             LastName = lastName,
             AccountType = accountType,
-            CompanyId = companyId,
-            CreatedAt = DateTimeOffset.UtcNow
+            CompanyId = companyId
         };
     }
 }
