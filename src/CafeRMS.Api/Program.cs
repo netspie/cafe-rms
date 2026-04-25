@@ -3,6 +3,7 @@ using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Infrastructure;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Persistence.Interceptors;
+using CafeRMS.Api.Persistence.Seeding;
 using CafeRMS.Api.Shared;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -23,6 +24,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditableSaveChangesInterceptor>();
 builder.Services.AddScoped<SoftDeletableSaveChangesInterceptor>();
+builder.Services.AddScoped<StartupSeeder>();
 
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
@@ -93,6 +95,17 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+if (app.Environment.EnvironmentName != "Testing")
+{
+    using var scope = app.Services.CreateScope();
+    var sp = scope.ServiceProvider;
+
+    if (app.Environment.IsDevelopment())
+        await sp.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+
+    await sp.GetRequiredService<StartupSeeder>().SeedAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {

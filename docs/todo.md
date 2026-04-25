@@ -125,8 +125,7 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 - [x] `AppUser` and `AppRole` implement `IAuditable` + `ISoftDeletable` — Identity-rooted entities can't reparent to the `Entity` base class (single inheritance with `IdentityUser<Guid>` / `IdentityRole<Guid>`), so they declare the 6 audit/soft-delete properties manually. Soft-delete on `AppUser` is mandatory: hard-deleting a user with past `Order` / `LoyaltyPointLog` rows would either FK-fail or cascade-delete history (which we made non-deletable on purpose). `AppUser` is **not** `ICompanyOwned` — see entry above for why.
 - [x] `AppRole.CompanyId` FK to `Company`, **NOT NULL** — every role belongs to exactly one company. SuperAdmin works off `AccountType`, not roles, so no "global role" branch. `OnDelete: Cascade` (a role has no meaning outside its company; if the company is hard-deleted, its roles go too). `AppRole` also implements `ICompanyOwned` so the global query filter auto-scopes role lookups (`RoleManager.FindByNameAsync` etc.) — `AppUser` is **not** `ICompanyOwned` because Guests and SuperAdmins have null `CompanyId` and the simple filter would exclude them; user scoping happens explicitly in handlers.
 - [x] Override `AppRole`'s default unique index on `NormalizedName` with a composite **`(CompanyId, NormalizedName)`** unique index so two companies can each have their own "Owner" / "Cashier" / etc. role. Default `RoleNameIndex` is downgraded to non-unique (`HasDatabaseName("RoleNameIndex").IsUnique(false)`) rather than removed, since EF tracks Identity's named index by metadata.
-- [ ] Auto-seed an **`Owner`** role with every permission when a new company is registered. Permissions enumerated via **reflection** over `typeof(Permissions).GetFields()` (every `public const string` becomes a role-claim) — single line, no manual `Permissions.All` to drift out of sync. The creator of the company gets the seeded `Owner` role assigned.
-- [ ] Company registration is **atomic** — Company + Outlet (1:1) + auto-seeded `Owner` role + (if the endpoint creates one) the first Owner Staff user + role assignment all succeed together or none do, in a single EF transaction.
+- [x] Auto-seed an **`Owner`** role (name `"Owner"`, **no** persisted claims) for each company. Owner is a *concept*, not a permission bag — the permission policy handler gives Owner a blanket allow without checking claims. This means new permissions added in future features automatically apply to existing Owners with **zero backfill** (no role-claim drift). `SystemRoles.Owner = "Owner"` constant added so the bypass isn't a magic string. Implemented in `StartupSeeder` for the demo company; will be reused by the Phase 4 `POST /api/companies` use case.
 - [x] `Company` fields: `LegalName`, `TaxId`, `InvoicingAddress`, `BillingEmail`, `BillingPhone` — legal/accounting shell; drops today's `Name` / `Address` / `Currency` / `TimeZone` (moved to `Outlet` per the 1:1 split)
 - [x] `Outlet` fields: rename `Name` → `DisplayName` (customer-facing brand), rename `Address` → `StreetAddress`, add `Phone`, `TimeZone`, `LogoUrl`; keep `Currency` (enum)
 - [x] Enforce **1:1 Company↔Outlet** via unique index on `Outlet.CompanyId` — all three Company/Outlet changes ship in one migration; staff scoping stays company-wide as a result
@@ -137,7 +136,8 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 - [ ] `accountType` — `SuperAdmin` / `Staff` / `Guest`
 - [ ] `companyId` — Staff only
-- [ ] `permission` — Staff only, multi-valued, flattened from role-claims at login
+- [ ] `role` — Staff only, multi-valued; emitted automatically by Identity's default `UserClaimsPrincipalFactory` from the user's role assignments. The Owner-bypass policy reads this claim.
+- [ ] `permission` — Staff only, multi-valued, flattened from role-claims at login (skipped for Owners since they bypass).
 - [ ] `sub` — user id
 - [x] Signing key from `Jwt:Key` — user-secrets in dev, env var in prod, never `appsettings.json`
 - [ ] Token lifetime: **24h** (single value for admin panel + mobile)
@@ -145,7 +145,7 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 ### Policies (two layers)
 
 - [ ] **Type-gate policies**: `RequireGuest`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin`
-- [ ] **Permission policies** (Staff granularity): `Permissions.ProductsManage`, `Permissions.ProductsDelete`, `Permissions.OrdersRefund`, `Permissions.EventsManage`, … (flat PascalCase — see Permission constants registry above). Each passes if SuperAdmin, OR Staff with matching `permission` claim.
+- [ ] **Permission policies** (Staff granularity): `Permissions.ProductsManage`, `Permissions.ProductsDelete`, `Permissions.OrdersRefund`, `Permissions.EventsManage`, … (flat PascalCase — see Permission constants registry above). Each passes if SuperAdmin, **OR** Staff in the `Owner` role (blanket bypass — same model as SuperAdmin, no claim check), **OR** Staff with matching `permission` claim.
 - [ ] Single custom `PermissionRequirement` + handler to evaluate permission policies uniformly
 - [x] **Permission constants registry** — `Permissions` static class (flat PascalCase: `Permissions.ProductsManage = "ProductsManage"`; no `permissions:` prefix since the claim type already carries "permission"; staff-config only — Guest actions like `PlaceOrders` / `ManageFavorites` excluded) as single source of truth for policy attributes + role-claim seed + admin UI
 
@@ -168,9 +168,9 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### Seeding
 
-- [ ] **Startup seed** runs when `ASPNETCORE_ENVIRONMENT != "Testing"` — `ApiFactory` overrides env to `Testing`, so tests get an empty DB automatically (no extra flag)
-- [ ] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword` (user-secrets in dev, env var in prod, never hardcoded). Idempotent — only created if no SuperAdmin exists.
-- [ ] Seed demo company + Owner user for dev/demo
+- [x] **Startup seed** runs when `ASPNETCORE_ENVIRONMENT != "Testing"` — `ApiFactory` (Phase 3.5) will override env to `Testing`, so tests get an empty DB automatically. In Development we also auto-`MigrateAsync()` first; in Production migrations are applied out-of-band (CI/CD) and only seeding runs.
+- [x] SuperAdmin account: email + initial password from `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword` (user-secrets in dev, env var in prod, never hardcoded). Idempotent — only created if no SuperAdmin exists. Skipped (with warning log) if config values missing.
+- [x] Seed demo company + Outlet + Owner role + demo Owner Staff user for dev/demo. Demo Owner password from `Seed:DemoOwnerPassword`; if missing, the demo block is skipped. Owner-role lookup uses `IgnoreQueryFilters()` because the seeder runs without an HTTP context (so `CurrentCompanyId == Guid.Empty` and the global `ICompanyOwned` filter would hide the role).
 
 ### SuperAdmin company-context switching
 
@@ -184,6 +184,7 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 ### Safeguards
 
 - [ ] Cannot delete/demote the **last user holding the `Owner` role** in a company (prevents orphaning)
+- [ ] **`Owner` role is system-managed** — cannot be renamed or deleted, since the permission bypass keys off the role name. Role-CRUD endpoints reject mutations targeting the Owner role.
 - [ ] Role-CRUD endpoints (create role, assign claims, assign users to roles) are Owner-only — prevents a Staff user from self-granting elevated permissions
 
 ### Other
