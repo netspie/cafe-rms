@@ -144,9 +144,9 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### Policies (two layers)
 
-- [ ] **Type-gate policies**: `RequireGuest`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin`
-- [ ] **Permission policies** (Staff granularity): `Permissions.ProductsManage`, `Permissions.ProductsDelete`, `Permissions.OrdersRefund`, `Permissions.EventsManage`, … (flat PascalCase — see Permission constants registry above). Each passes if SuperAdmin, **OR** Staff in the `Owner` role (blanket bypass — same model as SuperAdmin, no claim check), **OR** Staff with matching `permission` claim.
-- [ ] Single custom `PermissionRequirement` + handler to evaluate permission policies uniformly
+- [x] **Type-gate policies**: `RequireGuest`, `RequireStaff`, `RequireSuperAdmin`, `RequireStaffOrSuperAdmin` — registered via `AddAuthorizationBuilder.AddPolicy`, each requires the `accountType` claim to match. Names live as constants in `Features/Auth/Policies.cs`.
+- [x] **Permission policies** (Staff granularity): one policy per entry in `Permissions.All`, registered upfront in a `foreach` loop in `Program.cs`. Policy name == permission string, so endpoints can use `[Authorize(Policy = Permissions.ProductsManage)]`. The `PermissionAuthorizationHandler` short-circuits on SuperAdmin **or** `Owner` role (`SystemRoles.Owner`) before falling back to the explicit `permission` claim check.
+- [x] Single custom `PermissionRequirement` + `PermissionAuthorizationHandler` to evaluate permission policies uniformly. Handler registered as a singleton `IAuthorizationHandler`.
 - [x] **Permission constants registry** — `Permissions` static class (flat PascalCase: `Permissions.ProductsManage = "ProductsManage"`; no `permissions:` prefix since the claim type already carries "permission"; staff-config only — Guest actions like `PlaceOrders` / `ManageFavorites` excluded) as single source of truth for policy attributes + role-claim seed + admin UI
 
 ### Endpoint scoping (flat routes, gated by policies)
@@ -189,7 +189,7 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### Other
 
-- [ ] `ClaimsPrincipal` extensions: `UserId`, `AccountType`, `CompanyId`, `HasPermission(string)`
+- [x] `ClaimsPrincipal` extensions: `UserId`, `AccountType` (nullable, returns null if claim missing/invalid), `CompanyId` (nullable — Guests/SuperAdmins have none), `HasPermission(string)`. Claim-name constants colocated on `ClaimsPrincipalExtensions` (`AccountTypeClaim`, `CompanyIdClaim`, `PermissionClaim`).
 - [ ] Brainstorm **resource-based authorization** (guest A can't mutate guest B's order / favorite via passed IDs) — options: `IAuthorizationService` + handlers, endpoint filters, or inline ownership check; decide per resource (Orders, Favorites, UserSettings, Loyalty, …)
 
 ---
