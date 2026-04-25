@@ -178,7 +178,9 @@ Small infra pieces landing **before** the auth endpoints. Not strict blockers, b
 
 ### Company management endpoints
 
-- [ ] `POST /api/companies` — `RequireSuperAdmin`. **Atomic** in one transaction: creates Company + Outlet (1:1) + auto-seeded `Owner` role + first Owner Staff user (payload includes their email + name + initial password). Reuses the same Owner-seeding logic as `StartupSeeder` (factor it out into a shared service).
+- [x] `POST /api/companies` — `RequireSuperAdmin`. **Atomic** in one transaction: creates Company + Outlet (1:1) + `Owner` role + first Owner Staff user. Owner role-assignment uses `db.UserRoles.Add(...)` directly (bypasses the `ICompanyOwned` filter that hides the just-created role from `UserManager.AddToRoleAsync` in the SuperAdmin's request context). TaxId + email duplicates rejected up-front with 409. `IsPublic` from the request (default false). **Follow-ups:** add a DB unique index on `Company.TaxId` (currently app-level check only — race-condition window); DRY the seeder against this use case (the seeder still has its own copy of the same logic).
+- [ ] **Follow-up cleanup**: add unique index on `Company.TaxId` so duplicate creation hits 23505 at the DB level instead of slipping through the app-level race window. One-line `HasIndex(x => x.TaxId).IsUnique()` in `CompanyConfiguration` + a migration.
+- [ ] **Follow-up cleanup**: extract a shared `CreateCompanyWithOwner` flow used by both `StartupSeeder.SeedDemoCompanyAsync` and `CreateCompany.Execute`, so the bootstrap logic has one source.
 - [ ] `GET /api/companies` — `RequireSuperAdmin`; paged + filtered + sorted list of all companies.
 - [ ] `GET /api/companies/{id}` — `RequireAuthorization` + handler check: SuperAdmin sees any; Staff sees only their own (`user.CompanyId == id`), otherwise 403.
 - [ ] `PUT /api/companies/{id}` — `RequireSuperAdmin`; edits `LegalName`, `TaxId`, billing fields, `IsPublic`.
