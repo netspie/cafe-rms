@@ -185,7 +185,7 @@ Small infra pieces landing **before** the auth endpoints. Not strict blockers, b
 - [ ] `GET /api/companies/{id}` — `RequireAuthorization` + handler check: SuperAdmin sees any; Staff sees only their own (`user.CompanyId == id`), otherwise 403.
 - [ ] `PUT /api/companies/{id}` — `RequireSuperAdmin`; edits `LegalName`, `TaxId`, billing fields, `IsPublic`.
 - [ ] `DELETE /api/companies/{id}` — `RequireSuperAdmin`; soft-delete (cascades to Outlet, roles, users via FKs).
-- [ ] `GET /api/companies/public` — `[AllowAnonymous]`; lists `IsPublic = true` companies with the Outlet's customer-facing fields (DisplayName, StreetAddress, LogoUrl, Currency, Phone) for the mobile app's discover view.
+- [x] `GET /api/companies/public` — `[AllowAnonymous]`; lists `IsPublic = true` companies with the Outlet's customer-facing fields (DisplayName, StreetAddress, Phone, TimeZone, Currency, LogoUrl) for the mobile app's discover view. Auto-skips soft-deleted companies via the global filter. No paging — thesis-scale list.
 
 ### Role management endpoints
 
