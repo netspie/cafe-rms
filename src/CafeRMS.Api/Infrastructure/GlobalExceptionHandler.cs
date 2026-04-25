@@ -14,6 +14,7 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
             NotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
             ConflictException => (StatusCodes.Status409Conflict, "Conflict"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden"),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             DomainException => (StatusCodes.Status400BadRequest, "Bad Request"),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Conflict"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
@@ -29,6 +30,7 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         var detail = exception switch
         {
             DomainException => exception.Message,
+            UnauthorizedAccessException => exception.Message,
             DbUpdateConcurrencyException => "The record was modified by another user. Reload and try again.",
             _ => null
         };

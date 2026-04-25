@@ -169,7 +169,7 @@ Small infra pieces landing **before** the auth endpoints. Not strict blockers, b
 
 ### Auth endpoints
 
-- [ ] `POST /api/auth/login` — email + password → JWT (24h) carrying every claim from the JWT design above. No `/admin` vs `/mobile` split — JWT carries `accountType`.
+- [x] `POST /api/auth/login` — email + password → JWT (24h) carrying every claim from the JWT design above. No `/admin` vs `/mobile` split — JWT carries `accountType`. Returns same generic message on bad email vs bad password to prevent user-enumeration. Owner role-claim emission skips permission flattening (Owner bypasses).
 - [ ] `POST /api/auth/register/guest` — `[AllowAnonymous]`, self-serve; creates `AppUser` (`AccountType = Guest`, `CompanyId = null`).
 - [ ] `POST /api/auth/register/staff` — `Permissions.UsersManage`; creates `AppUser` (`AccountType = Staff`, `CompanyId` from the current context) and assigns role(s).
 - [ ] `PUT /api/auth/password` — `RequireAuthorization`; current + new password.

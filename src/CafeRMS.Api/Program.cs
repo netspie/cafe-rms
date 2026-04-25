@@ -5,6 +5,7 @@ using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Persistence.Interceptors;
 using CafeRMS.Api.Persistence.Seeding;
 using CafeRMS.Api.Shared;
+using CafeRMS.Api.Shared.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditableSaveChangesInterceptor>();
 builder.Services.AddScoped<SoftDeletableSaveChangesInterceptor>();
 builder.Services.AddScoped<StartupSeeder>();
+builder.Services.AddScoped<JwtTokenService>();
 
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
@@ -86,6 +88,9 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHand
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
+}).AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new TrimmingStringConverter());
 });
 
 builder.Services.AddHealthChecks();
