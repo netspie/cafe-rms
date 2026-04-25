@@ -120,8 +120,8 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### Data model
 
-- [ ] `AppUser.AccountType` enum on `AppUser`: `SuperAdmin` | `Staff` | `Guest`. Stored as **string** column (DB-inspectable, thesis-explainable).
-- [ ] `AppUser.CompanyId` — nullable FK to `Company`, set **only** when `AccountType = Staff`. **No separate `Guest` / `StaffMember` 1:1 entities** — they'd carry no fields beyond what's already on `AppUser` / `UserSettings` / `LoyaltyPointLog`, so they'd be empty wrappers. Add a sub-table later only if a Staff- or Guest-only field appears that genuinely doesn't fit on `AppUser`.
+- [x] `AppUser.AccountType` enum on `AppUser`: `SuperAdmin` | `Staff` | `Guest`. Stored as **string** column (DB-inspectable, thesis-explainable). Configured via `AppUserConfiguration` (`HasConversion<string>().HasMaxLength(20).IsRequired()`).
+- [x] `AppUser.CompanyId` — nullable FK to `Company`, set **only** when `AccountType = Staff`. `Company?` nav added; `OnDelete: Restrict` (defensive — Company is soft-delete anyway). **No separate `Guest` / `StaffMember` 1:1 entities** — they'd carry no fields beyond what's already on `AppUser` / `UserSettings` / `LoyaltyPointLog`, so they'd be empty wrappers. Add a sub-table later only if a Staff- or Guest-only field appears that genuinely doesn't fit on `AppUser`.
 - [ ] `AppRole.CompanyId` FK to `Company`, **NOT NULL** — every role belongs to exactly one company. SuperAdmin works off `AccountType`, not roles, so no "global role" branch.
 - [ ] Override `AppRole`'s default unique index on `NormalizedName` with a composite **`(CompanyId, NormalizedName)`** so two companies can each have their own "Owner" / "Cashier" / etc. role.
 - [ ] Auto-seed an **`Owner`** role with every permission when a new company is registered. Permissions enumerated via **reflection** over `typeof(Permissions).GetFields()` (every `public const string` becomes a role-claim) — single line, no manual `Permissions.All` to drift out of sync. The creator of the company gets the seeded `Owner` role assigned.
