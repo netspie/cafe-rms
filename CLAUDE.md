@@ -64,6 +64,10 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 - Do not add features or refactors beyond what was asked
 - Do not rename or restructure files/folders without being asked
 
+## Planning
+
+- **Non-trivial work (more than 1–2 subtasks) goes into `docs/todo.md` before implementation starts.** If the work isn't already represented there, draft the bullets under the right phase/section and reach alignment with the user before writing code. Lets the user see the slope of the work in advance and keeps the plan as the single source of truth.
+
 ## Committing
 
 - **One commit per `docs/todo.md` item.** When the user asks to commit completed work, split it into separate commits — one per TODO checkbox that was ticked. Bundle items only when they're genuinely inseparable (e.g. a shared refactor touched by multiple items).

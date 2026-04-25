@@ -95,7 +95,28 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 - [x] Add `CompanyId` FK + migration to `LoyaltyPointLog` — no transitive path via `UserId` since guests span companies
 - [x] `ICurrentCompany` service — reads `companyId` claim from JWT; scoped DI lifetime. `X-Company-Id` header branch for SuperAdmin context switch is deferred to the SuperAdmin section below.
 - [x] **Global query filter** centralized in `AppDbContext.OnModelCreating`: the 15 tenant-scoped entities now implement `ICompanyScoped` (marker interface). `ApplyQueryFilters` loops `builder.Model.GetEntityTypes()` and dispatches via reflection to three generic helpers (soft-delete only, company-scope only, or both combined) so each entity gets a single `HasQueryFilter(...)` expression — EF allows only one filter per entity, so soft-delete + company filters are merged into `e.CompanyId == CurrentCompanyId && e.DeletedAt == null` for entities that need both.
-- [ ] Entities that **don't** need direct `CompanyId` (reach company transitively): `Order` (via `Outlet`), `Favorite` (via `Product`), `EventDay` (via `Event`), `UserSettings` (global per-guest, mobile-app only), all join tables
+
+> **Note (design intent, not a TODO):** entities that reach company transitively don't get their own `CompanyId` / `ICompanyOwned` marker — they're filtered by walking the parent: `Order` (via `Outlet`), `Favorite` (via `Product`), `EventDay` (via `Event`), `UserSettings` (per-guest, mobile-app only), all join tables. EF query filters don't traverse navigations, so handlers must filter through the parent explicitly (e.g. `_db.Orders.Where(o => o.Outlet.CompanyId == _ctx.CurrentCompanyId)`).
+
+### Entity base classes & audit / soft-delete cleanup
+
+Cross-cutting cleanup once the multi-tenant query filter is in place. Removes duplicated audit/soft-delete property declarations across 22 entities, and corrects two entities (`Order`, `Event`) whose soft-delete shape was wrong — they're append-only history once committed, voided via `CancelledAt`, not deleted.
+
+- [ ] Rename `ICompanyScoped` → `ICompanyOwned` (interface + all `IsCompanyScoped` / `ApplyCompanyScopeFilter` / `ApplyCompanyScopeAndSoftDeleteFilter` references in `AppDbContext`) to match the `CompanyOwnedEntity` base-class naming
+- [ ] Add base classes in `src/CafeRMS.Api/Shared/Entities/`:
+  - `Entity` — `IAuditable` props
+  - `SoftDeletableEntity : Entity, ISoftDeletable`
+  - `CompanyOwnedEntity : Entity, ICompanyOwned`
+  - `CompanyOwnedSoftDeletableEntity : SoftDeletableEntity, ICompanyOwned`
+- [ ] Reparent all 22 business entities to the right base, delete now-redundant property declarations:
+  - `Entity` (6): EventDay, OrderLine, UserSettings, ProductImage, ProductPrice, **Order** (after soft-delete drop)
+  - `SoftDeletableEntity` (1): Company
+  - `CompanyOwnedEntity` (2): LoyaltyPointLog, **Event** (after soft-delete drop)
+  - `CompanyOwnedSoftDeletableEntity` (13): Allergen, Modifier, ModifierGroup, Outlet, PriceGroup, PrintoutTemplate, Product, ProductList, PromotionCode, SalesChannel, Table, Tag, TaxRate
+- [ ] Drop `ISoftDeletable` from `Order` (no `DeletedAt` / `DeletedBy`); orders are append-only history, voided via existing `CancelledAt` / `CancellationReason`
+- [ ] Drop `ISoftDeletable` from `Event`; add `CancelledAt` (`DateTimeOffset?`) + `CancellationReason` (`string?`) + `IsCancelled` computed prop — same lifecycle as Order (history once committed)
+- [ ] Broaden `ApplyXminConcurrencyTokens` walk: key off `IAuditable` instead of `ISoftDeletable` so mutable non-soft-delete entities (`Order`, `OrderLine`, `Event`) get concurrency tokens too
+- [ ] Migration: drop `orders.deleted_at` / `orders.deleted_by` / `events.deleted_at` / `events.deleted_by`; add `events.cancelled_at` / `events.cancellation_reason`
 
 ### Data model
 
