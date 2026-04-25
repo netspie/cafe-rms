@@ -26,4 +26,14 @@ public class Company : SoftDeletableEntity
             BillingPhone = billingPhone
         };
     }
+
+    public void Update(string legalName, string taxId, string invoicingAddress, string billingEmail, string billingPhone, bool isPublic)
+    {
+        LegalName = legalName;
+        TaxId = taxId;
+        InvoicingAddress = invoicingAddress;
+        BillingEmail = billingEmail;
+        BillingPhone = billingPhone;
+        IsPublic = isPublic;
+    }
 }
