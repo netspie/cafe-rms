@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.Allergens;
 
-public class Allergen : IAuditable, ISoftDeletable
+public class Allergen : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";

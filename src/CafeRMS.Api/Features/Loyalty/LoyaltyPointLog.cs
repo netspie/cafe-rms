@@ -4,7 +4,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.Loyalty;
 
-public class LoyaltyPointLog : IAuditable
+public class LoyaltyPointLog : IAuditable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public Guid UserId { get; private init; }

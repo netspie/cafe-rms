@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.PromotionCodes;
 
-public class PromotionCode : IAuditable, ISoftDeletable
+public class PromotionCode : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Code { get; private set; } = "";

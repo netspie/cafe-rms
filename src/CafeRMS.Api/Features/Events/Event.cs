@@ -5,7 +5,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.Events;
 
-public class Event : IAuditable, ISoftDeletable
+public class Event : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";

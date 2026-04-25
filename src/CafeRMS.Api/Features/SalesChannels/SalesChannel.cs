@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.SalesChannels;
 
-public class SalesChannel : IAuditable, ISoftDeletable
+public class SalesChannel : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";

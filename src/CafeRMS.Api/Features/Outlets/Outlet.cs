@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.Outlets;
 
-public class Outlet : IAuditable, ISoftDeletable
+public class Outlet : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string DisplayName { get; private set; } = "";

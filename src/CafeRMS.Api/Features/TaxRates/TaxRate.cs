@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.TaxRates;
 
-public class TaxRate : IAuditable, ISoftDeletable
+public class TaxRate : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";

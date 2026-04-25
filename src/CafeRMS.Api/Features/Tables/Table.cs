@@ -4,7 +4,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.Tables;
 
-public class Table : IAuditable, ISoftDeletable
+public class Table : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";

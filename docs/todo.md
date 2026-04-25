@@ -93,8 +93,8 @@ One-time schema sweep before the feature work starts. Every top-level config ent
 
 - [x] Add `CompanyId` FK + migration to 13 entities: `Product`, `Event`, `PromotionCode`, `Tag`, `Allergen`, `ModifierGroup`, `Modifier`, `PriceGroup`, `ProductList`, `SalesChannel`, `TaxRate`, `Table`, `PrintoutTemplate` (`Outlet` already has it); `PromotionCode` unique index flipped to composite `(CompanyId, Code)` so the same promo string can coexist across companies
 - [x] Add `CompanyId` FK + migration to `LoyaltyPointLog` — no transitive path via `UserId` since guests span companies
-- [ ] `ICurrentCompany` service — reads `companyId` from JWT (Staff) or `X-Company-Id` header (SuperAdmin context switch); scoped DI lifetime
-- [ ] **Global query filter** centralized in `AppDbContext.OnModelCreating`: for every entity with `CompanyId`, auto-filter by `_currentCompany.Id` — same loop-over-`builder.Model.GetEntityTypes()` pattern as the existing `ISoftDeletable` filter, so handlers never type `.Where(x => x.CompanyId == …)` by hand
+- [x] `ICurrentCompany` service — reads `companyId` claim from JWT; scoped DI lifetime. `X-Company-Id` header branch for SuperAdmin context switch is deferred to the SuperAdmin section below.
+- [x] **Global query filter** centralized in `AppDbContext.OnModelCreating`: the 15 tenant-scoped entities now implement `ICompanyScoped` (marker interface). `ApplyQueryFilters` loops `builder.Model.GetEntityTypes()` and dispatches via reflection to three generic helpers (soft-delete only, company-scope only, or both combined) so each entity gets a single `HasQueryFilter(...)` expression — EF allows only one filter per entity, so soft-delete + company filters are merged into `e.CompanyId == CurrentCompanyId && e.DeletedAt == null` for entities that need both.
 - [ ] Entities that **don't** need direct `CompanyId` (reach company transitively): `Order` (via `Outlet`), `Favorite` (via `Product`), `EventDay` (via `Event`), `UserSettings` (global per-guest, mobile-app only), all join tables
 
 ### Data model

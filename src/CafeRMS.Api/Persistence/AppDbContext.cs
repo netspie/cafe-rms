@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+using System.Reflection;
 using CafeRMS.Api.Features.Allergens;
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Companies;
@@ -26,7 +26,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options)
+public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor)
     : IdentityDbContext<AppUser, AppRole, Guid>(options)
 {
     public DbSet<Company> Companies => Set<Company>();
@@ -73,25 +73,45 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        ApplySoftDeleteQueryFilters(builder);
+        ApplyQueryFilters(builder);
         ApplyXminConcurrencyTokens(builder);
     }
 
-    private static void ApplySoftDeleteQueryFilters(ModelBuilder builder)
+    private void ApplyQueryFilters(ModelBuilder builder)
     {
+        var softDeleteOnly = typeof(AppDbContext)
+            .GetMethod(nameof(ApplySoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var companyScopeOnly = typeof(AppDbContext)
+            .GetMethod(nameof(ApplyCompanyScopeFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var both = typeof(AppDbContext)
+            .GetMethod(nameof(ApplyCompanyScopeAndSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
-            if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
-                continue;
+            var clrType = entityType.ClrType;
+            var isSoftDeletable = typeof(ISoftDeletable).IsAssignableFrom(clrType);
+            var isCompanyScoped = typeof(ICompanyScoped).IsAssignableFrom(clrType);
 
-            var parameter = Expression.Parameter(entityType.ClrType, "e");
-            var deletedAt = Expression.Property(parameter, nameof(ISoftDeletable.DeletedAt));
-            var isNotDeleted = Expression.Equal(deletedAt, Expression.Constant(null, typeof(DateTimeOffset?)));
-            var lambda = Expression.Lambda(isNotDeleted, parameter);
+            MethodInfo? method = (isCompanyScoped, isSoftDeletable) switch
+            {
+                (true, true) => both,
+                (true, false) => companyScopeOnly,
+                (false, true) => softDeleteOnly,
+                _ => null
+            };
 
-            entityType.SetQueryFilter(lambda);
+            method?.MakeGenericMethod(clrType).Invoke(this, [builder]);
         }
     }
+
+    private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : class, ISoftDeletable =>
+        builder.Entity<T>().HasQueryFilter(e => e.DeletedAt == null);
+
+    private void ApplyCompanyScopeFilter<T>(ModelBuilder builder) where T : class, ICompanyScoped =>
+        builder.Entity<T>().HasQueryFilter(e => e.CompanyId == CurrentCompanyId);
+
+    private void ApplyCompanyScopeAndSoftDeleteFilter<T>(ModelBuilder builder) where T : class, ICompanyScoped, ISoftDeletable =>
+        builder.Entity<T>().HasQueryFilter(e => e.CompanyId == CurrentCompanyId && e.DeletedAt == null);
 
     private static void ApplyXminConcurrencyTokens(ModelBuilder builder)
     {
@@ -104,6 +124,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .Property<uint>("xmin")
                 .IsConcurrencyToken()
                 .ValueGeneratedOnAddOrUpdate();
+        }
+    }
+
+    public Guid CurrentCompanyId
+    {
+        get
+        {
+            var claim = httpContextAccessor.HttpContext?.User.FindFirst("companyId")?.Value;
+            return Guid.TryParse(claim, out var id) ? id : Guid.Empty;
         }
     }
 }

@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared;
 
 namespace CafeRMS.Api.Features.PrintoutTemplates;
 
-public class PrintoutTemplate : IAuditable, ISoftDeletable
+public class PrintoutTemplate : IAuditable, ISoftDeletable, ICompanyScoped
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
