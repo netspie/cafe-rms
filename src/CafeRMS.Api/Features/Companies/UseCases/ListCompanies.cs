@@ -15,7 +15,7 @@ public static class ListCompanies
 
     public static async Task<IReadOnlyList<Item>> Execute(AppDbContext db) =>
         await db.Companies
-            .OrderBy(x => c.LegalName)
-            .Select(x => new Item(c.Id, c.LegalName, c.TaxId, c.BillingEmail, c.IsPublic, c.CreatedAt))
+            .OrderBy(x => x.LegalName)
+            .Select(x => new Item(x.Id, x.LegalName, x.TaxId, x.BillingEmail, x.IsPublic, x.CreatedAt))
             .ToListAsync();
 }
