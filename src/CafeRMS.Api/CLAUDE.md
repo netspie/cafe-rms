@@ -29,11 +29,27 @@ API-specific conventions. The root `CLAUDE.md` has shared monorepo rules — rea
 ```
 CafeRMS.Api/
   Features/
+    Auth/
+      Controllers/                 ← controllers live INSIDE the feature, next to use cases
+        LoginController.cs         ← one controller per endpoint (vertical slice)
+        RegisterGuestController.cs
+        ...
+      UseCases/
+        Login.cs
+        ...
+      AppUser.cs
+      AppRole.cs
+      JwtOptions.cs
+      JwtTokenService.cs
+      ...
     Companies/
       Company.cs
       CompanyConfiguration.cs
+      Controllers/
+        CreateCompanyController.cs
+        ...
       UseCases/
-        AddCompany.cs
+        CreateCompany.cs
         GetCompanyById.cs
         GetCompanies.cs
         UpdateCompany.cs
@@ -41,6 +57,9 @@ CafeRMS.Api/
     Products/
       Product.cs
       ProductConfiguration.cs
+      Controllers/
+        AddProductController.cs
+        ...
       UseCases/
         AddProduct.cs
         ...
@@ -54,6 +73,9 @@ CafeRMS.Api/
   Shared/
     ClaimsPrincipalExtensions.cs
     ValidationFilter.cs
+    Entities/
+      Entity.cs
+      ...
     Errors/
       DomainException.cs
       NotFoundException.cs
@@ -68,19 +90,58 @@ CafeRMS.Api.slnx
 
 ### Use case file anatomy
 
-Each file in `UseCases/` contains everything for that one use case:
+**Two layers, deliberately split:**
+
+- **Controller layer (transport)** — `Controllers/<Feature>Controller.cs` holds the HTTP-facing types: `Request`, `Response`, `Validator`. These are API/wire-shape concerns.
+- **Use case layer (domain)** — `Features/<Feature>/UseCases/<UseCase>.cs` holds `Command`, `Result`, `Execute`. These are business-logic concerns. Command can include context fields not on the Request (e.g., `CreatedByUserId` from claims, `CompanyId` from the SuperAdmin header).
+
+The controller's job: take the Request, assemble the Command from Request + context, call `Execute`, map the Result onto the Response.
 
 ```csharp
-// AddProduct.cs
-// 1. Minimal API route registration
-// 2. Request record (route binding)
-// 3. Command record (includes UserId etc.)
-// 4. Static Execute() handler
-// 5. FluentValidation validator
-// 6. Response DTO
+// Features/Auth/UseCases/Login.cs
+public static class Login
+{
+    public sealed record Command(string Email, string Password);
+    public sealed record Result(string AccessToken, DateTimeOffset ExpiresAt, string AccountType);
+
+    public static async Task<Result> Execute(
+        Command command,
+        UserManager<AppUser> userManager,
+        JwtTokenService tokenService) { ... }
+}
+
+// Features/Auth/Controllers/LoginController.cs
+[ApiController]
+public sealed class LoginController : ControllerBase
+{
+    [HttpPost("/api/auth/login")]
+    [AllowAnonymous]
+    public async Task<LoginResponse> Handle(
+        [FromBody] LoginRequest request,
+        [FromServices] UserManager<AppUser> userManager,
+        [FromServices] JwtTokenService tokenService)
+    {
+        var command = new Login.Command(request.Email, request.Password);
+        var result = await Login.Execute(command, userManager, tokenService);
+        return new LoginResponse(result.AccessToken, result.ExpiresAt, result.AccountType);
+    }
+}
+
+public sealed record LoginRequest(string Email, string Password);
+public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt, string AccountType);
+
+public sealed class LoginValidator : AbstractValidator<LoginRequest> { ... }
 ```
 
-File names = the action. No `Command`, `Query`, `Handler` suffixes.
+Rules:
+- **One controller per endpoint** (vertical slice). File name = the controller class name = `<UseCase>Controller`. Each controller has a single `Handle` action with the route declared inline via `[HttpXxx("/api/...")]`. No shared `[Route(...)]` at class level — each endpoint declares its own full path.
+- **Controllers live inside their feature folder** at `Features/<Feature>/Controllers/`. Sit next to `UseCases/` and the entity files — everything that changes together lives together.
+- Controllers carry **no business logic** — they only validate (via `ValidationFilter` + `AbstractValidator<Request>`), route, assemble the Command, and dispatch.
+- **Validator binds to `Request`, not `Command`** — `ValidationFilter` triggers on the action parameter type. Command-level invariants are rare since context fields come from the already-validated JWT.
+- For trivial cases (Login), `Command`/`Result` look identical to `Request`/`Response`. Keep them separate anyway — the distinction is the convention.
+- Auth-flow failures (e.g. wrong password) throw built-in `System.UnauthorizedAccessException` — mapped to 401 in `GlobalExceptionHandler`. Don't invent a custom `UnauthorizedException`; it's a transport concern, not a business-domain rule.
+- File names = the action. No `Command`, `Query`, `Handler` suffixes.
+- No MediatR / `IRequest<T>` machinery — static `Execute(...)` covers it for now. Revisit only if a cross-cutting behavior (transaction wrapping, logging) needs to wrap every handler.
 
 ---
 
@@ -144,7 +205,8 @@ File names = the action. No `Command`, `Query`, `Handler` suffixes.
 - No XML doc comments (`///`) unless explicitly asked.
 - Never use `= null!` or `= default!` in domain/application code. Exception: test fixtures.
 - Use modern C# 14 / .NET 10 syntax: collection expressions, primary constructors, pattern matching, file-scoped namespaces, etc.
-- FluentValidation for input validation.
+- FluentValidation for input validation. Validators bind to **Request** types (controller layer), not Command. `ValidationFilter` triggers automatically on the action parameter type.
+- **Surrounding whitespace on JSON-string inputs is auto-trimmed** by `Shared/Json/TrimmingStringConverter` (registered globally on `AddControllers().AddJsonOptions(...)`). Use cases never see padded strings — `"  Coffee  "` arrives as `"Coffee"`. Empty / whitespace-only strings are still rejected by `NotEmpty()` in validators (FluentValidation treats whitespace as empty).
 - `ProblemDetails` for all error responses.
 - **Boolean names start with `Is` / `Has` / `Can` / `Should` / `Will` / `Does`** and use an affirmative phrase. Applies to properties, fields, parameters, and locals. This follows the Microsoft .NET Framework Design Guidelines (["Names of Type Members"](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/names-of-type-members#names-of-properties)).
   ```csharp

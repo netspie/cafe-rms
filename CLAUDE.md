@@ -66,7 +66,13 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 
 ## Communication
 
-- **Questions are not pushback.** When the user asks "why?" / "what for?" / "how does X work?", answer the question. Don't infer an implicit "and now change it" — that's projection. No "you're right to question it", no preemptive "want me to remove/refactor?", no list of alternative options unless they asked for alternatives. If they want a change, they'll ask. If you're unsure whether a question is rhetorical or actionable, ask back briefly — don't act.
+- **Don't rush to implement anything without an explicit command.** Wait for a directive ("do X", "fix Y", "add Z"). Do **not** infer an implicit "and now change it" from any of these:
+  - **Questions** — "why?" / "what for?" / "how does X work?" → answer the question.
+  - **Concerns** — "I'm worried that…" / "what if we hit X later?" → acknowledge the concern with information; don't refactor.
+  - **Observations** — "interesting that X" / "this could grow" → note it; don't act on it.
+  - **Musings** — "maybe we should…" / "I wonder if…" → engage on the idea; don't ship it.
+
+  No "you're right to question it", no preemptive "want me to remove/refactor?" follow-up, no surprise menu of alternatives unless they asked for alternatives. If you can't tell whether a sentence is a directive or a thought, **ask back briefly** — don't act. The cost of a one-line clarification is small; the cost of an unwanted refactor is high.
 
 ## Planning
 
