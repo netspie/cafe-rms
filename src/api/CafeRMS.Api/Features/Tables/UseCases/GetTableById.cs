@@ -1,0 +1,21 @@
+using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared.Errors;
+using Microsoft.EntityFrameworkCore;
+
+namespace CafeRMS.Api.Features.Tables.UseCases;
+
+public static class GetTableById
+{
+    public sealed record Result(Guid Id, string Name, Guid OutletId, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+
+    public static async Task<Result> Execute(Guid id, AppDbContext db)
+    {
+        var table = await db.Tables
+            .Where(x => x.Id == id)
+            .Select(x => new Result(x.Id, x.Name, x.OutletId, x.CreatedAt, x.UpdatedAt))
+            .FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Table not found.");
+
+        return table;
+    }
+}

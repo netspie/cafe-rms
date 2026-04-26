@@ -22,4 +22,9 @@ public class Table : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name)
+    {
+        Name = name;
+    }
 }
