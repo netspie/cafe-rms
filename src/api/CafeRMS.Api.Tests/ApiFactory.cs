@@ -3,6 +3,8 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using CafeRMS.Api.Features.Auth;
+using CafeRMS.Api.Features.Companies;
+using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
 using Microsoft.AspNetCore.Hosting;
@@ -103,6 +105,31 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             });
         await db.SaveChangesAsync();
         return role;
+    }
+
+    public async Task<Company> SeedCompanyAsync(
+        string legalName = "Test Cafe Sp. z o.o.",
+        string taxId = "0000000000",
+        bool isPublic = false)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var company = Company.Create(legalName, taxId, "ul. Test 1, 00-001 Warsaw", "billing@test.local", "+48000000000");
+        company.IsPublic = isPublic;
+        db.Companies.Add(company);
+        db.Outlets.Add(Outlet.Create(
+            "Test Outlet", "ul. Test 1, 00-001 Warsaw", "+48000000000",
+            "Europe/Warsaw", Currency.PLN, company.Id));
+        await db.SaveChangesAsync();
+        return company;
+    }
+
+    public async Task AssignRoleAsync(Guid userId, Guid roleId)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = userId, RoleId = roleId });
+        await db.SaveChangesAsync();
     }
 
     public HttpClient CreateClientAs(
