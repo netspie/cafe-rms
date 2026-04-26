@@ -191,19 +191,19 @@ Small infra pieces landing **before** the auth endpoints. Not strict blockers, b
 
 All scoped to the current company via the global `ICompanyOwned` query filter on `AppRole`. SuperAdmin operates against the `X-Company-Id`-selected tenant.
 
-- [ ] `GET /api/roles` — `Permissions.RolesManage`; lists roles in the current company (paged).
-- [ ] `POST /api/roles` — `Permissions.RolesManage`; creates a role with its initial permission claims.
-- [ ] `PUT /api/roles/{id}` — `Permissions.RolesManage`; updates name + claims. **Rejects with 400** if the target is the `Owner` role (system-managed).
-- [ ] `DELETE /api/roles/{id}` — `Permissions.RolesManage`; soft-delete. **Rejects** if target is the `Owner` role.
-- [ ] `POST /api/users/{userId}/roles/{roleId}` — `Permissions.RolesManage`; assigns role to user.
-- [ ] `DELETE /api/users/{userId}/roles/{roleId}` — `Permissions.RolesManage`; unassigns role. **Rejects** if it would leave the company with zero Owner-role holders.
+- [x] `GET /api/roles` — `Permissions.RolesManage`; lists roles in the current company (alphabetical, no paging yet) with their permission claims.
+- [x] `POST /api/roles` — `Permissions.RolesManage`; creates a role with initial permission claims. Forbids creating a role named "Owner" (system-managed).
+- [x] `PUT /api/roles/{id}` — `Permissions.RolesManage`; updates name + replaces claims wholesale. **Rejects** if the target is the `Owner` role or if the new name is "Owner".
+- [x] `DELETE /api/roles/{id}` — `Permissions.RolesManage`; soft-delete via the interceptor. **Rejects** if target is the `Owner` role.
+- [x] `POST /api/users/{userId}/roles/{roleId}` — `Permissions.RolesManage`; assigns role to user. Validates user is a Staff member of the current company. Idempotent (re-assignment is a no-op).
+- [x] `DELETE /api/users/{userId}/roles/{roleId}` — `Permissions.RolesManage`; unassigns role. **Rejects** if it would leave the company with zero Owner-role holders.
 
 ### User management endpoints
 
-- [ ] `GET /api/users` — `Permissions.UsersManage`; paged + filtered + sorted list of Staff users in the current company.
-- [ ] `GET /api/users/{id}` — `Permissions.UsersManage`; single user.
-- [ ] `PUT /api/users/{id}` — `Permissions.UsersManage`; edits name, email (NOT password — that's only the user themselves via `PUT /api/auth/password`).
-- [ ] `DELETE /api/users/{id}` — `Permissions.UsersManage`; soft-delete (the `SoftDeletableSaveChangesInterceptor` converts the `UserManager.DeleteAsync` hard-delete into a soft-delete). **Rejects** if user is the last Owner-role holder in the company.
+- [x] `GET /api/users` — `Permissions.UsersManage`; alphabetical (LastName, FirstName) list of Staff users in the current company, with each user's role names.
+- [x] `GET /api/users/{id}` — `Permissions.UsersManage`; single user. Validates user is a Staff member of the current company.
+- [x] `PUT /api/users/{id}` — `Permissions.UsersManage`; edits **FirstName + LastName** only. Email change is deliberately out-of-scope for this slice (involves NormalizedEmail + uniqueness juggling); password change is via `PUT /api/auth/password` (self-only). Added `AppUser.UpdateProfile(...)` since fields use `private set`.
+- [x] `DELETE /api/users/{id}` — `Permissions.UsersManage`; soft-delete via the interceptor. **Rejects** self-deletion (you can't delete your own account) and the last-Owner case (cannot delete the last Owner-role holder).
 
 ### Seeding
 
@@ -231,7 +231,11 @@ SuperAdmin is **always seeded at startup** (idempotent in `StartupSeeder`) — n
 ### Other
 
 - [x] `ClaimsPrincipal` extensions: `UserId`, `AccountType` (nullable, returns null if claim missing/invalid), `CompanyId` (nullable — Guests/SuperAdmins have none), `HasPermission(string)`. Claim-name constants colocated on `ClaimsPrincipalExtensions` (`AccountTypeClaim`, `CompanyIdClaim`, `PermissionClaim`).
-- [ ] Brainstorm **resource-based authorization** (guest A can't mutate guest B's order / favorite via passed IDs) — options: `IAuthorizationService` + handlers, endpoint filters, or inline ownership check; decide per resource (Orders, Favorites, UserSettings, Loyalty, …)
+- [ ] **Resource-based authorization** for Guest-owned resources (Order, Favorite, UserSettings, LoyaltyPointLog) — guest A must not mutate guest B's resource via a passed id. Decision: **inline ownership check, but decoupled** the same way validators are (declarative on the action, runs automatically before the action body — no `if (x.UserId != User.UserId) throw …` scattered in every use case). Options:
+  - **Custom endpoint filter + attribute** (e.g. `[ResourceOwner<Order>(nameof(Order.UserId))]`). Filter reads the route id, fetches the entity via the DbContext, compares to `User.UserId`, throws `ForbiddenException` on mismatch. Same shape as `ValidationFilter`. Lightweight; some reflection.
+  - **`IAuthorizationService` + `OperationAuthorizationRequirement`** — ASP.NET's first-party flavour. More framework, more boilerplate, but no custom filter to maintain.
+  - **Resource lookup + check at the controller layer** (not in the use case). Controller fetches the entity, validates ownership, then calls `Execute`. Use case stays auth-agnostic. Simpler than reflection but the check still has to be repeated per controller — less decoupled.
+  - Decide before Phase 4's first Guest-owned use case lands. Likely the custom endpoint filter, since the ValidationFilter pattern already exists in the codebase as a reference.
 
 ---
 
