@@ -28,4 +28,14 @@ public class Outlet : CompanyOwnedSoftDeletableEntity
             LogoUrl = logoUrl
         };
     }
+
+    public void Update(string displayName, string streetAddress, string phone, string timeZone, Currency currency, string? logoUrl)
+    {
+        DisplayName = displayName;
+        StreetAddress = streetAddress;
+        Phone = phone;
+        TimeZone = timeZone;
+        Currency = currency;
+        LogoUrl = logoUrl;
+    }
 }
