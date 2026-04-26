@@ -1,0 +1,31 @@
+using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared.Errors;
+using Microsoft.EntityFrameworkCore;
+
+namespace CafeRMS.Api.Features.Auth.UseCases;
+
+public static class GetUserById
+{
+    public sealed record Result(
+        Guid Id,
+        string Email,
+        string FirstName,
+        string LastName,
+        IReadOnlyList<string> Roles);
+
+    public static async Task<Result> Execute(Guid companyId, Guid userId, AppDbContext db)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId)
+            ?? throw new NotFoundException("User not found.");
+
+        if (user.AccountType != AccountType.Staff || user.CompanyId != companyId)
+            throw new ForbiddenException("User is not a staff member of the current company.");
+
+        var roles = await db.UserRoles
+            .Where(x => x.UserId == user.Id)
+            .Join(db.Roles, x => x.RoleId, x => x.Id, (x, y) => y.Name ?? "")
+            .ToListAsync();
+
+        return new Result(user.Id, user.Email ?? "", user.FirstName, user.LastName, roles);
+    }
+}
