@@ -19,6 +19,17 @@ public class ProductConfiguration
         builder.Property(x => x.Barcode).HasMaxLength(100);
         builder.HasOne(x => x.TaxRate).WithMany().HasForeignKey(x => x.TaxRateId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => new { x.CompanyId, x.Name })
+            .IsUnique()
+            .HasFilter("deleted_at IS NULL")
+            .HasDatabaseName("ix_products_company_id_name");
+
+        // Barcode is optional but must be unique across the company when present.
+        builder.HasIndex(x => new { x.CompanyId, x.Barcode })
+            .IsUnique()
+            .HasFilter("deleted_at IS NULL AND barcode IS NOT NULL")
+            .HasDatabaseName("ix_products_company_id_barcode");
     }
 
     public void Configure(EntityTypeBuilder<ProductImage> builder)
@@ -26,6 +37,7 @@ public class ProductConfiguration
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Url).IsRequired().HasMaxLength(500);
         builder.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => x.ProductId).HasDatabaseName("ix_product_images_product_id");
     }
 
     public void Configure(EntityTypeBuilder<ProductTag> builder)
@@ -48,6 +60,9 @@ public class ProductConfiguration
         builder.Property(x => x.Net).HasPrecision(18, 2);
         builder.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.PriceGroup).WithMany().HasForeignKey(x => x.PriceGroupId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => new { x.ProductId, x.PriceGroupId })
+            .IsUnique()
+            .HasDatabaseName("ix_product_prices_product_id_price_group_id");
     }
 
     public void Configure(EntityTypeBuilder<ProductModifierGroup> builder)

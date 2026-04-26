@@ -9,7 +9,7 @@ public class Product : CompanyOwnedSoftDeletableEntity
     public string Name { get; private set; } = "";
     public string? Description { get; private set; }
     public string? Barcode { get; private set; }
-    public Guid TaxRateId { get; private init; }
+    public Guid TaxRateId { get; private set; }
     public TaxRate? TaxRate { get; private init; }
 
     private Product() { }
@@ -25,5 +25,13 @@ public class Product : CompanyOwnedSoftDeletableEntity
             TaxRateId = taxRateId,
             CompanyId = companyId
         };
+    }
+
+    public void Update(string name, string? description, string? barcode, Guid taxRateId)
+    {
+        Name = name;
+        Description = description;
+        Barcode = barcode;
+        TaxRateId = taxRateId;
     }
 }
