@@ -19,6 +19,11 @@ public static class DeleteModifierGroup
         if (hasChildren)
             throw new ConflictException("Cannot delete a modifier group that still has modifiers. Delete the modifiers first.");
 
+        // Phase 2 join-table cleanup: ProductModifierGroup rows lose meaning once the
+        // group is gone. (Reached only after the block-on-children check above.)
+        var links = await db.ProductModifierGroups.Where(x => x.ModifierGroupId == id).ToListAsync();
+        db.ProductModifierGroups.RemoveRange(links);
+
         db.ModifierGroups.Remove(group);
         await db.SaveChangesAsync();
     }
