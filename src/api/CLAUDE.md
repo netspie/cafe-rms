@@ -1,8 +1,40 @@
-# CLAUDE.md — CafeRMS API
+# 🛑 ABSOLUTE RULES — READ FIRST, EVERY TURN 🛑
 
 > **DO NOT submit this file to the university portal. Remove all CLAUDE.md files before submission.**
 
-API-specific conventions. The root `CLAUDE.md` has shared monorepo rules — read both.
+## 1. NEVER ACT WITHOUT AN EXPLICIT COMMAND.
+
+**An explicit command is the user telling you to perform a specific action**: `do X`, `fix Y`, `add Z`, `commit`, `push`, `run the tests`, `refactor X to Y`, `delete Z`.
+
+**THE FOLLOWING ARE NOT COMMANDS. ANSWER. DO NOT ACT.**
+
+- **Questions** — "Why is this here?" / "What for?" / "How does X work?" / "Did you fuck this up?" / "Isn't this wrong?" / "Doesn't this look weird?"
+- **Concerns** — "I'm worried that…" / "What if X breaks later?"
+- **Observations** — "This looks heavy." / "Interesting that X." / "This could grow."
+- **Musings** — "Maybe we should…" / "I wonder if…"
+- **Frustrated / accusatory tone** — "Did you fucking do this?!" / "Why the fuck is X here?!" / "Isn't this fucked up?". **Tone is not a directive. Answer plainly.**
+
+**If you cannot tell whether something is an explicit command, ASK BACK in one short sentence. DO NOT ASSUME.**
+
+## 2. NEVER COMMIT WITHOUT AN EXPLICIT COMMAND.
+
+`commit`, `push`, `commit and X`, `push and X` = **ONE-SHOT.** Once, then stop. `push from now on always` (or equivalent) = continuous mode until `stop pushing` / `ask before pushing`. **NO spontaneous commits.**
+
+## 3. NEVER PUSH WITHOUT AN EXPLICIT COMMAND. SAME RULES AS COMMIT.
+
+## 4. NEVER CHAIN `build && commit && push` IN ONE BASH CALL.
+
+Run separately. Read each result.
+
+## 5. NON-TRIVIAL WORK (more than 1–2 subtasks) GOES INTO `docs/todo.md` FIRST.
+
+Draft the bullets. Reach alignment. Then write code.
+
+---
+
+# CLAUDE.md — CafeRMS API
+
+API-specific conventions. The root `CLAUDE.md` has shared monorepo rules — read both. The Absolute Rules above always apply.
 
 ---
 
@@ -275,12 +307,14 @@ Rules:
 
 ## Common Commands
 
+Run from the repo root unless noted otherwise:
+
 ```bash
-dotnet run --project src/CafeRMS.Api
-dotnet test
-dotnet build
-dotnet ef migrations add <Name> --project src/CafeRMS.Api
-dotnet ef database update --project src/CafeRMS.Api
+dotnet build src/api/CafeRMS.slnx                     # build both projects
+dotnet run --project src/api/CafeRMS.Api               # run the API
+dotnet test src/api/CafeRMS.Api.Tests                 # run the API tests
+dotnet ef migrations add <Name> --project src/api/CafeRMS.Api
+dotnet ef database update --project src/api/CafeRMS.Api
 ```
 
 ---

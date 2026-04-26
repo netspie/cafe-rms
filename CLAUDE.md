@@ -1,10 +1,46 @@
-# CLAUDE.md — CafeRMS (monorepo root)
+# 🛑 ABSOLUTE RULES — READ FIRST, EVERY TURN 🛑
 
 > **DO NOT submit this file to the university portal. Remove all CLAUDE.md files before submission.**
 
-Instructions for Claude Code. Read this before touching any code.
+## 1. NEVER ACT WITHOUT AN EXPLICIT COMMAND.
+
+**An explicit command is the user telling you to perform a specific action**: `do X`, `fix Y`, `add Z`, `commit`, `push`, `run the tests`, `refactor X to Y`, `delete Z`.
+
+**THE FOLLOWING ARE NOT COMMANDS. ANSWER. DO NOT ACT.**
+
+- **Questions** — "Why is this here?" / "What for?" / "How does X work?" / "Did you fuck this up?" / "Isn't this wrong?" / "Doesn't this look weird?"
+- **Concerns** — "I'm worried that…" / "What if X breaks later?"
+- **Observations** — "This looks heavy." / "Interesting that X." / "This could grow."
+- **Musings** — "Maybe we should…" / "I wonder if…"
+- **Frustrated / accusatory tone** — "Did you fucking do this?!" / "Why the fuck is X here?!" / "Isn't this fucked up?". **Tone is not a directive. Answer plainly.**
+
+**If you cannot tell whether something is an explicit command, ASK BACK in one short sentence. DO NOT ASSUME.**
+
+The cost of asking is negligible. The cost of an unwanted commit / refactor / change is high.
+
+## 2. NEVER COMMIT WITHOUT AN EXPLICIT COMMAND.
+
+The user must say `commit`, `push`, `commit and X`, `push and X`, or a clear equivalent.
+
+- `commit` / `push` / `push and continue` / `push and move on` = **ONE-SHOT.** Commit/push exactly once, then stop.
+- `push from now on always` (or a clear equivalent) = continuous mode until the user says `stop pushing` / `ask before pushing` / similar.
+- **NO spontaneous commits.** Not at "natural checkpoints." Not "while we're here." Not "the build is green so let's just commit."
+
+## 3. NEVER PUSH WITHOUT AN EXPLICIT COMMAND. SAME RULES AS COMMIT.
+
+## 4. NEVER CHAIN `build && commit && push` IN ONE BASH CALL.
+
+Run separately. Read each result. **Build → inspect → commit → inspect → push.** Broken code on `main` is a high-cost mistake.
+
+## 5. NON-TRIVIAL WORK (more than 1–2 subtasks) GOES INTO `docs/todo.md` FIRST.
+
+Draft the bullets under the right phase/section. Reach alignment with the user. THEN write code.
 
 ---
+
+# CLAUDE.md — CafeRMS (monorepo root)
+
+Instructions for Claude Code. The Absolute Rules above override everything below.
 
 ## Project overview
 
@@ -14,28 +50,30 @@ Engineering thesis (projekt inżynierski) — a management system for small, the
 
 | Component | Path | Technology |
 |---|---|---|
-| API / Backend | `src/CafeRMS.Api/` | ASP.NET Core, PostgreSQL, EF Core |
-| Admin Panel | `src/cafe-rms-admin/` | Next.js, TypeScript |
-| Mobile App | `src/cafe-rms-mobile/` | React Native (Expo) |
+| API / Backend | `src/api/CafeRMS.Api/` | ASP.NET Core, PostgreSQL, EF Core |
+| API tests | `src/api/CafeRMS.Api.Tests/` | NUnit, WebApplicationFactory, EF InMemory |
+| Admin Panel | `src/web/` | Next.js, TypeScript (later) |
+| Mobile App | `src/mobile/` | React Native Expo (later) |
 
-Each component has its own `CLAUDE.md` with specific conventions. This root file covers shared rules.
+The API folder (`src/api/`) has its own `CLAUDE.md` with API-specific conventions and a single `CafeRMS.slnx` covering both API + Tests projects.
 
 ## Monorepo structure
 
 ```
 cafe-rms/
-  CLAUDE.md                      ← you are here (shared rules)
+  CLAUDE.md                       ← you are here (Absolute Rules + monorepo-shared)
   README.md
   docs/
-    todo.md                        ← living, phased plan for finishing the API; check + update as work progresses
+    todo.md                         ← living, phased plan; check + update as work progresses
     todo-api-generation.md
   src/
-    CafeRMS.Api/                 ← .NET API + tests
-      CLAUDE.md                  ← API-specific conventions
-    cafe-rms-admin/              ← Next.js admin panel (later)
-      CLAUDE.md
-    cafe-rms-mobile/             ← React Native Expo (later)
-      CLAUDE.md
+    api/                            ← .NET API server
+      CLAUDE.md                     ← API-specific conventions
+      CafeRMS.slnx                  ← solution covering both projects below
+      CafeRMS.Api/                    ← the API project
+      CafeRMS.Api.Tests/              ← integration test project
+    web/                            ← Next.js admin panel (later)
+    mobile/                         ← React Native Expo (later)
 ```
 
 ---
@@ -57,40 +95,12 @@ These are non-negotiable. Every item must be visibly covered in the final projec
 
 ---
 
-## Shared rules — What Claude must never do without asking
+## Project-specific rules
 
-- Do not push to remote or create PRs without explicit confirmation
-- Do not add co-author attributions to commit messages
-- Do not add features or refactors beyond what was asked
-- Do not rename or restructure files/folders without being asked
-
-## Communication
-
-- **Don't rush to implement anything without an explicit command.** Wait for a directive ("do X", "fix Y", "add Z"). Do **not** infer an implicit "and now change it" from any of these:
-  - **Questions** — "why?" / "what for?" / "how does X work?" → answer the question.
-  - **Concerns** — "I'm worried that…" / "what if we hit X later?" → acknowledge the concern with information; don't refactor.
-  - **Observations** — "interesting that X" / "this could grow" → note it; don't act on it.
-  - **Musings** — "maybe we should…" / "I wonder if…" → engage on the idea; don't ship it.
-
-  No "you're right to question it", no preemptive "want me to remove/refactor?" follow-up, no surprise menu of alternatives unless they asked for alternatives. If you can't tell whether a sentence is a directive or a thought, **ask back briefly** — don't act. The cost of a one-line clarification is small; the cost of an unwanted refactor is high.
-
-## Planning
-
-- **Non-trivial work (more than 1–2 subtasks) goes into `docs/todo.md` before implementation starts.** If the work isn't already represented there, draft the bullets under the right phase/section and reach alignment with the user before writing code. Lets the user see the slope of the work in advance and keeps the plan as the single source of truth.
-
-## Pushing
-
-- **Default: ask before pushing.** When a slice is done, stop and ask "push or continue?" — do not push spontaneously.
-- **"push" is one-shot.** When the user says "push" (or "push and continue", "push and move on"), push exactly once. The implicit permission expires immediately. Next slice → ask again.
-- **"push from now on always"** (or any equivalent like "auto-push until I say stop") flips the mode: push every commit without asking. Stays in effect until the user says "stop pushing", "ask before pushing", or similar. Treat ambiguous follow-ups as a return to default-ask.
-- **Never chain `dotnet build && git commit && git push` in one shell call.** Always inspect the build result before committing, and inspect the commit before pushing. If you bundle them and the build fails, the commit/push can still run, and broken code lands on `main`. Run them separately, eyes on each stage.
-
-## Committing
-
-- **One commit per `docs/todo.md` item.** When the user asks to commit completed work, split it into separate commits — one per TODO checkbox that was ticked. Bundle items only when they're genuinely inseparable (e.g. a shared refactor touched by multiple items).
-- Meta changes (convention rules, rename sweeps, CLAUDE.md edits) get their own commits, separate from feature work.
-- `docs/todo.md` checkbox edits go with the commit that completes the item they reference, not in a trailing "tick boxes" commit.
-- Only commit when the user explicitly asks — but at natural checkpoints (after a TODO item ticks off, after a non-trivial edit lands and builds clean) drop a short, easy-to-ignore nudge asking whether to commit or keep going. One sentence, not a ceremony. Never commit without their answer.
+- **Never** add co-author attributions to commit messages.
+- **One commit per `docs/todo.md` item** when committing completed work. Bundle only when items are genuinely inseparable (a shared refactor touched by multiple items).
+- **Meta changes** (convention rules, rename sweeps, CLAUDE.md edits) get their own commits, separate from feature work.
+- **`docs/todo.md` checkbox edits** go with the commit that completes the item they reference, not in a trailing "tick boxes" commit.
 
 ---
 
