@@ -18,4 +18,9 @@ public class ProductList : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name)
+    {
+        Name = name;
+    }
 }
