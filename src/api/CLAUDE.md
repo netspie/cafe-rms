@@ -226,6 +226,67 @@ Rules:
 
 ---
 
+## Pagination + sort + filter on list endpoints
+
+Every list endpoint follows the same convention: `?page=1&pageSize=20&sort=name,-createdAt&...filterField=value`. Plumbing lives in `Shared/Paging/`:
+
+- **`PagedQuery`** — record with `Page` (default 1), `PageSize` (default 20, max 100), `Sort` (nullable string). Inherit it to add per-feature filter fields.
+- **`PagedResult<T>`** — `{ Items, Page, PageSize, Total }`.
+- **`IQueryable<T>.ApplySort(string sortExpression, SortMap<T>)`** — parses the `?sort=` expression and applies `OrderBy` / `ThenBy` typed via `SortMap.Add<TKey>(name, selector)`. Mandatory allow-list — unknown fields are rejected, raw user input never reaches `OrderBy`.
+- **`IQueryable<T>.ToPagedResultAsync(PagedQuery)`** — clamps page/pageSize, runs `Count` + `Skip/Take`, builds `PagedResult<T>`.
+
+### Worked example
+
+```csharp
+// Features/Products/UseCases/ListProducts.cs
+public static class ListProducts
+{
+    public sealed record Query(int Page, int PageSize, string? Sort, string? Name) : PagedQuery;
+
+    public sealed record Item(Guid Id, string Name, string? Barcode, decimal Vat);
+
+    public static async Task<PagedResult<Item>> Execute(Query query, AppDbContext db)
+    {
+        var sortable = new SortMap<Product>()
+            .Add("name", x => x.Name)
+            .Add("createdAt", x => x.CreatedAt)
+            .Add("barcode", x => x.Barcode);
+
+        var queryable = db.Products.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.Name))
+            queryable = queryable.Where(x => x.Name.Contains(query.Name));
+
+        return await queryable
+            .ApplySort(query.Sort, sortable)
+            .Select(x => new Item(x.Id, x.Name, x.Barcode, x.TaxRate!.Rate))
+            .ToPagedResultAsync(query);
+    }
+}
+
+// Features/Products/Controllers/ListProductsController.cs
+[ApiController]
+public sealed class ListProductsController : ControllerBase
+{
+    [HttpGet("/api/products")]
+    [Authorize(Policy = Permissions.ProductsManage)]
+    public Task<PagedResult<ListProducts.Item>> Handle(
+        [FromQuery] ListProductsRequest request,
+        [FromServices] AppDbContext db) =>
+        ListProducts.Execute(new ListProducts.Query(request.Page, request.PageSize, request.Sort, request.Name), db);
+}
+
+public sealed record ListProductsRequest(int Page = 1, int PageSize = 20, string? Sort = null, string? Name = null);
+```
+
+Per-feature checklist for every list endpoint:
+
+- Define a `Query` record inheriting `PagedQuery` with feature-specific filter fields.
+- Build a `SortMap<TEntity>` allow-listing every sortable column (typed selector — no `object` boxing).
+- Apply filters → `ApplySort` → projection → `ToPagedResultAsync`.
+- Add DB indexes for every filterable + sortable column; composite index where filter and sort combine (e.g. `(outlet_id, created_at DESC)` on Order).
+
+---
+
 ## Code Conventions
 
 - **Pragmatic over perfect.** No abstractions for hypothetical future needs.

@@ -20,7 +20,7 @@ Ordered by phase. Reports & printouts intentionally last.
   - [x] `IQueryable<T>` extension `ApplySort(string sortExpression, SortMap<T> allowedFields)` — mandatory allow-list, typed via `SortMap.Add<TKey>(name, selector)` so no `object`-boxing in `OrderBy`
   - [x] `IQueryable<T>` extension `ToPagedResultAsync(PagedQuery)` (dropped separate `ApplyPaging` — no caller needed just-paging without count; add back when infinite-scroll endpoint appears)
   - [x] Default + max `PageSize` as consts on `PagedQuery` (20 / 100)
-  - [ ] Document usage pattern for list use cases (filter record → `ApplySort` → `ToPagedResultAsync`) — deferred to first list use case in Phase 4
+  - [x] Document usage pattern for list use cases (filter record → `ApplySort` → `ToPagedResultAsync`) — added to `src/api/CLAUDE.md` with a worked `ListProducts` example showing `PagedQuery`-derived filter record + `SortMap<TEntity>` + `Where → ApplySort → Select → ToPagedResultAsync` chain, plus a per-feature checklist (sort allow-list, indexes for sortable + filterable columns).
 - [x] CORS config (admin panel + mobile app origins) — origins read from `Cors:AllowedOrigins` in config
 - [x] Basic request logging via built-in `UseHttpLogging` (method, path, query, status, duration)
 - [x] Health check endpoint (`/health`) — built-in `AddHealthChecks`, anonymous; DB probe deferred until `AspNetCore.HealthChecks.EntityFrameworkCore` is approved
