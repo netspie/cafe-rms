@@ -31,7 +31,12 @@ public static class GetCompanyById
         var company = await db.Companies.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Company not found.");
 
-        var outlet = await db.Outlets.FirstOrDefaultAsync(x => x.CompanyId == id)
+        // Outlet has the ICompanyOwned global filter; bypass it here so SuperAdmin (whose
+        // CurrentCompanyId resolves to Guid.Empty without an X-Company-Id switch) can still
+        // load the outlet for any company they're inspecting. The DeletedAt check is kept
+        // explicit since IgnoreQueryFilters drops the soft-delete filter too.
+        var outlet = await db.Outlets.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.CompanyId == id && x.DeletedAt == null)
             ?? throw new NotFoundException("Outlet not found for this company.");
 
         return new Result(

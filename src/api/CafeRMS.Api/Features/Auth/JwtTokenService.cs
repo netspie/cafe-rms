@@ -1,8 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -10,10 +11,7 @@ namespace CafeRMS.Api.Features.Auth;
 
 public sealed record GeneratedToken(string AccessToken, DateTimeOffset ExpiresAt);
 
-public sealed class JwtTokenService(
-    IOptions<JwtOptions> jwtOptions,
-    UserManager<AppUser> userManager,
-    RoleManager<AppRole> roleManager)
+public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions, AppDbContext db)
 {
     private readonly JwtOptions options = jwtOptions.Value;
 
@@ -29,23 +27,36 @@ public sealed class JwtTokenService(
         if (user.CompanyId is Guid companyId)
             claims.Add(new Claim(ClaimsPrincipalExtensions.CompanyIdClaim, companyId.ToString()));
 
-        var roles = await userManager.GetRolesAsync(user);
-        foreach (var roleName in roles)
+        // Login runs without a company context: the AppRole ICompanyOwned filter would
+        // hide the user's roles (the JWT being generated IS what carries the companyId),
+        // so bypass filters and join roles by user id directly.
+        var userRoles = await db.UserRoles
+            .IgnoreQueryFilters()
+            .Where(x => x.UserId == user.Id)
+            .Join(db.Roles.IgnoreQueryFilters(), x => x.RoleId, x => x.Id, (x, y) => y)
+            .Where(x => x.DeletedAt == null)
+            .ToListAsync();
+
+        foreach (var role in userRoles)
         {
+            var roleName = role.Name ?? "";
+            if (roleName.Length == 0)
+                continue;
+
             claims.Add(new Claim(ClaimTypes.Role, roleName));
 
             // Owner bypasses permission checks at the policy handler — no permission claims needed.
             if (string.Equals(roleName, SystemRoles.Owner, StringComparison.Ordinal))
                 continue;
 
-            var role = await roleManager.FindByNameAsync(roleName);
-            if (role is null)
-                continue;
+            var permissionClaims = await db.RoleClaims
+                .Where(x => x.RoleId == role.Id && x.ClaimType == ClaimsPrincipalExtensions.PermissionClaim)
+                .Select(x => x.ClaimValue)
+                .ToListAsync();
 
-            var roleClaims = await roleManager.GetClaimsAsync(role);
-            foreach (var claim in roleClaims)
-                if (claim.Type == ClaimsPrincipalExtensions.PermissionClaim)
-                    claims.Add(new Claim(ClaimsPrincipalExtensions.PermissionClaim, claim.Value));
+            foreach (var permission in permissionClaims)
+                if (!string.IsNullOrEmpty(permission))
+                    claims.Add(new Claim(ClaimsPrincipalExtensions.PermissionClaim, permission));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key));

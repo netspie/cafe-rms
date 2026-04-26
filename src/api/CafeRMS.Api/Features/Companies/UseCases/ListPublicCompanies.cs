@@ -15,9 +15,13 @@ public static class ListPublicCompanies
         string Currency,
         string? LogoUrl);
 
+    // Anonymous discovery: caller's CurrentCompanyId is Guid.Empty, which would make the
+    // Outlet ICompanyOwned filter exclude every row. Bypass filters and re-add the soft-delete
+    // checks explicitly. Public listing is gated by Company.IsPublic, not the per-tenant filter.
     public static async Task<IReadOnlyList<Item>> Execute(AppDbContext db) =>
         await db.Outlets
-            .Where(x => x.Company!.IsPublic)
+            .IgnoreQueryFilters()
+            .Where(x => x.DeletedAt == null && x.Company!.DeletedAt == null && x.Company!.IsPublic)
             .Select(x => new Item(
                 x.CompanyId,
                 x.Company!.LegalName,
