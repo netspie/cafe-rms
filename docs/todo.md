@@ -231,11 +231,7 @@ SuperAdmin is **always seeded at startup** (idempotent in `StartupSeeder`) — n
 ### Other
 
 - [x] `ClaimsPrincipal` extensions: `UserId`, `AccountType` (nullable, returns null if claim missing/invalid), `CompanyId` (nullable — Guests/SuperAdmins have none), `HasPermission(string)`. Claim-name constants colocated on `ClaimsPrincipalExtensions` (`AccountTypeClaim`, `CompanyIdClaim`, `PermissionClaim`).
-- [ ] **Resource-based authorization** for Guest-owned resources (Order, Favorite, UserSettings, LoyaltyPointLog) — guest A must not mutate guest B's resource via a passed id. Decision: **inline ownership check, but decoupled** the same way validators are (declarative on the action, runs automatically before the action body — no `if (x.UserId != User.UserId) throw …` scattered in every use case). Options:
-  - **Custom endpoint filter + attribute** (e.g. `[ResourceOwner<Order>(nameof(Order.UserId))]`). Filter reads the route id, fetches the entity via the DbContext, compares to `User.UserId`, throws `ForbiddenException` on mismatch. Same shape as `ValidationFilter`. Lightweight; some reflection.
-  - **`IAuthorizationService` + `OperationAuthorizationRequirement`** — ASP.NET's first-party flavour. More framework, more boilerplate, but no custom filter to maintain.
-  - **Resource lookup + check at the controller layer** (not in the use case). Controller fetches the entity, validates ownership, then calls `Execute`. Use case stays auth-agnostic. Simpler than reflection but the check still has to be repeated per controller — less decoupled.
-  - Decide before Phase 4's first Guest-owned use case lands. Likely the custom endpoint filter, since the ValidationFilter pattern already exists in the codebase as a reference.
+- [x] **Resource-based authorization** infrastructure for Guest-owned resources (Order, Favorite, UserSettings, LoyaltyPointLog) — `Shared/ResourceOwnerAttribute.cs`. Generic `[ResourceOwner<TEntity>(routeArg, ownerProperty)]` that's an `IAsyncActionFilter`: pulls the route arg, parses it as a Guid, fetches the entity via `db.Set<TEntity>().FindAsync(...)` (filters apply normally), reads the named owner property via reflection, compares to `User.UserId`. Returns 404 on missing OR mismatched owner (intentional — avoids leaking existence via id enumeration). Phase 4's first Guest-owned use case wires it onto its action method; rolled out per-endpoint as those use cases land.
 
 ---
 
