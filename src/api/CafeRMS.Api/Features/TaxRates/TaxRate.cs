@@ -22,4 +22,11 @@ public class TaxRate : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name, string description, decimal rate)
+    {
+        Name = name;
+        Description = description;
+        Rate = rate;
+    }
 }
