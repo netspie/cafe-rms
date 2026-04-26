@@ -11,5 +11,10 @@ public class PrintoutTemplateConfiguration : IEntityTypeConfiguration<PrintoutTe
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.Property(x => x.TemplateFileUrl).IsRequired().HasMaxLength(500);
         builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => new { x.CompanyId, x.Name })
+            .IsUnique()
+            .HasFilter("deleted_at IS NULL")
+            .HasDatabaseName("ix_printout_templates_company_id_name");
     }
 }

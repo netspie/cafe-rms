@@ -20,4 +20,10 @@ public class PrintoutTemplate : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name, string templateFileUrl)
+    {
+        Name = name;
+        TemplateFileUrl = templateFileUrl;
+    }
 }
