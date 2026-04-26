@@ -18,4 +18,9 @@ public class Allergen : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name)
+    {
+        Name = name;
+    }
 }
