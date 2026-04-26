@@ -20,4 +20,10 @@ public class Tag : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name, string? imageUrl)
+    {
+        Name = name;
+        ImageUrl = imageUrl;
+    }
 }
