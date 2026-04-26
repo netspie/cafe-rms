@@ -33,7 +33,7 @@ public class StartupSeeder(
             return;
         }
 
-        var hasSuperAdmin = await db.Users.AnyAsync(u => u.AccountType == AccountType.SuperAdmin);
+        var hasSuperAdmin = await db.Users.AnyAsync(x => x.AccountType == AccountType.SuperAdmin);
         if (hasSuperAdmin)
             return;
 
@@ -42,7 +42,7 @@ public class StartupSeeder(
 
         if (!result.Succeeded)
         {
-            logger.LogError("Failed to seed SuperAdmin: {Errors}", string.Join("; ", result.Errors.Select(e => e.Description)));
+            logger.LogError("Failed to seed SuperAdmin: {Errors}", string.Join("; ", result.Errors.Select(x => x.Description)));
             return;
         }
 
@@ -58,51 +58,33 @@ public class StartupSeeder(
             return;
         }
 
-        var company = await db.Companies.FirstOrDefaultAsync(c => c.LegalName == DemoCompanyLegalName);
-        if (company is null)
-        {
-            company = Company.Create(DemoCompanyLegalName, "0000000000", "ul. Demo 1, 00-001 Warsaw", "demo@cafe.local", "+48000000000");
-            db.Companies.Add(company);
-            db.Outlets.Add(Outlet.Create("Demo Cafe", "ul. Demo 1, 00-001 Warsaw", "+48000000000", "Europe/Warsaw", Currency.PLN, company.Id));
-            await db.SaveChangesAsync();
-            logger.LogInformation("Seeded demo company {LegalName}", DemoCompanyLegalName);
-        }
+        // Idempotent — once the demo tenant exists, leave it alone.
+        var alreadySeeded = await db.Companies.AnyAsync(x => x.LegalName == DemoCompanyLegalName);
+        if (alreadySeeded)
+            return;
 
-        // AppRole has an ICompanyOwned global filter; in seeder context CurrentCompanyId
-        // is Guid.Empty, so the filter would hide every role. Bypass it for the existence check.
-        var ownerRole = await db.Roles.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(r => r.CompanyId == company.Id && r.NormalizedName == SystemRoles.Owner.ToUpperInvariant());
+        var input = new CompanyOwnerProvisioningInput(
+            LegalName: DemoCompanyLegalName,
+            TaxId: "0000000000",
+            InvoicingAddress: "ul. Demo 1, 00-001 Warsaw",
+            BillingEmail: "demo@cafe.local",
+            BillingPhone: "+48000000000",
+            IsPublic: false,
+            OutletDisplayName: "Demo Cafe",
+            OutletStreetAddress: "ul. Demo 1, 00-001 Warsaw",
+            OutletPhone: "+48000000000",
+            OutletTimeZone: "Europe/Warsaw",
+            OutletCurrency: Currency.PLN,
+            OutletLogoUrl: null,
+            OwnerEmail: DemoOwnerEmail,
+            OwnerPassword: ownerPassword,
+            OwnerFirstName: "Demo",
+            OwnerLastName: "Owner");
 
-        if (ownerRole is null)
-        {
-            ownerRole = AppRole.Create(SystemRoles.Owner, company.Id);
-            var roleResult = await roleManager.CreateAsync(ownerRole);
-            if (!roleResult.Succeeded)
-            {
-                logger.LogError("Failed to seed Owner role: {Errors}", string.Join("; ", roleResult.Errors.Select(e => e.Description)));
-                return;
-            }
-            logger.LogInformation("Seeded Owner role for {LegalName}", DemoCompanyLegalName);
-        }
+        await CompanyProvisioning.CreateCompanyWithOwnerAsync(input, userManager, roleManager, db);
 
-        var owner = await userManager.FindByEmailAsync(DemoOwnerEmail);
-        if (owner is null)
-        {
-            owner = AppUser.Create(DemoOwnerEmail, "Demo", "Owner", AccountType.Staff, company.Id);
-            var ownerResult = await userManager.CreateAsync(owner, ownerPassword);
-            if (!ownerResult.Succeeded)
-            {
-                logger.LogError("Failed to seed demo Owner: {Errors}", string.Join("; ", ownerResult.Errors.Select(e => e.Description)));
-                return;
-            }
-            logger.LogInformation("Seeded demo Owner staff {Email}", DemoOwnerEmail);
-        }
-
-        var alreadyAssigned = await db.UserRoles.AnyAsync(ur => ur.UserId == owner.Id && ur.RoleId == ownerRole.Id);
-        if (!alreadyAssigned)
-        {
-            db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = owner.Id, RoleId = ownerRole.Id });
-            await db.SaveChangesAsync();
-        }
+        logger.LogInformation(
+            "Seeded demo company {LegalName} with Owner staff {Email}",
+            DemoCompanyLegalName, DemoOwnerEmail);
     }
 }
