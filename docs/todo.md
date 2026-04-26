@@ -262,9 +262,10 @@ Lands **after the Phase 3 auth / role / user / company endpoints** (their tests 
   - **RegisterGuest** (3): happy path (200 + JWT), duplicate email (409), weak password (400, Identity complexity).
   - **RegisterStaff** (4): happy path with role assignment, no-permission (403), Owner-role-in-list (403), no-company-context (403).
   - **ChangePassword** (4): happy path (204 + new password lets login + old does not), wrong current (401), weak new (400), anonymous (401 from auth fallback).
-- [ ] Companies — create (happy / non-SuperAdmin forbidden / duplicate tax id), list, get-own / get-other gating, edit (`IsPublic` flip), delete; public listing returns only `IsPublic = true`.
-- [ ] Roles — CRUD with permission gating; `Owner` role rename/delete rejection; last-Owner orphan prevention.
-- [ ] Users — list / get / delete with permission gating; last-Owner-deletion rejection.
+- [x] Companies — 22 tests across 6 endpoints. Includes the end-to-end "create company → Owner can log in → Owner can hit `Permissions.RolesManage` endpoints via the Owner-bypass" flow. Caught 2 production bugs: `GetCompanyById` and `ListPublicCompanies` queried `db.Outlets` (ICompanyOwned-filtered), so SuperAdmin without `X-Company-Id` and anonymous callers saw zero outlets. Fixed with `.IgnoreQueryFilters()` + explicit `DeletedAt == null` re-checks.
+- [x] Roles — 23 tests across 6 endpoints (List, Create, Update, Delete, Assign, Unassign). Owner-role-system-managed enforcement (rename/delete rejection, "Owner" name on create/update rejection) + last-Owner orphan prevention covered + cross-company isolation via the global filter.
+- [x] Users — 14 tests across 4 endpoints. Cross-company access → 403; self-delete → 409; last-Owner deletion → 409; permission gating.
+- [x] **Production bug caught and fixed**: `JwtTokenService.GenerateAsync` was using `userManager.GetRolesAsync()`, which goes through the `AppRole` `ICompanyOwned` global filter. During login the request is anonymous → `CurrentCompanyId == Guid.Empty` → user's roles all filtered out → no `role` claim in the issued JWT → Owner-bypass never triggers after login. Fixed by querying `db.UserRoles.IgnoreQueryFilters()` joined to `db.Roles.IgnoreQueryFilters()` with explicit `DeletedAt == null`. `JwtTokenService` no longer takes `UserManager` / `RoleManager` — just `IOptions<JwtOptions>` + `AppDbContext`.
 
 ---
 
