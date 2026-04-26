@@ -250,7 +250,7 @@ Lands **after the Phase 3 auth / role / user / company endpoints** (their tests 
 - [x] JWT test-token helper — `factory.CreateClientAs(accountType, userId?, companyId?, permissions[], roles[])`. Signs with the same `Jwt:Key` as `appsettings.json` so the real JwtBearer pipeline accepts the token (no bypass).
 - [x] Anonymous-client helper for unauthenticated cases (`factory.CreateAnonymousClient()`).
 - [x] Seed helpers: `SeedUserAsync(...)`, `SeedRoleAsync(...)`. Use `UserManager` / `RoleManager` in a fresh DI scope so audit + soft-delete interceptors fire correctly.
-- [ ] Common JSON + `ProblemDetails` assertion helpers (deferred — current tests use plain `ReadFromJsonAsync` to anonymous response records; revisit when the boilerplate hurts).
+- [x] Common JSON + `ProblemDetails` assertion helpers — `Shared/ProblemDetailsAssertions.cs` exposes three `HttpResponseMessage` extensions: `ShouldBeProblemDetailsAsync(status)` (returns the parsed body for further assertions), `ShouldBeProblemDetailsWithDetailAsync(status, detail)` (exact match), `ShouldBeProblemDetailsContainingAsync(status, substring)`. Existing tests untouched; available for Phase 4 use as needed.
 - [x] Folder layout mirrors `Features/`: `CafeRMS.Api.Tests/Features/<Feature>/<UseCase>Tests.cs`. Currently `Features/Auth/{Login,RegisterGuest,RegisterStaff,ChangePassword}Tests.cs`.
 - [ ] Document philosophy in test project README (deferred).
 - [x] Hook `dotnet test` into local dev loop — confirmed all 15 auth tests green via `dotnet test src/CafeRMS.Api.Tests/...`.
