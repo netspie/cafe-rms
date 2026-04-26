@@ -10,6 +10,11 @@ public class SalesChannelConfiguration : IEntityTypeConfiguration<SalesChannel>,
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => new { x.CompanyId, x.Name })
+            .IsUnique()
+            .HasFilter("deleted_at IS NULL")
+            .HasDatabaseName("ix_sales_channels_company_id_name");
     }
 
     public void Configure(EntityTypeBuilder<SalesChannelPriceGroup> builder)

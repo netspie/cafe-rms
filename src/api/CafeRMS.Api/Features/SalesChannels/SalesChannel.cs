@@ -20,4 +20,10 @@ public class SalesChannel : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name, bool isTakeout)
+    {
+        Name = name;
+        IsTakeout = isTakeout;
+    }
 }
