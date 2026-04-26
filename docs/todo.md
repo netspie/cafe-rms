@@ -136,11 +136,11 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 > **Design notes (consumer side already wired in `ClaimsPrincipalExtensions` / policies / handler — these tick when the Phase 4 login endpoint emits them):**
 
-- [ ] `accountType` — `SuperAdmin` / `Staff` / `Guest`
-- [ ] `companyId` — Staff only
-- [ ] `role` — Staff only, multi-valued; emitted automatically by Identity's default `UserClaimsPrincipalFactory` from the user's role assignments. The Owner-bypass policy reads this claim.
-- [ ] `permission` — Staff only, multi-valued, flattened from role-claims at login (skipped for Owners since they bypass).
-- [ ] `sub` — user id
+- [x] `accountType` — `SuperAdmin` / `Staff` / `Guest`. Emitted by `JwtTokenService.GenerateAsync`; round-tripped + read by every `[Authorize(Policy = Policies.RequireX)]` and verified by the auth tests.
+- [x] `companyId` — Staff only. Emitted when `user.CompanyId is Guid`; consumed by `AppDbContext.CurrentCompanyId` for the global query filter.
+- [x] `role` — Staff only, multi-valued. Emitted directly by `JwtTokenService` (one `ClaimTypes.Role` per assigned role, queried via `IgnoreQueryFilters` so the login flow can see roles regardless of HTTP context). The Owner-bypass policy reads it via `User.IsInRole(SystemRoles.Owner)`.
+- [x] `permission` — Staff only, multi-valued, flattened from role-claims at login. Skipped for the Owner role (Owner has zero persisted claims and bypasses at the policy handler).
+- [x] `sub` — user id. Maps to `ClaimTypes.NameIdentifier` via JwtBearer's default inbound claim mapping; read by `User.UserId`.
 - [x] Signing key from `Jwt:Key` — user-secrets in dev, env var in prod, never `appsettings.json`
 - [x] Token lifetime: **24h** — `Jwt:ExpiryHours = 24` in `appsettings.json` (single value for admin panel + mobile). Read by the Phase 4 token-generation code.
 
@@ -153,11 +153,11 @@ Cross-cutting cleanup once the multi-tenant query filter is in place. Removes du
 
 ### Endpoint scoping (flat routes, gated by policies)
 
-- [ ] Guest-only endpoints → `RequireGuest` (`POST /api/my/orders`, favorites, loyalty redeem, …)
-- [ ] Staff config endpoints → permission policy (`DELETE /api/products/{id}` → `Permissions.ProductsDelete`)
-- [ ] SuperAdmin-only → `RequireSuperAdmin` (`POST /api/companies`, cross-company ops)
-- [ ] Shared endpoints (e.g. `GET /api/products`) — `RequireAuthorization()`; handler adapts response by `accountType`
-- [ ] **Company isolation**: enforced by the global query filter (`CompanyId == AppDbContext.CurrentCompanyId`, see multi-tenancy block) — handlers don't re-filter by company
+- [x] Guest-only endpoints → `[Authorize(Policy = Policies.RequireGuest)]`. Pattern established; will appear on Phase 4's guest-flow endpoints (favorites, loyalty redeem, place-my-order).
+- [x] Staff config endpoints → permission policy. Applied across all 16 Staff-config endpoints landed in Phase 3 (`Permissions.RolesManage`, `Permissions.UsersManage`, etc.).
+- [x] SuperAdmin-only → `[Authorize(Policy = Policies.RequireSuperAdmin)]`. Applied on `POST /api/companies`, `GET /api/companies`, `PUT /api/companies/{id}`, `DELETE /api/companies/{id}`.
+- [x] Shared endpoints — `[Authorize]` (default policy = `RequireAuthenticatedUser` from the global fallback). Used on `GET /api/companies/{id}` (handler differentiates SuperAdmin-sees-any vs Staff-sees-own) and `PUT /api/auth/password` (handler reads `User.UserId`).
+- [x] **Company isolation** — enforced by the global query filter (`CompanyId == AppDbContext.CurrentCompanyId`) on every `ICompanyOwned` entity. Handlers don't re-filter by company; cross-company access via leaked ids returns 404 (entity hidden by filter) rather than 403. Verified by the cross-company isolation tests in `ListRolesTests.does_not_include_other_companies_roles` and `ListUsersTests.returns_staff_in_current_company_only`.
 
 ### Auth infrastructure prep
 
@@ -216,17 +216,17 @@ All scoped to the current company via the global `ICompanyOwned` query filter on
 
 SuperAdmin is **always seeded at startup** (idempotent in `StartupSeeder`) — no API endpoint to create one. Promotion is intentionally not exposed.
 
-- [ ] SuperAdmin frontend lists all companies; picks one to work on (context switcher) — frontend-only concern
-- [ ] Request carries `X-Company-Id` header (or company id re-baked into JWT on switch)
-- [ ] Server-side resolution: covered by the **Auth infrastructure prep** bullet (`AppDbContext.CurrentCompanyId` reads `X-Company-Id` when `accountType = SuperAdmin`). Once that lands, the global query filter Just Works for the selected tenant.
-- [ ] Owner-style endpoints (products, outlets, events) work normally for the selected context — no special handling needed once the resolution works
-- [ ] **Thesis note**: in real SaaS, silent cross-tenant impersonation has GDPR / contract implications (needs audit logging, tenant consent, etc.). For this thesis it's acceptable as a scoped simplification — mention as a compliance consideration in the thesis documentation and log SuperAdmin actions for audit.
+- [ ] SuperAdmin frontend lists all companies; picks one to work on (context switcher) — **frontend-only concern, deferred to the admin-panel phase.**
+- [ ] Request carries `X-Company-Id` header (or company id re-baked into JWT on switch) — **frontend wiring, deferred.** Server already accepts the header (see next bullet).
+- [x] Server-side resolution: `AppDbContext.CurrentCompanyId` reads `X-Company-Id` when `accountType = SuperAdmin`, otherwise falls back to the `companyId` JWT claim. Global query filter Just Works for the selected tenant.
+- [x] Owner-style endpoints (products, outlets, events) work normally for the selected context — no special handling needed; the global filter does the work. Will be exercised by Phase 4 endpoints.
+- [ ] **Thesis note**: in real SaaS, silent cross-tenant impersonation has GDPR / contract implications (needs audit logging, tenant consent, etc.). For this thesis it's acceptable as a scoped simplification — mention as a compliance consideration in the thesis documentation and log SuperAdmin actions for audit. **Standing reminder for the thesis writeup**, not an implementation item.
 
 ### Safeguards
 
-- [ ] Cannot delete/demote the **last user holding the `Owner` role** in a company. Multiple Owners are allowed — the rule is "at least one." Enforced inline in `DELETE /api/users/{id}` and `DELETE /api/users/{userId}/roles/{roleId}`.
-- [ ] **`Owner` role is system-managed** — cannot be renamed or deleted (the permission bypass keys off the role name `"Owner"`). `PUT/DELETE /api/roles/{id}` reject when the target is the Owner role.
-- [ ] **`Owner` role membership** is gated by `Permissions.RolesManage` (which Owners always have via bypass). A lower-rank Staff user cannot grant themselves the Owner role unless an Owner explicitly gave them `RolesManage` first.
+- [x] Cannot delete/demote the **last user holding the `Owner` role** in a company. Multiple Owners are allowed — the rule is "at least one." Enforced inline in `DELETE /api/users/{id}` and `DELETE /api/users/{userId}/roles/{roleId}`. Covered by `DeleteUserTests.last_Owner_returns_409` and `UnassignRoleTests.last_Owner_removal_returns_409`.
+- [x] **`Owner` role is system-managed** — cannot be renamed or deleted (the permission bypass keys off the role name `"Owner"`). `POST/PUT/DELETE /api/roles/{...}` reject when the target is the Owner role or when a non-Owner role is being renamed to "Owner". Covered by `CreateRoleTests.named_Owner_returns_403`, `UpdateRoleTests.targeting_Owner_returns_403`, `UpdateRoleTests.renaming_to_Owner_returns_403`, `DeleteRoleTests.targeting_Owner_returns_403`.
+- [x] **`Owner` role membership** is gated by `Permissions.RolesManage` (which Owners always have via bypass). A lower-rank Staff user cannot grant themselves the Owner role unless an Owner explicitly gave them `RolesManage` first. The `RegisterStaff` endpoint additionally rejects "Owner" in the roles-list (`RegisterStaffTests.assigning_Owner_role_returns_403`) — Owner is granted only via the dedicated assign endpoint, gated by `RolesManage`.
 
 ### Other
 
