@@ -34,4 +34,10 @@ public class AppUser : IdentityUser<Guid>, IAuditable, ISoftDeletable
             CompanyId = companyId
         };
     }
+
+    public void UpdateProfile(string firstName, string lastName)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+    }
 }
