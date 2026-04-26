@@ -1,0 +1,21 @@
+using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared.Errors;
+using Microsoft.EntityFrameworkCore;
+
+namespace CafeRMS.Api.Features.PriceGroups.UseCases;
+
+public static class GetPriceGroupById
+{
+    public sealed record Result(Guid Id, string Name, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+
+    public static async Task<Result> Execute(Guid id, AppDbContext db)
+    {
+        var priceGroup = await db.PriceGroups
+            .Where(x => x.Id == id)
+            .Select(x => new Result(x.Id, x.Name, x.CreatedAt, x.UpdatedAt))
+            .FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Price group not found.");
+
+        return priceGroup;
+    }
+}

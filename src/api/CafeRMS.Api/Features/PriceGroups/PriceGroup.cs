@@ -18,4 +18,9 @@ public class PriceGroup : CompanyOwnedSoftDeletableEntity
             CompanyId = companyId
         };
     }
+
+    public void Update(string name)
+    {
+        Name = name;
+    }
 }
