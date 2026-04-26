@@ -267,6 +267,8 @@ Lands **after the Phase 3 auth / role / user / company endpoints** (their tests 
 
 ## Phase 4 — Implement use cases
 
+### Cross-cutting rules (apply to every feature slice below)
+
 - [ ] Implement every use case from Phase 1, feature by feature
 - [ ] Apply filter/sort/paginate convention consistently on list endpoints
 - [ ] FluentValidation on every command/request
@@ -276,6 +278,20 @@ Lands **after the Phase 3 auth / role / user / company endpoints** (their tests 
 - [ ] **Per feature**: define sort whitelist (mandatory — never pass raw user input to `OrderBy`) and filter record colocated with the list use case
 - [ ] **Per feature — tests alongside endpoints**: every use case ships with API tests in the same commit (happy path + key failure cases: not-found, unauthorized, forbidden, validation, conflict). Use the shared scaffolding from Phase 3.5. No feature is "done" without its tests green.
 - [ ] **Wrap multi-entity writes in transactions** — order placement, event registration, loyalty redemption, etc. Each handler that mutates multiple entities wraps the work in `db.Database.BeginTransactionAsync()` (or relies on the `SaveChanges` implicit transaction when a single call suffices). Moved here from Phase 2 — can't be done before the handlers exist.
+
+### Session split (token-aware chunking)
+
+One session per chunk. Each chunk = a self-contained slice that builds + tests green by end-of-session. Aim for ~500k token budget per session; stop and continue at ~70% used. Estimates assume the established Phase 3 patterns (per-endpoint controllers, Request/Command split, ApiFactory test fixtures) carry over without re-litigation.
+
+- [ ] **Session 1 — Simple CRUD warmup.** **Tags + Allergens + TaxRates + Tables.** ~4 features × ~5 endpoints = ~20 endpoints, ~40 tests. Settles the per-feature pattern. Each is a flat company-scoped CRUD + paged list with sort whitelist. No sub-entities, no transactions, no resource-authz. Estimated ~300–400k tokens.
+- [ ] **Session 2 — Mid features.** **PriceGroups + SalesChannels + PromotionCodes + ProductLists + ModifierGroups + Modifiers.** ~6 features × ~5–7 endpoints = ~30–40 endpoints, ~60–80 tests. Introduces sub-entities (`ProductList → ProductListItem`, `ModifierGroup → Modifier`) and the `SalesChannel ↔ PriceGroup` join table. Some `ExecuteDeleteAsync` join-cleanup per the Phase 2 convention. Estimated ~500–700k tokens. Could split into two sessions if it's too dense.
+- [ ] **Session 3 — Products (+ optionally Outlets + PrintoutTemplates if room).** Product as the central catalog entity with all its sub-entities and joins: `ProductImage`, `ProductPrice` (per price group), `ProductTag`, `ProductAllergen`, `ProductModifierGroup`. ~10–12 endpoints + ~30 tests on Products alone. Outlets has the existing `Outlet` entity (1:1 with Company already enforced) — only Update/Get use cases needed (Create/Delete handled by Company onboarding). PrintoutTemplates is small CRUD. Estimated ~500–700k tokens.
+- [ ] **Session 4 — Orders.** Full order lifecycle (closed business process #1): place → prepare → mark ready → close → optional cancel. Multi-entity transactions across `Order + OrderLine` (+ `LoyaltyPointLog` on close + `PromotionCode` validation). **First adoption of `[ResourceOwner<Order>]`** on guest-facing endpoints — settles the wiring pattern for the rest. ~10–12 endpoints + ~30 tests including domain edge cases (closed-already, cancelled-already, stock validation, promo expiry). Estimated ~600–800k tokens — the heaviest single-feature session.
+- [ ] **Session 5 — Events + EventDays.** Closed business process #2. Event create / publish / cancel + per-day registration + check-in + close-event-with-loyalty-payout. Resource-authz on the guest-side registration. ~8–10 endpoints + ~25 tests. Estimated ~500–700k tokens.
+- [ ] **Session 6 — Favorites + Loyalty + UserSettings.** Three small Guest-owned features. Closed business process #3 closes here (Loyalty earn / redeem from Order + Event payout). `[ResourceOwner<...>]` on every guest-facing endpoint — full exercise of the attribute. ~12 endpoints + ~30 tests. Estimated ~400–500k tokens.
+- [ ] **Session 7 — Cross-feature E2E (Phase 6).** Sanity-pass + the 3 closed-process E2E flows (Order lifecycle, Event lifecycle, Loyalty lifecycle) — multi-step API calls in single tests, each touching 5+ features. Estimated ~300–400k tokens.
+
+Phase 4 + Phase 6 together ≈ **7 sessions**. Phases 5 / 7 / 8 (DB artifacts / reports / printouts) add ~3 more. Frontend (admin + mobile) is a separate arc, ~8–12 sessions.
 
 ---
 
