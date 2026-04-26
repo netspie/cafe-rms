@@ -241,7 +241,14 @@ Every list endpoint follows the same convention: `?page=1&pageSize=20&sort=name,
 // Features/Products/UseCases/ListProducts.cs
 public static class ListProducts
 {
-    public sealed record Query(int Page, int PageSize, string? Sort, string? Name) : PagedQuery;
+    // Inherit PagedQuery for the Page/PageSize/Sort init properties; add feature-specific
+    // filters in the body. Don't use a positional record for the derived Query — positional
+    // params can't initialize *inherited* properties (CS8907 "parameter is unread"), so the
+    // base Page/PageSize/Sort would silently stay at their defaults.
+    public sealed record Query : PagedQuery
+    {
+        public string? Name { get; init; }
+    }
 
     public sealed record Item(Guid Id, string Name, string? Barcode, decimal Vat);
 
@@ -272,7 +279,15 @@ public sealed class ListProductsController : ControllerBase
     public Task<PagedResult<ListProducts.Item>> Handle(
         [FromQuery] ListProductsRequest request,
         [FromServices] AppDbContext db) =>
-        ListProducts.Execute(new ListProducts.Query(request.Page, request.PageSize, request.Sort, request.Name), db);
+        ListProducts.Execute(
+            new ListProducts.Query
+            {
+                Page = request.Page,
+                PageSize = request.PageSize,
+                Sort = request.Sort,
+                Name = request.Name
+            },
+            db);
 }
 
 public sealed record ListProductsRequest(int Page = 1, int PageSize = 20, string? Sort = null, string? Name = null);
