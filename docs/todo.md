@@ -245,18 +245,23 @@ Lands **after the Phase 3 auth / role / user / company endpoints** (their tests 
 
 **Scaffolding:**
 
-- [ ] Create `CafeRMS.Api.Tests` project (NUnit, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory`, FluentAssertions)
-- [ ] `ApiFactory : WebApplicationFactory<Program>` — overrides `AppDbContext` to use InMemory DB (unique GUID per test) so tests are isolated and parallel-safe; forces `ASPNETCORE_ENVIRONMENT = "Testing"` so `StartupSeeder` skips
-- [ ] JWT test-token helper — `factory.CreateClientAs(accountType, companyId?, permissions[])` returning an `HttpClient` with `Authorization: Bearer ...` set; uses the same `JwtOptions` as the app, exercises the real auth pipeline (no bypass)
-- [ ] Anonymous-client helper for unauthenticated cases (`factory.CreateAnonymousClient()`)
-- [ ] Common JSON + `ProblemDetails` assertion helpers (colocated, no base class)
-- [ ] Folder layout mirrors `Features/` per `CLAUDE.md`: `CafeRMS.Api.Tests/Features/<Feature>/<UseCase>Tests.cs`
-- [ ] Document philosophy in test project README: **no mocking** unless unavoidable; happy path first, then key failure cases; one test class per use case file
-- [ ] Hook `dotnet test` into local dev loop
+- [x] Create `CafeRMS.Api.Tests` project (NUnit, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory`, FluentAssertions). Located at `src/CafeRMS.Api.Tests/`.
+- [x] `ApiFactory : WebApplicationFactory<Program>` — overrides `AppDbContext` to use InMemory DB (unique GUID per factory). Uses an internal EF service provider to dodge the "two DB providers" guard tripping when both Npgsql and InMemory are registered. Forces `ASPNETCORE_ENVIRONMENT = "Testing"` so `StartupSeeder` and the dev-only auto-`MigrateAsync()` skip. Suppresses the InMemory `TransactionIgnoredWarning`. Wires up the production `Auditable` / `SoftDeletable` interceptors.
+- [x] JWT test-token helper — `factory.CreateClientAs(accountType, userId?, companyId?, permissions[], roles[])`. Signs with the same `Jwt:Key` as `appsettings.json` so the real JwtBearer pipeline accepts the token (no bypass).
+- [x] Anonymous-client helper for unauthenticated cases (`factory.CreateAnonymousClient()`).
+- [x] Seed helpers: `SeedUserAsync(...)`, `SeedRoleAsync(...)`. Use `UserManager` / `RoleManager` in a fresh DI scope so audit + soft-delete interceptors fire correctly.
+- [ ] Common JSON + `ProblemDetails` assertion helpers (deferred — current tests use plain `ReadFromJsonAsync` to anonymous response records; revisit when the boilerplate hurts).
+- [x] Folder layout mirrors `Features/`: `CafeRMS.Api.Tests/Features/<Feature>/<UseCase>Tests.cs`. Currently `Features/Auth/{Login,RegisterGuest,RegisterStaff,ChangePassword}Tests.cs`.
+- [ ] Document philosophy in test project README (deferred).
+- [x] Hook `dotnet test` into local dev loop — confirmed all 15 auth tests green via `dotnet test src/CafeRMS.Api.Tests/...`.
 
 **Retroactive tests for the Phase 3 endpoints:**
 
-- [ ] Auth — login (happy / wrong password / non-existent), register/guest (happy / duplicate email / weak password), register/staff (happy / forbidden by permission / forbidden by no-company), password change (happy / wrong current).
+- [x] Auth — 15 tests across the 4 endpoints, all green:
+  - **Login** (4): happy path, wrong password (401), unknown email (401), invalid email format (400 from validator).
+  - **RegisterGuest** (3): happy path (200 + JWT), duplicate email (409), weak password (400, Identity complexity).
+  - **RegisterStaff** (4): happy path with role assignment, no-permission (403), Owner-role-in-list (403), no-company-context (403).
+  - **ChangePassword** (4): happy path (204 + new password lets login + old does not), wrong current (401), weak new (400), anonymous (401 from auth fallback).
 - [ ] Companies — create (happy / non-SuperAdmin forbidden / duplicate tax id), list, get-own / get-other gating, edit (`IsPublic` flip), delete; public listing returns only `IsPublic = true`.
 - [ ] Roles — CRUD with permission gating; `Owner` role rename/delete rejection; last-Owner orphan prevention.
 - [ ] Users — list / get / delete with permission gating; last-Owner-deletion rejection.
