@@ -128,10 +128,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
         }
     }
 
+    private Guid? _companyContextOverride;
+
     public Guid CurrentCompanyId
     {
         get
         {
+            // Runtime override wins. Used by Guest-facing flows (e.g. PlaceOrder) that
+            // derive the company from request data (the target outlet) rather than from
+            // JWT claims — Guests don't carry a companyId in their token. Once the use
+            // case looks the company up, it calls SetCompanyContext(...) and every
+            // subsequent ICompanyOwned query scopes correctly via the global filter
+            // without needing IgnoreQueryFilters.
+            if (_companyContextOverride is { } overridden)
+                return overridden;
+
             var httpContext = httpContextAccessor.HttpContext;
             if (httpContext is null)
                 return Guid.Empty;
@@ -145,4 +156,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
             return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
         }
     }
+
+    // Set a per-request company context. AppDbContext is scoped per-request via DI, so
+    // this override is request-isolated — no concurrency risk across users.
+    public void SetCompanyContext(Guid companyId) => _companyContextOverride = companyId;
 }

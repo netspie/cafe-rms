@@ -52,15 +52,9 @@ public sealed class PlaceOrderRequestValidator : AbstractValidator<PlaceOrderReq
     }
 }
 
-// Single endpoint: customer places an order from the mobile app. Wraps everything in a
-// transaction so a failure at any step rolls back the order, the lines, the loyalty
-// debit, and the promo usage increment together.
-//
-// Why IgnoreQueryFilters everywhere: Guest callers have no company in their JWT, so
-// db.CurrentCompanyId resolves to Guid.Empty and the ICompanyOwned global filter hides
-// every cross-referenced entity (Outlet, Product, PriceGroup, PromotionCode). We bypass
-// the filters and derive CompanyId from the target outlet, then manually filter every
-// subsequent lookup against that CompanyId.
+// Customer places an order from the mobile app. Wraps everything in a transaction
+// so a failure at any step rolls back the order, the lines, the loyalty debit, and
+// the promo usage increment together.
 public static class PlaceOrder
 {
     public sealed record Result(Guid OrderId);
@@ -70,11 +64,15 @@ public static class PlaceOrder
         if (request.Lines.Count == 0)
             throw new DomainException("Order must have at least one line.");
 
+        // Bootstrap: Guest has no company in their JWT, so the ICompanyOwned global filter
+        // would hide the outlet. Bypass the filter ONCE to find the outlet, derive the
+        // company, and set the runtime context override. Every subsequent query in this
+        // request scopes correctly via the normal global filter.
         var outlet = await db.Outlets.IgnoreQueryFilters()
             .FirstOrDefaultAsync(x => x.Id == request.OutletId && x.DeletedAt == null)
             ?? throw new NotFoundException("Outlet not found.");
 
-        var companyId = outlet.CompanyId;
+        db.SetCompanyContext(outlet.CompanyId);
 
         await using var tx = await db.Database.BeginTransactionAsync();
 
@@ -98,12 +96,12 @@ public static class PlaceOrder
             if (line.Quantity <= 0)
                 throw new DomainException("Quantity must be positive.");
 
-            var product = await db.Products.IgnoreQueryFilters()
+            var product = await db.Products
                 .Include(x => x.TaxRate)
-                .FirstOrDefaultAsync(x => x.Id == line.ProductId && x.CompanyId == companyId && x.DeletedAt == null)
+                .FirstOrDefaultAsync(x => x.Id == line.ProductId)
                 ?? throw new NotFoundException($"Product {line.ProductId} not found.");
 
-            var priceQuery = db.ProductPrices.IgnoreQueryFilters().Where(x => x.ProductId == line.ProductId);
+            var priceQuery = db.ProductPrices.Where(x => x.ProductId == line.ProductId);
             if (line.PriceGroupId is { } pgId)
                 priceQuery = priceQuery.Where(x => x.PriceGroupId == pgId);
             var price = await priceQuery.FirstOrDefaultAsync()
@@ -117,8 +115,7 @@ public static class PlaceOrder
         // Promotion code: validate, snapshot the FK on the order, increment UsesCount.
         if (!string.IsNullOrWhiteSpace(request.PromotionCode))
         {
-            var promo = await db.PromotionCodes.IgnoreQueryFilters()
-                .FirstOrDefaultAsync(x => x.Code == request.PromotionCode && x.CompanyId == companyId && x.DeletedAt == null)
+            var promo = await db.PromotionCodes.FirstOrDefaultAsync(x => x.Code == request.PromotionCode)
                 ?? throw new DomainException($"Promotion code '{request.PromotionCode}' is not valid.");
 
             if (promo.ValidFrom is { } from && now < from)
@@ -134,10 +131,11 @@ public static class PlaceOrder
         }
 
         // Loyalty redemption: validate balance via SUM(log) and burn the points by
-        // inserting a negative LoyaltyPointLog.
+        // inserting a negative LoyaltyPointLog. LoyaltyPointLog is ICompanyOwned and
+        // scoped automatically by the global filter now that we've set the context.
         if (request.LoyaltyPointsUsed > 0)
         {
-            var balance = await db.LoyaltyPointLogs.IgnoreQueryFilters()
+            var balance = await db.LoyaltyPointLogs
                 .Where(x => x.UserId == userId)
                 .SumAsync(x => (int?)x.Points) ?? 0;
             if (balance < request.LoyaltyPointsUsed)
@@ -146,7 +144,7 @@ public static class PlaceOrder
             db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(
                 userId,
                 -request.LoyaltyPointsUsed,
-                companyId,
+                outlet.CompanyId,
                 reason: $"Redeemed on order {order.Id}"));
         }
 
