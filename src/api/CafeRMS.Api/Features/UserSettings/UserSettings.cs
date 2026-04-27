@@ -23,4 +23,10 @@ public class UserSettings : Entity
             UiSettingsJson = uiSettingsJson
         };
     }
+
+    public void Update(string theme, string uiSettingsJson)
+    {
+        Theme = theme;
+        UiSettingsJson = uiSettingsJson;
+    }
 }
