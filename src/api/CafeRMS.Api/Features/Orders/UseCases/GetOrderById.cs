@@ -1,8 +1,36 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Orders.UseCases;
+
+[ApiController]
+public sealed class GetOrderByIdController : ControllerBase
+{
+    [HttpGet("/api/orders/{id:guid}")]
+    [Authorize(Policy = Permissions.OrdersView)]
+    public async Task<GetOrderById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetOrderById.Execute(id, db);
+}
+
+[ApiController]
+public sealed class GetMyOrderByIdController : ControllerBase
+{
+    [HttpGet("/api/my/orders/{id:guid}")]
+    [Authorize(Policy = Policies.RequireGuest)]
+    [ResourceOwner<Order>("id", nameof(Order.UserId))]
+    public async Task<GetOrderById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetOrderById.Execute(id, db);
+}
+
 
 public static class GetOrderById
 {

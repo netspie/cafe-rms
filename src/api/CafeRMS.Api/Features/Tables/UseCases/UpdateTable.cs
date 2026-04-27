@@ -1,8 +1,39 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Tables.UseCases;
+
+[ApiController]
+public sealed class UpdateTableController : ControllerBase
+{
+    [HttpPut("/api/tables/{id:guid}")]
+    [Authorize(Policy = Permissions.TablesManage)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid id,
+        [FromBody] UpdateTableRequest request,
+        [FromServices] AppDbContext db)
+    {
+        var command = new UpdateTable.Command(id, request.Name);
+        await UpdateTable.Execute(command, db);
+        return NoContent();
+    }
+}
+
+public sealed record UpdateTableRequest(string Name);
+
+public sealed class UpdateTableValidator : AbstractValidator<UpdateTableRequest>
+{
+    public UpdateTableValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+    }
+}
+
 
 public static class UpdateTable
 {

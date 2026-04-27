@@ -1,7 +1,19 @@
 using CafeRMS.Api.Persistence;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Auth.UseCases;
+
+[ApiController]
+public sealed class ListUsersController : ControllerBase
+{
+    [HttpGet("/api/users")]
+    [Authorize(Policy = Permissions.UsersManage)]
+    public async Task<IReadOnlyList<ListUsers.Item>> Handle([FromServices] AppDbContext db) =>
+        await ListUsers.Execute(db.CurrentCompanyId, db);
+}
+
 
 public static class ListUsers
 {

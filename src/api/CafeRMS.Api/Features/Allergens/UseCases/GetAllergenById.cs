@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Allergens.UseCases;
+
+[ApiController]
+public sealed class GetAllergenByIdController : ControllerBase
+{
+    [HttpGet("/api/allergens/{id:guid}")]
+    [Authorize(Policy = Permissions.ProductsManage)]
+    public async Task<GetAllergenById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetAllergenById.Execute(id, db);
+}
+
 
 public static class GetAllergenById
 {

@@ -1,8 +1,26 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Companies.UseCases;
+
+[ApiController]
+public sealed class DeleteCompanyController : ControllerBase
+{
+    [HttpDelete("/api/companies/{id:guid}")]
+    [Authorize(Policy = Policies.RequireSuperAdmin)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db)
+    {
+        await DeleteCompany.Execute(id, db);
+        return NoContent();
+    }
+}
+
 
 public static class DeleteCompany
 {

@@ -1,8 +1,29 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Paging;
+using CafeRMS.Api.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Orders.UseCases;
+
+[ApiController]
+public sealed class ListMyOrdersController : ControllerBase
+{
+    [HttpGet("/api/my/orders")]
+    [Authorize(Policy = Policies.RequireGuest)]
+    public Task<PagedResult<ListMyOrders.Item>> Handle(
+        [FromQuery] ListMyOrdersRequest request,
+        [FromServices] AppDbContext db) =>
+        ListMyOrders.Execute(
+            new ListMyOrders.Query { Page = request.Page, PageSize = request.PageSize, Sort = request.Sort },
+            User.UserId,
+            db);
+}
+
+public sealed record ListMyOrdersRequest(int Page = 1, int PageSize = 20, string? Sort = null);
+
 
 public static class ListMyOrders
 {

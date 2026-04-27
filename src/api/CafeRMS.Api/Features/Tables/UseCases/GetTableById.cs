@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Tables.UseCases;
+
+[ApiController]
+public sealed class GetTableByIdController : ControllerBase
+{
+    [HttpGet("/api/tables/{id:guid}")]
+    [Authorize(Policy = Permissions.TablesManage)]
+    public async Task<GetTableById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetTableById.Execute(id, db);
+}
+
 
 public static class GetTableById
 {

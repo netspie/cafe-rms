@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.ProductLists.UseCases;
+
+[ApiController]
+public sealed class GetProductListByIdController : ControllerBase
+{
+    [HttpGet("/api/product-lists/{id:guid}")]
+    [Authorize(Policy = Permissions.MenusManage)]
+    public async Task<GetProductListById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetProductListById.Execute(id, db);
+}
+
 
 public static class GetProductListById
 {

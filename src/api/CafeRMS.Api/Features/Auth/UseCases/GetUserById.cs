@@ -1,8 +1,22 @@
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Auth.UseCases;
+
+[ApiController]
+public sealed class GetUserByIdController : ControllerBase
+{
+    [HttpGet("/api/users/{id:guid}")]
+    [Authorize(Policy = Permissions.UsersManage)]
+    public async Task<GetUserById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetUserById.Execute(db.CurrentCompanyId, id, db);
+}
+
 
 public static class GetUserById
 {

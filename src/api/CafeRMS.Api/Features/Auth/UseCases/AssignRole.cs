@@ -1,9 +1,27 @@
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Auth.UseCases;
+
+[ApiController]
+public sealed class AssignRoleController : ControllerBase
+{
+    [HttpPost("/api/users/{userId:guid}/roles/{roleId:guid}")]
+    [Authorize(Policy = Permissions.RolesManage)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid userId,
+        [FromRoute] Guid roleId,
+        [FromServices] AppDbContext db)
+    {
+        await AssignRole.Execute(new AssignRole.Command(db.CurrentCompanyId, userId, roleId), db);
+        return NoContent();
+    }
+}
+
 
 public static class AssignRole
 {

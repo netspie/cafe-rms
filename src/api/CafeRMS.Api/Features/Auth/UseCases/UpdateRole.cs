@@ -1,10 +1,40 @@
 using CafeRMS.Api.Persistence;
-using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Errors;
+using CafeRMS.Api.Shared;
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Auth.UseCases;
+
+[ApiController]
+public sealed class UpdateRoleController : ControllerBase
+{
+    [HttpPut("/api/roles/{id:guid}")]
+    [Authorize(Policy = Permissions.RolesManage)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid id,
+        [FromBody] UpdateRoleRequest request,
+        [FromServices] AppDbContext db)
+    {
+        var command = new UpdateRole.Command(id, request.Name, request.Permissions ?? []);
+        await UpdateRole.Execute(command, db);
+        return NoContent();
+    }
+}
+
+public sealed record UpdateRoleRequest(string Name, IReadOnlyList<string>? Permissions);
+
+public sealed class UpdateRoleValidator : AbstractValidator<UpdateRoleRequest>
+{
+    public UpdateRoleValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+    }
+}
+
 
 public static class UpdateRole
 {

@@ -1,9 +1,119 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Loyalty;
 using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Errors;
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Orders.UseCases;
+
+[ApiController]
+public sealed class PlaceMyOrderController : ControllerBase
+{
+    [HttpPost("/api/my/orders")]
+    [Authorize(Policy = Policies.RequireGuest)]
+    public async Task<PlaceOrderResponse> Handle(
+        [FromBody] PlaceOrderRequest request,
+        [FromServices] AppDbContext db)
+    {
+        var command = new PlaceOrder.Command(
+            request.OutletId,
+            CallerCompanyId: null, // Guest — company is derived from the outlet inside the use case.
+            User.UserId,
+            request.TableId,
+            request.SalesChannelId,
+            request.EventId,
+            request.PromotionCode,
+            request.LoyaltyPointsUsed,
+            request.Lines.Select(x => new PlaceOrder.LineInput(x.ProductId, x.Quantity, x.PriceGroupId)).ToList());
+
+        var result = await PlaceOrder.Execute(command, db, DateTimeOffset.UtcNow);
+        return new PlaceOrderResponse(result.OrderId);
+    }
+}
+
+public sealed record PlaceOrderRequest(
+    Guid OutletId,
+    Guid? TableId,
+    Guid? SalesChannelId,
+    Guid? EventId,
+    string? PromotionCode,
+    int LoyaltyPointsUsed,
+    IReadOnlyList<PlaceOrderLineRequest> Lines);
+
+public sealed record PlaceOrderLineRequest(Guid ProductId, int Quantity, Guid? PriceGroupId);
+
+public sealed record PlaceOrderResponse(Guid OrderId);
+
+public sealed class PlaceOrderRequestValidator : AbstractValidator<PlaceOrderRequest>
+{
+    public PlaceOrderRequestValidator()
+    {
+        RuleFor(x => x.OutletId).NotEqual(Guid.Empty);
+        RuleFor(x => x.LoyaltyPointsUsed).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Lines).NotEmpty();
+        RuleForEach(x => x.Lines).ChildRules(line =>
+        {
+            line.RuleFor(l => l.ProductId).NotEqual(Guid.Empty);
+            line.RuleFor(l => l.Quantity).GreaterThan(0);
+        });
+    }
+}
+
+[ApiController]
+public sealed class PlaceWalkInOrderController : ControllerBase
+{
+    [HttpPost("/api/orders")]
+    [Authorize(Policy = Permissions.OrdersManage)]
+    public async Task<PlaceWalkInOrderResponse> Handle(
+        [FromBody] PlaceWalkInOrderRequest request,
+        [FromServices] AppDbContext db)
+    {
+        var command = new PlaceOrder.Command(
+            request.OutletId,
+            CallerCompanyId: db.CurrentCompanyId, // Staff — used to reject cross-tenant outlet ids.
+            request.UserId,
+            request.TableId,
+            request.SalesChannelId,
+            request.EventId,
+            request.PromotionCode,
+            request.LoyaltyPointsUsed,
+            request.Lines.Select(x => new PlaceOrder.LineInput(x.ProductId, x.Quantity, x.PriceGroupId)).ToList());
+
+        var result = await PlaceOrder.Execute(command, db, DateTimeOffset.UtcNow);
+        return new PlaceWalkInOrderResponse(result.OrderId);
+    }
+}
+
+public sealed record PlaceWalkInOrderRequest(
+    Guid OutletId,
+    Guid? UserId,
+    Guid? TableId,
+    Guid? SalesChannelId,
+    Guid? EventId,
+    string? PromotionCode,
+    int LoyaltyPointsUsed,
+    IReadOnlyList<PlaceOrderLineRequest> Lines);
+
+public sealed record PlaceWalkInOrderResponse(Guid OrderId);
+
+public sealed class PlaceWalkInOrderRequestValidator : AbstractValidator<PlaceWalkInOrderRequest>
+{
+    public PlaceWalkInOrderRequestValidator()
+    {
+        RuleFor(x => x.OutletId).NotEqual(Guid.Empty);
+        RuleFor(x => x.LoyaltyPointsUsed).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Lines).NotEmpty();
+        RuleForEach(x => x.Lines).ChildRules(line =>
+        {
+            line.RuleFor(l => l.ProductId).NotEqual(Guid.Empty);
+            line.RuleFor(l => l.Quantity).GreaterThan(0);
+        });
+    }
+}
 
 // Backs both POST /api/my/orders (Guest, UserId from JWT) and POST /api/orders
 // (Staff walk-in, optional UserId). Wraps everything in a transaction so a failure

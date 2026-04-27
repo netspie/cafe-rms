@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.ModifierGroups.UseCases;
+
+[ApiController]
+public sealed class GetModifierGroupByIdController : ControllerBase
+{
+    [HttpGet("/api/modifier-groups/{id:guid}")]
+    [Authorize(Policy = Permissions.ModifiersManage)]
+    public async Task<GetModifierGroupById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetModifierGroupById.Execute(id, db);
+}
+
 
 public static class GetModifierGroupById
 {

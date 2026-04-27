@@ -1,7 +1,22 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.UserSettings.UseCases;
+
+[ApiController]
+public sealed class GetMyUserSettingsController : ControllerBase
+{
+    [HttpGet("/api/my/settings")]
+    [Authorize(Policy = Policies.RequireGuest)]
+    public Task<GetMyUserSettings.Result> Handle(
+        [FromServices] AppDbContext db) =>
+        GetMyUserSettings.Execute(User.UserId, db);
+}
+
 
 public static class GetMyUserSettings
 {

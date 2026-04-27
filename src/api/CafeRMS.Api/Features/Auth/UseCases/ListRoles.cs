@@ -1,8 +1,20 @@
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Auth.UseCases;
+
+[ApiController]
+public sealed class ListRolesController : ControllerBase
+{
+    [HttpGet("/api/roles")]
+    [Authorize(Policy = Permissions.RolesManage)]
+    public async Task<IReadOnlyList<ListRoles.Item>> Handle([FromServices] AppDbContext db) =>
+        await ListRoles.Execute(db);
+}
+
 
 public static class ListRoles
 {

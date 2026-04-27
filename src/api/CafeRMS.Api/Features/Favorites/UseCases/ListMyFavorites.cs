@@ -1,7 +1,22 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Favorites.UseCases;
+
+[ApiController]
+public sealed class ListMyFavoritesController : ControllerBase
+{
+    [HttpGet("/api/my/favorites")]
+    [Authorize(Policy = Policies.RequireGuest)]
+    public Task<IReadOnlyList<ListMyFavorites.Item>> Handle(
+        [FromServices] AppDbContext db) =>
+        ListMyFavorites.Execute(User.UserId, db);
+}
+
 
 public static class ListMyFavorites
 {

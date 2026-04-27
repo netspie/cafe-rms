@@ -1,8 +1,27 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using CafeRMS.Api.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Favorites.UseCases;
+
+[ApiController]
+public sealed class RemoveFavoriteController : ControllerBase
+{
+    [HttpDelete("/api/my/favorites/{productId:guid}")]
+    [Authorize(Policy = Policies.RequireGuest)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid productId,
+        [FromServices] AppDbContext db)
+    {
+        await RemoveFavorite.Execute(User.UserId, productId, db);
+        return NoContent();
+    }
+}
+
 
 public static class RemoveFavorite
 {

@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.TaxRates.UseCases;
+
+[ApiController]
+public sealed class GetTaxRateByIdController : ControllerBase
+{
+    [HttpGet("/api/tax-rates/{id:guid}")]
+    [Authorize(Policy = Permissions.TaxRatesManage)]
+    public async Task<GetTaxRateById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetTaxRateById.Execute(id, db);
+}
+
 
 public static class GetTaxRateById
 {

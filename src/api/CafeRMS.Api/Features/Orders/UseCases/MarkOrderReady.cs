@@ -1,8 +1,26 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Orders.UseCases;
+
+[ApiController]
+public sealed class MarkOrderReadyController : ControllerBase
+{
+    [HttpPost("/api/orders/{id:guid}/ready")]
+    [Authorize(Policy = Permissions.OrdersManage)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db)
+    {
+        await MarkOrderReady.Execute(id, db, DateTimeOffset.UtcNow);
+        return NoContent();
+    }
+}
+
 
 public static class MarkOrderReady
 {

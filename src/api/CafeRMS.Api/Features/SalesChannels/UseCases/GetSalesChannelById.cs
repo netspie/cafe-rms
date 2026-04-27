@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.SalesChannels.UseCases;
+
+[ApiController]
+public sealed class GetSalesChannelByIdController : ControllerBase
+{
+    [HttpGet("/api/sales-channels/{id:guid}")]
+    [Authorize(Policy = Permissions.SalesChannelsManage)]
+    public async Task<GetSalesChannelById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetSalesChannelById.Execute(id, db);
+}
+
 
 public static class GetSalesChannelById
 {

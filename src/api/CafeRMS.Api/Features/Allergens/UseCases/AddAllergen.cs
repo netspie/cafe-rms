@@ -1,8 +1,40 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Allergens.UseCases;
+
+[ApiController]
+public sealed class AddAllergenController : ControllerBase
+{
+    [HttpPost("/api/allergens")]
+    [Authorize(Policy = Permissions.ProductsManage)]
+    public async Task<AddAllergenResponse> Handle(
+        [FromBody] AddAllergenRequest request,
+        [FromServices] AppDbContext db)
+    {
+        var command = new AddAllergen.Command(db.CurrentCompanyId, request.Name);
+        var result = await AddAllergen.Execute(command, db);
+        return new AddAllergenResponse(result.Id);
+    }
+}
+
+public sealed record AddAllergenRequest(string Name);
+
+public sealed record AddAllergenResponse(Guid Id);
+
+public sealed class AddAllergenValidator : AbstractValidator<AddAllergenRequest>
+{
+    public AddAllergenValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
 
 public static class AddAllergen
 {

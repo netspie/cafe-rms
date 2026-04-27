@@ -1,9 +1,27 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Loyalty;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Orders.UseCases;
+
+[ApiController]
+public sealed class CloseOrderController : ControllerBase
+{
+    [HttpPost("/api/orders/{id:guid}/close")]
+    [Authorize(Policy = Permissions.OrdersManage)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db)
+    {
+        await CloseOrder.Execute(id, db.CurrentCompanyId, db, DateTimeOffset.UtcNow);
+        return NoContent();
+    }
+}
+
 
 public static class CloseOrder
 {

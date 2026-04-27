@@ -1,8 +1,23 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Events.UseCases;
+
+[ApiController]
+public sealed class GetEventByIdController : ControllerBase
+{
+    [HttpGet("/api/events/{id:guid}")]
+    [Authorize(Policy = Permissions.EventsManage)]
+    public async Task<GetEventById.Result> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db) =>
+        await GetEventById.Execute(id, db);
+}
+
 
 public static class GetEventById
 {

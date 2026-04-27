@@ -1,8 +1,26 @@
+using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Features.Events.UseCases;
+
+[ApiController]
+public sealed class PublishEventController : ControllerBase
+{
+    [HttpPost("/api/events/{id:guid}/publish")]
+    [Authorize(Policy = Permissions.EventsManage)]
+    public async Task<IActionResult> Handle(
+        [FromRoute] Guid id,
+        [FromServices] AppDbContext db)
+    {
+        await PublishEvent.Execute(id, db, DateTimeOffset.UtcNow);
+        return NoContent();
+    }
+}
+
 
 public static class PublishEvent
 {
