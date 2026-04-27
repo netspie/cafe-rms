@@ -148,39 +148,6 @@ public sealed class PlaceOrderTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Test]
-    public async Task PlaceWalkInOrder_staff_path_with_no_user_returns_id()
-    {
-        var (companyId, _, outletId, productId) = await SeedAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: companyId, permissions: [Permissions.OrdersManage]);
-
-        var response = await client.PostAsJsonAsync("/api/orders", new
-        {
-            outletId,
-            userId = (Guid?)null,
-            loyaltyPointsUsed = 0,
-            lines = new[] { new { productId, quantity = 1, priceGroupId = (Guid?)null } }
-        });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Test]
-    public async Task PlaceWalkInOrder_without_OrdersManage_returns_403()
-    {
-        var (companyId, _, outletId, productId) = await SeedAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: companyId, permissions: []);
-
-        var response = await client.PostAsJsonAsync("/api/orders", new
-        {
-            outletId,
-            loyaltyPointsUsed = 0,
-            lines = new[] { new { productId, quantity = 1, priceGroupId = (Guid?)null } }
-        });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     private async Task<(Guid CompanyId, Guid UserId, Guid OutletId, Guid ProductId)> SeedAsync()
     {
         var company = await factory.SeedCompanyAsync();

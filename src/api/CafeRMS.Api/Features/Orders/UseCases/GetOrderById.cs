@@ -45,9 +45,6 @@ public static class GetOrderById
         decimal Discount,
         int LoyaltyPointsUsed,
         OrderStatus Status,
-        DateTimeOffset? AcceptedAt,
-        DateTimeOffset? InProgressAt,
-        DateTimeOffset? ReadyAt,
         DateTimeOffset? ClosedAt,
         DateTimeOffset? CancelledAt,
         string? CancellationReason,
@@ -69,8 +66,7 @@ public static class GetOrderById
         return new Result(
             order.Id, order.OutletId, order.TableId, order.SalesChannelId, order.UserId, order.EventId,
             order.PromotionCodeId, order.Discount, order.LoyaltyPointsUsed,
-            order.Status, order.AcceptedAt, order.InProgressAt, order.ReadyAt,
-            order.ClosedAt, order.CancelledAt, order.CancellationReason,
+            order.Status, order.ClosedAt, order.CancelledAt, order.CancellationReason,
             lines, order.CreatedAt);
     }
 }

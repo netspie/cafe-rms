@@ -63,10 +63,14 @@ public sealed class CancelMyOrderValidator : AbstractValidator<CancelMyOrderRequ
 
 public static class CancelOrder
 {
-    // calledByCustomer = true → only allowed before AcceptedAt (customer can't take back
-    // an order kitchen has already accepted).
+    // Cafe-simple lifecycle: any non-terminal order can be cancelled by either side.
+    // The `calledByCustomer` parameter is kept on the signature for symmetry with the
+    // staff/guest controllers but doesn't gate anything anymore — there are no
+    // intermediate states between Placed and Closed where staff would want to lock the
+    // customer out.
     public static async Task Execute(Guid id, string? reason, bool calledByCustomer, AppDbContext db, DateTimeOffset now)
     {
+        _ = calledByCustomer;
         var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Order not found.");
 
@@ -74,8 +78,6 @@ public static class CancelOrder
             throw new ConflictException("Order is already cancelled.");
         if (order.IsClosed)
             throw new ConflictException("Cannot cancel a closed order.");
-        if (calledByCustomer && order.AcceptedAt is not null)
-            throw new ForbiddenException("Order can no longer be cancelled by the customer — it has been accepted.");
 
         order.Cancel(now, reason);
         await db.SaveChangesAsync();

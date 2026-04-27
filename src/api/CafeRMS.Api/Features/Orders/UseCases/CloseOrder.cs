@@ -34,8 +34,6 @@ public static class CloseOrder
             throw new ConflictException("Cannot close a cancelled order.");
         if (order.IsClosed)
             throw new ConflictException("Order is already closed.");
-        if (order.ReadyAt is null)
-            throw new ConflictException("Order must be marked ready before it can be closed.");
 
         await using var tx = await db.Database.BeginTransactionAsync();
 

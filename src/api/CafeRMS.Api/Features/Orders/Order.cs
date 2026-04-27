@@ -21,9 +21,6 @@ public class Order : Entity
     public AppUser? User { get; private init; }
     public Guid? PromotionCodeId { get; private set; }
     public PromotionCode? PromotionCode { get; private init; }
-    public DateTimeOffset? AcceptedAt { get; private set; }
-    public DateTimeOffset? InProgressAt { get; private set; }
-    public DateTimeOffset? ReadyAt { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
     public DateTimeOffset? CancelledAt { get; private set; }
     public string? CancellationReason { get; private set; }
@@ -35,12 +32,11 @@ public class Order : Entity
     public bool IsClosed => ClosedAt is not null;
     public bool IsCancelled => CancelledAt is not null;
 
+    // Simple cafe lifecycle: Placed → Closed (or Cancelled). No accept / preparation /
+    // ready ping-pong — barista makes the coffee, marks it Closed, customer picks up.
     public OrderStatus Status =>
         IsCancelled ? OrderStatus.Cancelled
         : IsClosed ? OrderStatus.Closed
-        : ReadyAt is not null ? OrderStatus.Ready
-        : InProgressAt is not null ? OrderStatus.InProgress
-        : AcceptedAt is not null ? OrderStatus.Accepted
         : OrderStatus.Placed;
 
     private Order() { }
@@ -69,9 +65,6 @@ public class Order : Entity
         };
     }
 
-    public void Accept(DateTimeOffset now) => AcceptedAt = now;
-    public void StartPreparing(DateTimeOffset now) => InProgressAt = now;
-    public void MarkReady(DateTimeOffset now) => ReadyAt = now;
     public void Close(DateTimeOffset now) => ClosedAt = now;
 
     public void Cancel(DateTimeOffset now, string? reason)

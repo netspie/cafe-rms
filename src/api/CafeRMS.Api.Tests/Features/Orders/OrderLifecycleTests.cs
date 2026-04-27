@@ -23,19 +23,15 @@ public sealed class OrderLifecycleTests : IDisposable
     private sealed record OrderDetail(
         Guid Id, Guid OutletId, Guid? TableId, Guid? SalesChannelId, Guid? UserId, Guid? EventId,
         Guid? PromotionCodeId, decimal Discount, int LoyaltyPointsUsed, string Status,
-        DateTimeOffset? AcceptedAt, DateTimeOffset? InProgressAt, DateTimeOffset? ReadyAt,
         DateTimeOffset? ClosedAt, DateTimeOffset? CancelledAt, string? CancellationReason,
         IReadOnlyList<LineInfo> Lines, DateTimeOffset CreatedAt);
     private sealed record LineInfo(Guid Id, Guid ProductId, int Quantity, decimal NetPerOne, decimal VatPerOne);
 
     [Test]
-    public async Task Lifecycle_accept_then_start_then_ready_then_close()
+    public async Task Place_then_close_marks_order_closed()
     {
         var ctx = await SeedAndPlaceAsync();
 
-        (await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/accept", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/start-preparing", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/ready", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/close", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var get = await ctx.Staff.GetAsync($"/api/orders/{ctx.OrderId}");
@@ -44,34 +40,9 @@ public sealed class OrderLifecycleTests : IDisposable
     }
 
     [Test]
-    public async Task StartPreparing_before_accept_returns_409()
-    {
-        var ctx = await SeedAndPlaceAsync();
-
-        var response = await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/start-preparing", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-    }
-
-    [Test]
-    public async Task Close_before_ready_returns_409()
-    {
-        var ctx = await SeedAndPlaceAsync();
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/accept", null);
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/start-preparing", null);
-
-        var response = await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/close", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-    }
-
-    [Test]
     public async Task Close_already_closed_returns_409()
     {
         var ctx = await SeedAndPlaceAsync();
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/accept", null);
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/start-preparing", null);
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/ready", null);
         await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/close", null);
 
         var response = await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/close", null);
@@ -83,9 +54,6 @@ public sealed class OrderLifecycleTests : IDisposable
     public async Task Close_credits_loyalty_points()
     {
         var ctx = await SeedAndPlaceAsync();
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/accept", null);
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/start-preparing", null);
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/ready", null);
 
         var close = await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/close", null);
         close.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -98,7 +66,7 @@ public sealed class OrderLifecycleTests : IDisposable
     }
 
     [Test]
-    public async Task Customer_cancel_before_accept_succeeds()
+    public async Task Customer_cancel_succeeds()
     {
         var ctx = await SeedAndPlaceAsync();
 
@@ -108,23 +76,22 @@ public sealed class OrderLifecycleTests : IDisposable
     }
 
     [Test]
-    public async Task Customer_cancel_after_accept_returns_403()
+    public async Task Customer_cancel_after_close_returns_409()
     {
         var ctx = await SeedAndPlaceAsync();
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/accept", null);
+        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/close", null);
 
         var response = await ctx.Guest.PostAsJsonAsync($"/api/my/orders/{ctx.OrderId}/cancel", new { reason = "too late" });
 
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Test]
-    public async Task Staff_cancel_after_accept_succeeds()
+    public async Task Staff_cancel_succeeds()
     {
         var ctx = await SeedAndPlaceAsync();
-        await ctx.Staff.PostAsync($"/api/orders/{ctx.OrderId}/accept", null);
 
-        var response = await ctx.Staff.PostAsJsonAsync($"/api/orders/{ctx.OrderId}/cancel", new { reason = "kitchen issue" });
+        var response = await ctx.Staff.PostAsJsonAsync($"/api/orders/{ctx.OrderId}/cancel", new { reason = "out of stock" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }

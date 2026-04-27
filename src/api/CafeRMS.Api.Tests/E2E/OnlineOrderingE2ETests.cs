@@ -28,7 +28,6 @@ public sealed class OnlineOrderingE2ETests : IDisposable
     private sealed record OrderDetail(
         Guid Id, Guid OutletId, Guid? TableId, Guid? SalesChannelId, Guid? UserId, Guid? EventId,
         Guid? PromotionCodeId, decimal Discount, int LoyaltyPointsUsed, string Status,
-        DateTimeOffset? AcceptedAt, DateTimeOffset? InProgressAt, DateTimeOffset? ReadyAt,
         DateTimeOffset? ClosedAt, DateTimeOffset? CancelledAt, string? CancellationReason,
         IReadOnlyList<LineInfo> Lines, DateTimeOffset CreatedAt);
     private sealed record LineInfo(Guid Id, Guid ProductId, int Quantity, decimal NetPerOne, decimal VatPerOne);
@@ -93,10 +92,7 @@ public sealed class OnlineOrderingE2ETests : IDisposable
         place.StatusCode.Should().Be(HttpStatusCode.OK);
         var orderId = (await place.Content.ReadFromJsonAsync<PlaceResp>())!.OrderId;
 
-        // ─── Step 3: Pracownik — fulfil path: accept → start → ready → close. ───
-        (await staff.PostAsync($"/api/orders/{orderId}/accept", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await staff.PostAsync($"/api/orders/{orderId}/start-preparing", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await staff.PostAsync($"/api/orders/{orderId}/ready", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // ─── Step 3: Pracownik — close the order (cafe-simple lifecycle: place → close). ───
         (await staff.PostAsync($"/api/orders/{orderId}/close", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // ─── Step 4: assertions on the closed-process invariants. ───
