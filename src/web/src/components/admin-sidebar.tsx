@@ -14,6 +14,7 @@ import {
   Calendar,
   ShoppingCart,
   Users,
+  Shield,
   Heart,
   Star,
   type LucideIcon,
@@ -75,6 +76,7 @@ const groups: { title: string; items: NavItem[] }[] = [
     title: "Settings",
     items: [
       { href: "/admin/users", label: "Users", icon: Users },
+      { href: "/admin/roles", label: "Roles", icon: Shield },
       { href: "/admin/printout-templates", label: "Printout templates", icon: PrinterCheck },
       { href: "/admin/settings", label: "Company & outlet", icon: Settings },
     ],
