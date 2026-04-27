@@ -31,7 +31,6 @@ public sealed class GetMyOrderByIdController : ControllerBase
         await GetOrderById.Execute(id, db);
 }
 
-
 public static class GetOrderById
 {
     public sealed record Result(

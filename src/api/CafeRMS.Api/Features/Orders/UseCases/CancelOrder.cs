@@ -19,7 +19,7 @@ public sealed class CancelOrderController : ControllerBase
         [FromBody] CancelOrderRequest request,
         [FromServices] AppDbContext db)
     {
-        await CancelOrder.Execute(id, request.Reason, calledByCustomer: false, db, DateTimeOffset.UtcNow);
+        await CancelOrder.Execute(id, request.Reason, db, DateTimeOffset.UtcNow);
         return NoContent();
     }
 }
@@ -45,7 +45,7 @@ public sealed class CancelMyOrderController : ControllerBase
         [FromBody] CancelMyOrderRequest request,
         [FromServices] AppDbContext db)
     {
-        await CancelOrder.Execute(id, request.Reason, calledByCustomer: true, db, DateTimeOffset.UtcNow);
+        await CancelOrder.Execute(id, request.Reason, db, DateTimeOffset.UtcNow);
         return NoContent();
     }
 }
@@ -63,14 +63,8 @@ public sealed class CancelMyOrderValidator : AbstractValidator<CancelMyOrderRequ
 
 public static class CancelOrder
 {
-    // Cafe-simple lifecycle: any non-terminal order can be cancelled by either side.
-    // The `calledByCustomer` parameter is kept on the signature for symmetry with the
-    // staff/guest controllers but doesn't gate anything anymore — there are no
-    // intermediate states between Placed and Closed where staff would want to lock the
-    // customer out.
-    public static async Task Execute(Guid id, string? reason, bool calledByCustomer, AppDbContext db, DateTimeOffset now)
+    public static async Task Execute(Guid id, string? reason, AppDbContext db, DateTimeOffset now)
     {
-        _ = calledByCustomer;
         var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Order not found.");
 
