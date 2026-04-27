@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function AdminTopbar() {
   const router = useRouter()
@@ -21,6 +22,8 @@ export function AdminTopbar() {
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-6" />
       <div className="flex-1" />
+      <ThemeToggle />
+      <Separator orientation="vertical" className="h-6" />
       <Button variant="ghost" size="sm" onClick={handleLogout}>
         <LogOut className="mr-2 h-4 w-4" />
         Sign out
