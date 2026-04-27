@@ -10,7 +10,7 @@ using CafeRMS.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CafeRMS.Api.Tests.Features.E2E;
+namespace CafeRMS.Api.Tests.E2E;
 
 // Closed business process #3 — diagrams/3-activity-event-management.md
 // Walks the full flow: staff sets up product + event-pricing → creates Event tied to a

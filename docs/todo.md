@@ -330,7 +330,36 @@ One session per chunk. Each chunk = a self-contained slice that builds + tests g
   - **Closed-process #3:** earn happens on `CloseOrder` (Session 4) + `CloseEvent` (Session 5). Redeem happens inside `PlaceOrder` (Session 4). Manual adjust via the new staff endpoint. Balance read via Guest endpoint. Lifecycle now end-to-end.
 - [x] **Session 7 — Cross-feature E2E (Phase 6).** Sanity-pass + 3 closed-process E2E flows — multi-step API calls in single tests, each touching 5+ features. Estimated ~300–400k tokens. **Landed 3 E2E tests; full suite 270 green.** Tests follow the activity diagrams (`docs/diagrams/1-online-ordering.md`, `2-product-menu-management.md`, `3-event-management.md`) — note the diagrams name the 3 closed processes Online ordering / Product-menu mgmt / Event mgmt (loyalty is folded into the Order flow), which differs slightly from CLAUDE.md's "Order/Event/Loyalty lifecycle" wording.
 
-Phase 4 + Phase 6 together ≈ **7 sessions**. Phases 5 / 7 / 8 (DB artifacts / reports / printouts) add ~3 more. Frontend (admin + mobile) is a separate arc, ~8–12 sessions.
+Phase 4 + Phase 6 together ≈ **7 sessions** — **all shipped**. Full suite 270 green.
+
+---
+
+## Sequencing decision (post-Session-7)
+
+**Reorder:** do **Frontend first**, then Phases 5 / 7 / 8 last.
+
+Why this works: Phases 5 (DB views/sprocs/functions), 7 (PDF/Excel reports), 8 (Word printouts) are independent of frontend — they're their own URLs that the admin panel just links to. Doing them after the frontend means designing reports against UIs that actually exist, and avoids retrofitting the frontend later.
+
+**Why this is risky:** Phases 5 / 7 / 8 are **hard university requirements** (per `docs/Projekt Inżynierski - Wymagania.pdf` and the `## Hard requirements` section in `CLAUDE.md`). They cannot be cut if the frontend overruns — they have to ship before defense.
+
+**New order:**
+1. **Frontend admin panel** (Next.js, ~5–7 sessions). 50-UI-views requirement lives here.
+2. **Frontend mobile app** (React Native Expo, ~3–5 sessions).
+3. **Phase 5 — DB artifacts** (~1 session). Design views around what the actually-built reports/UI need.
+4. **Phase 7 — Report endpoints** (~1 session). Tiny once Phase 5 is done.
+5. **Phase 8 — Word printout templates** (~1 session). Also tiny.
+
+Total trailing arc: **~3 sessions** for what was previously planned as 3 sessions of standalone reporting work — same effort, better-informed shape.
+
+---
+
+### Backend follow-ups deferred from earlier sessions (do during Phase 5/7/8)
+
+- **Customer-facing `GET /api/events`** — Guest event browse. Same outletId-derives-companyId trick used in PlaceOrder. Skipped in Session 5 because Guest has no companyId in JWT. Add when mobile-app event browsing needs it.
+- **`OrderLineModifier` entity** — open question from Phase 1. If/when modifier selection on order lines is needed (probably triggered by mobile-app product detail screen wanting to send modifier picks).
+- **`EventRegistration` entity** — open question. If/when RSVP / capacity-cap features become real.
+- **`Loyalty tier` derivation** — `fn_loyalty_tier(user_id)` planned but not implemented; lands as part of Phase 5 alongside the other loyalty SQL.
+- **`PromotionCode.UsesCount` increment is non-locking** — race condition theoretically possible if the same code is redeemed in parallel. Real-world cafe scale makes this irrelevant; defer until/if it ever matters.
 
 ---
 

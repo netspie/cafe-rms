@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using CafeRMS.Api.Features.Auth;
 
-namespace CafeRMS.Api.Tests.Features.E2E;
+namespace CafeRMS.Api.Tests.E2E;
 
 // Closed business process #2 — diagrams/2-activity-product-menu-management.md
 // Walks the full staff flow: TaxRate → PriceGroup → Tag → Allergen → ModifierGroup

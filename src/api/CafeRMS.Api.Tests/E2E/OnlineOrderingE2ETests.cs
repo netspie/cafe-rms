@@ -11,7 +11,7 @@ using CafeRMS.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CafeRMS.Api.Tests.Features.E2E;
+namespace CafeRMS.Api.Tests.E2E;
 
 // Closed business process #1 — diagrams/1-activity-online-ordering.md
 // Walks the full flow: register → place order with promo + loyalty redemption →
