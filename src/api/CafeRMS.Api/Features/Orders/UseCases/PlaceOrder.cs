@@ -1,5 +1,6 @@
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Loyalty;
+using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Errors;
@@ -52,9 +53,6 @@ public sealed class PlaceOrderRequestValidator : AbstractValidator<PlaceOrderReq
     }
 }
 
-// Customer places an order from the mobile app. Wraps everything in a transaction
-// so a failure at any step rolls back the order, the lines, the loyalty debit, and
-// the promo usage increment together.
 public static class PlaceOrder
 {
     public sealed record Result(Guid OrderId);
@@ -64,14 +62,7 @@ public static class PlaceOrder
         if (request.Lines.Count == 0)
             throw new DomainException("Order must have at least one line.");
 
-        // Bootstrap: Guest has no company in their JWT, so the ICompanyOwned global filter
-        // would hide the outlet. Bypass the filter ONCE to find the outlet, derive the
-        // company, and set the runtime context override. Every subsequent query in this
-        // request scopes correctly via the normal global filter.
-        var outlet = await db.Outlets.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(x => x.Id == request.OutletId && x.DeletedAt == null)
-            ?? throw new NotFoundException("Outlet not found.");
-
+        var outlet = await ResolveOutletAsync(request.OutletId, db);
         db.SetCompanyContext(outlet.CompanyId);
 
         await using var tx = await db.Database.BeginTransactionAsync();
@@ -86,12 +77,36 @@ public static class PlaceOrder
             discount: 0m,
             loyaltyPointsUsed: request.LoyaltyPointsUsed);
 
-        var orderLines = new List<OrderLine>();
+        var (lines, subtotal) = await BuildLinesAsync(request.Lines, order.Id, db);
+
+        if (!string.IsNullOrWhiteSpace(request.PromotionCode))
+            await ApplyPromotionAsync(request.PromotionCode, subtotal, order, now, db);
+
+        if (request.LoyaltyPointsUsed > 0)
+            await RedeemLoyaltyPointsAsync(userId, request.LoyaltyPointsUsed, outlet.CompanyId, order.Id, db);
+
+        db.Orders.Add(order);
+        db.OrderLines.AddRange(lines);
+        await db.SaveChangesAsync();
+        await tx.CommitAsync();
+
+        return new Result(order.Id);
+    }
+
+    private static async Task<Outlet> ResolveOutletAsync(Guid outletId, AppDbContext db) =>
+        await db.Outlets.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Id == outletId && x.DeletedAt == null)
+            ?? throw new NotFoundException("Outlet not found.");
+
+    private static async Task<(List<OrderLine> Lines, decimal Subtotal)> BuildLinesAsync(
+        IReadOnlyList<PlaceOrderLineRequest> requestLines,
+        Guid orderId,
+        AppDbContext db)
+    {
+        var lines = new List<OrderLine>();
         decimal subtotal = 0m;
 
-        // Resolve every line: pick a ProductPrice (caller-specified PriceGroup if given,
-        // else FIFO any price for the product) and snapshot Net + VAT into the OrderLine.
-        foreach (var line in request.Lines)
+        foreach (var line in requestLines)
         {
             if (line.Quantity <= 0)
                 throw new DomainException("Quantity must be positive.");
@@ -102,58 +117,44 @@ public static class PlaceOrder
                 ?? throw new NotFoundException($"Product {line.ProductId} not found.");
 
             var priceQuery = db.ProductPrices.Where(x => x.ProductId == line.ProductId);
-            if (line.PriceGroupId is { } pgId)
+            if (line.PriceGroupId is Guid pgId)
                 priceQuery = priceQuery.Where(x => x.PriceGroupId == pgId);
             var price = await priceQuery.FirstOrDefaultAsync()
                 ?? throw new NotFoundException($"No price set for product {line.ProductId}.");
 
             var vatPerOne = Math.Round(price.Net * (product.TaxRate!.Rate / 100m), 2);
-            orderLines.Add(OrderLine.Create(order.Id, line.ProductId, line.Quantity, price.Net, vatPerOne));
+            lines.Add(OrderLine.Create(orderId, line.ProductId, line.Quantity, price.Net, vatPerOne));
             subtotal += (price.Net + vatPerOne) * line.Quantity;
         }
 
-        // Promotion code: validate, snapshot the FK on the order, increment UsesCount.
-        if (!string.IsNullOrWhiteSpace(request.PromotionCode))
-        {
-            var promo = await db.PromotionCodes.FirstOrDefaultAsync(x => x.Code == request.PromotionCode)
-                ?? throw new DomainException($"Promotion code '{request.PromotionCode}' is not valid.");
+        return (lines, subtotal);
+    }
 
-            if (promo.ValidFrom is { } from && now < from)
-                throw new DomainException("Promotion code is not yet active.");
-            if (promo.ValidUntil is { } until && now > until)
-                throw new DomainException("Promotion code has expired.");
-            if (promo.MaxUses is { } max && promo.UsesCount >= max)
-                throw new DomainException("Promotion code has reached its usage cap.");
+    private static async Task ApplyPromotionAsync(string code, decimal subtotal, Order order, DateTimeOffset now, AppDbContext db)
+    {
+        var promo = await db.PromotionCodes.FirstOrDefaultAsync(x => x.Code == code)
+            ?? throw new DomainException($"Promotion code '{code}' is not valid.");
 
-            var discount = Math.Round(subtotal * (promo.DiscountPercentage / 100m), 2);
-            order.AssignPromotion(promo.Id, discount);
-            promo.RegisterUsage();
-        }
+        if (promo.ValidFrom is DateTimeOffset from && now < from)
+            throw new DomainException("Promotion code is not yet active.");
+        if (promo.ValidUntil is DateTimeOffset until && now > until)
+            throw new DomainException("Promotion code has expired.");
+        if (promo.MaxUses is int max && promo.UsesCount >= max)
+            throw new DomainException("Promotion code has reached its usage cap.");
 
-        // Loyalty redemption: validate balance via SUM(log) and burn the points by
-        // inserting a negative LoyaltyPointLog. LoyaltyPointLog is ICompanyOwned and
-        // scoped automatically by the global filter now that we've set the context.
-        if (request.LoyaltyPointsUsed > 0)
-        {
-            var balance = await db.LoyaltyPointLogs
-                .Where(x => x.UserId == userId)
-                .SumAsync(x => (int?)x.Points) ?? 0;
-            if (balance < request.LoyaltyPointsUsed)
-                throw new DomainException($"Insufficient loyalty balance ({balance} available).");
+        var discount = Math.Round(subtotal * (promo.DiscountPercentage / 100m), 2);
+        order.AssignPromotion(promo.Id, discount);
+        promo.RegisterUsage();
+    }
 
-            db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(
-                userId,
-                -request.LoyaltyPointsUsed,
-                outlet.CompanyId,
-                reason: $"Redeemed on order {order.Id}"));
-        }
+    private static async Task RedeemLoyaltyPointsAsync(Guid userId, int points, Guid companyId, Guid orderId, AppDbContext db)
+    {
+        var balance = await db.LoyaltyPointLogs
+            .Where(x => x.UserId == userId)
+            .SumAsync(x => (int?)x.Points) ?? 0;
+        if (balance < points)
+            throw new DomainException($"Insufficient loyalty balance ({balance} available).");
 
-        db.Orders.Add(order);
-        db.OrderLines.AddRange(orderLines);
-
-        await db.SaveChangesAsync();
-        await tx.CommitAsync();
-
-        return new Result(order.Id);
+        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, -points, companyId, reason: $"Redeemed on order {orderId}"));
     }
 }

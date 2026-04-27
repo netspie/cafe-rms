@@ -66,7 +66,7 @@ public static class AddPromotionCode
         if (command.CompanyId == Guid.Empty)
             throw new ForbiddenException("A company context is required to create a promotion code.");
 
-        if (command.ValidFrom is { } from && command.ValidUntil is { } until && from > until)
+        if (command.ValidFrom is DateTimeOffset from && command.ValidUntil is DateTimeOffset until && from > until)
             throw new DomainException("ValidFrom must be earlier than ValidUntil.");
 
         var codeTaken = await db.PromotionCodes.AnyAsync(x => x.Code == command.Code);

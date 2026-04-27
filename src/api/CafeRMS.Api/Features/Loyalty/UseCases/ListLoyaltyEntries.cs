@@ -44,7 +44,7 @@ public static class ListLoyaltyEntries
 
         // Staff side: ICompanyOwned global filter applies — caller's company only.
         var queryable = db.LoyaltyPointLogs.AsQueryable();
-        if (query.UserId is { } userId)
+        if (query.UserId is Guid userId)
             queryable = queryable.Where(x => x.UserId == userId);
 
         return await queryable

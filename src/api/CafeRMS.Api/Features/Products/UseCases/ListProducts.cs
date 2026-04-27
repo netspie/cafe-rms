@@ -61,7 +61,7 @@ public static class ListProducts
         }
         if (!string.IsNullOrWhiteSpace(query.Barcode))
             queryable = queryable.Where(x => x.Barcode == query.Barcode);
-        if (query.TaxRateId is { } taxRateId)
+        if (query.TaxRateId is Guid taxRateId)
             queryable = queryable.Where(x => x.TaxRateId == taxRateId);
 
         return await queryable

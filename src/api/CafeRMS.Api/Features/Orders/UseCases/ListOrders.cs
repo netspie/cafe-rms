@@ -70,17 +70,17 @@ public static class ListOrders
 
         // Order isn't ICompanyOwned (it's scoped via Outlet) — filter explicitly.
         var queryable = db.Orders.Where(x => x.Outlet!.CompanyId == companyId);
-        if (query.OutletId is { } outletId)
+        if (query.OutletId is Guid outletId)
             queryable = queryable.Where(x => x.OutletId == outletId);
-        if (query.UserId is { } userId)
+        if (query.UserId is Guid userId)
             queryable = queryable.Where(x => x.UserId == userId);
-        if (query.SalesChannelId is { } scId)
+        if (query.SalesChannelId is Guid scId)
             queryable = queryable.Where(x => x.SalesChannelId == scId);
-        if (query.EventId is { } eventId)
+        if (query.EventId is Guid eventId)
             queryable = queryable.Where(x => x.EventId == eventId);
-        if (query.FromDate is { } from)
+        if (query.FromDate is DateTimeOffset from)
             queryable = queryable.Where(x => x.CreatedAt >= from);
-        if (query.ToDate is { } to)
+        if (query.ToDate is DateTimeOffset to)
             queryable = queryable.Where(x => x.CreatedAt <= to);
 
         return await queryable

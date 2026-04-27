@@ -54,13 +54,13 @@ public static class AddEvent
         if (command.CompanyId == Guid.Empty)
             throw new ForbiddenException("A company context is required to create an event.");
 
-        if (command.ProductListId is { } plId)
+        if (command.ProductListId is Guid plId)
         {
             var exists = await db.ProductLists.AnyAsync(x => x.Id == plId);
             if (!exists)
                 throw new NotFoundException("Product list not found.");
         }
-        if (command.PriceGroupId is { } pgId)
+        if (command.PriceGroupId is Guid pgId)
         {
             var exists = await db.PriceGroups.AnyAsync(x => x.Id == pgId);
             if (!exists)

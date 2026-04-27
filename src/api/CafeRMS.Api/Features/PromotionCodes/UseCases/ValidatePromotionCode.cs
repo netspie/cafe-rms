@@ -44,13 +44,13 @@ public static class ValidatePromotionCode
         if (promo is null)
             return new Result(false, null, ReasonNotFound);
 
-        if (promo.ValidFrom is { } from && now < from)
+        if (promo.ValidFrom is DateTimeOffset from && now < from)
             return new Result(false, null, ReasonNotYetActive);
 
-        if (promo.ValidUntil is { } until && now > until)
+        if (promo.ValidUntil is DateTimeOffset until && now > until)
             return new Result(false, null, ReasonExpired);
 
-        if (promo.MaxUses is { } max && promo.UsesCount >= max)
+        if (promo.MaxUses is int max && promo.UsesCount >= max)
             return new Result(false, null, ReasonMaxUsesReached);
 
         return new Result(true, promo.DiscountPercentage, null);

@@ -63,7 +63,7 @@ public static class UpdatePromotionCode
         var promo = await db.PromotionCodes.FirstOrDefaultAsync(x => x.Id == command.Id)
             ?? throw new NotFoundException("Promotion code not found.");
 
-        if (command.ValidFrom is { } from && command.ValidUntil is { } until && from > until)
+        if (command.ValidFrom is DateTimeOffset from && command.ValidUntil is DateTimeOffset until && from > until)
             throw new DomainException("ValidFrom must be earlier than ValidUntil.");
 
         var codeTaken = await db.PromotionCodes.AnyAsync(x => x.Code == command.Code && x.Id != command.Id);

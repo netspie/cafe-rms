@@ -55,13 +55,13 @@ public static class UpdateEvent
         if (ev.IsClosed || ev.IsCancelled)
             throw new ConflictException("Cannot update a closed or cancelled event.");
 
-        if (command.ProductListId is { } plId)
+        if (command.ProductListId is Guid plId)
         {
             var exists = await db.ProductLists.AnyAsync(x => x.Id == plId);
             if (!exists)
                 throw new NotFoundException("Product list not found.");
         }
-        if (command.PriceGroupId is { } pgId)
+        if (command.PriceGroupId is Guid pgId)
         {
             var exists = await db.PriceGroups.AnyAsync(x => x.Id == pgId);
             if (!exists)

@@ -52,7 +52,7 @@ public static class ListModifiers
             .Add("createdAt", x => x.CreatedAt);
 
         var queryable = db.Modifiers.AsQueryable();
-        if (query.ModifierGroupId is { } groupId)
+        if (query.ModifierGroupId is Guid groupId)
             queryable = queryable.Where(x => x.ModifierGroupId == groupId);
         if (!string.IsNullOrWhiteSpace(query.Name))
         {
