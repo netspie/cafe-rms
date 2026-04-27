@@ -75,7 +75,7 @@ export function TagsTable() {
           className="max-w-xs"
         />
         <div className="flex-1" />
-        <Button render={<Link href="/admin/tags/new" />}>
+        <Button render={<Link href="/admin/tags/new" />} nativeButton={false}>
           <Plus className="mr-2 h-4 w-4" />
           New tag
         </Button>
