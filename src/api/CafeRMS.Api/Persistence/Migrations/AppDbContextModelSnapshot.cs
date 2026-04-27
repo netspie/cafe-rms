@@ -704,6 +704,10 @@ namespace CafeRMS.Api.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -734,6 +738,10 @@ namespace CafeRMS.Api.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("event_id");
 
+                    b.Property<DateTimeOffset?>("InProgressAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("in_progress_at");
+
                     b.Property<int>("LoyaltyPointsUsed")
                         .HasColumnType("integer")
                         .HasColumnName("loyalty_points_used");
@@ -741,6 +749,14 @@ namespace CafeRMS.Api.Persistence.Migrations
                     b.Property<Guid>("OutletId")
                         .HasColumnType("uuid")
                         .HasColumnName("outlet_id");
+
+                    b.Property<Guid?>("PromotionCodeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("promotion_code_id");
+
+                    b.Property<DateTimeOffset?>("ReadyAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ready_at");
 
                     b.Property<Guid?>("SalesChannelId")
                         .HasColumnType("uuid")
@@ -776,6 +792,9 @@ namespace CafeRMS.Api.Persistence.Migrations
 
                     b.HasIndex("OutletId")
                         .HasDatabaseName("ix_orders_outlet_id");
+
+                    b.HasIndex("PromotionCodeId")
+                        .HasDatabaseName("ix_orders_promotion_code_id");
 
                     b.HasIndex("SalesChannelId")
                         .HasDatabaseName("ix_orders_sales_channel_id");
@@ -2005,6 +2024,12 @@ namespace CafeRMS.Api.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_orders_outlets_outlet_id");
 
+                    b.HasOne("CafeRMS.Api.Features.PromotionCodes.PromotionCode", "PromotionCode")
+                        .WithMany()
+                        .HasForeignKey("PromotionCodeId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_orders_promotion_codes_promotion_code_id");
+
                     b.HasOne("CafeRMS.Api.Features.SalesChannels.SalesChannel", "SalesChannel")
                         .WithMany()
                         .HasForeignKey("SalesChannelId")
@@ -2026,6 +2051,8 @@ namespace CafeRMS.Api.Persistence.Migrations
                     b.Navigation("Event");
 
                     b.Navigation("Outlet");
+
+                    b.Navigation("PromotionCode");
 
                     b.Navigation("SalesChannel");
 
