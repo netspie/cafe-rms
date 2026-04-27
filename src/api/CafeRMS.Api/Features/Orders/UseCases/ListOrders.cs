@@ -20,6 +20,7 @@ public sealed class ListOrdersController : ControllerBase
                 Page = request.Page,
                 PageSize = request.PageSize,
                 Sort = request.Sort,
+                Status = request.Status,
                 OutletId = request.OutletId,
                 UserId = request.UserId,
                 SalesChannelId = request.SalesChannelId,
@@ -35,6 +36,7 @@ public sealed record ListOrdersRequest(
     int Page = 1,
     int PageSize = 20,
     string? Sort = null,
+    OrderStatus? Status = null,
     Guid? OutletId = null,
     Guid? UserId = null,
     Guid? SalesChannelId = null,
@@ -47,6 +49,7 @@ public static class ListOrders
 {
     public sealed record Query : PagedQuery
     {
+        public OrderStatus? Status { get; init; }
         public Guid? OutletId { get; init; }
         public Guid? UserId { get; init; }
         public Guid? SalesChannelId { get; init; }
@@ -70,6 +73,8 @@ public static class ListOrders
 
         // Order isn't ICompanyOwned (it's scoped via Outlet) — filter explicitly.
         var queryable = db.Orders.Where(x => x.Outlet!.CompanyId == companyId);
+        if (query.Status is OrderStatus status)
+            queryable = queryable.Where(x => x.Status == status);
         if (query.OutletId is Guid outletId)
             queryable = queryable.Where(x => x.OutletId == outletId);
         if (query.UserId is Guid userId)
