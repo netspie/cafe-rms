@@ -328,7 +328,7 @@ One session per chunk. Each chunk = a self-contained slice that builds + tests g
   - **Loyalty (4):** Guest — `GET /api/my/loyalty/balance` (sum), `GET /api/my/loyalty/history` (paged log). Staff (`Permissions.LoyaltyManage`) — `GET /api/loyalty/entries` (paged + filter by userId), `POST /api/loyalty/entries` (manual adjustment with required reason; signed Points).
   - **UserSettings (2):** Guest — `GET /api/my/settings` (auto-creates on first access), `PUT /api/my/settings` (Theme + UiSettingsJson).
   - **Closed-process #3:** earn happens on `CloseOrder` (Session 4) + `CloseEvent` (Session 5). Redeem happens inside `PlaceOrder` (Session 4). Manual adjust via the new staff endpoint. Balance read via Guest endpoint. Lifecycle now end-to-end.
-- [ ] **Session 7 — Cross-feature E2E (Phase 6).** Sanity-pass + the 3 closed-process E2E flows (Order lifecycle, Event lifecycle, Loyalty lifecycle) — multi-step API calls in single tests, each touching 5+ features. Estimated ~300–400k tokens.
+- [x] **Session 7 — Cross-feature E2E (Phase 6).** Sanity-pass + 3 closed-process E2E flows — multi-step API calls in single tests, each touching 5+ features. Estimated ~300–400k tokens. **Landed 3 E2E tests; full suite 270 green.** Tests follow the activity diagrams (`docs/diagrams/1-online-ordering.md`, `2-product-menu-management.md`, `3-event-management.md`) — note the diagrams name the 3 closed processes Online ordering / Product-menu mgmt / Event mgmt (loyalty is folded into the Order flow), which differs slightly from CLAUDE.md's "Order/Event/Loyalty lifecycle" wording.
 
 Phase 4 + Phase 6 together ≈ **7 sessions**. Phases 5 / 7 / 8 (DB artifacts / reports / printouts) add ~3 more. Frontend (admin + mobile) is a separate arc, ~8–12 sessions.
 
