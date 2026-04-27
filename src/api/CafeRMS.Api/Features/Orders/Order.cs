@@ -1,6 +1,7 @@
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Events;
 using CafeRMS.Api.Features.Outlets;
+using CafeRMS.Api.Features.PromotionCodes;
 using CafeRMS.Api.Features.SalesChannels;
 using CafeRMS.Api.Features.Tables;
 using CafeRMS.Api.Shared.Entities;
@@ -18,6 +19,11 @@ public class Order : Entity
     public SalesChannel? SalesChannel { get; private init; }
     public Guid? UserId { get; private init; }
     public AppUser? User { get; private init; }
+    public Guid? PromotionCodeId { get; private set; }
+    public PromotionCode? PromotionCode { get; private init; }
+    public DateTimeOffset? AcceptedAt { get; private set; }
+    public DateTimeOffset? InProgressAt { get; private set; }
+    public DateTimeOffset? ReadyAt { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
     public DateTimeOffset? CancelledAt { get; private set; }
     public string? CancellationReason { get; private set; }
@@ -29,10 +35,25 @@ public class Order : Entity
     public bool IsClosed => ClosedAt is not null;
     public bool IsCancelled => CancelledAt is not null;
 
+    public OrderStatus Status =>
+        IsCancelled ? OrderStatus.Cancelled
+        : IsClosed ? OrderStatus.Closed
+        : ReadyAt is not null ? OrderStatus.Ready
+        : InProgressAt is not null ? OrderStatus.InProgress
+        : AcceptedAt is not null ? OrderStatus.Accepted
+        : OrderStatus.Placed;
+
     private Order() { }
 
-    public static Order Create(Guid outletId, Guid? tableId = null, Guid? salesChannelId = null,
-        Guid? userId = null, Guid? eventId = null, decimal discount = 0, int loyaltyPointsUsed = 0)
+    public static Order Create(
+        Guid outletId,
+        Guid? tableId = null,
+        Guid? salesChannelId = null,
+        Guid? userId = null,
+        Guid? eventId = null,
+        Guid? promotionCodeId = null,
+        decimal discount = 0,
+        int loyaltyPointsUsed = 0)
     {
         return new Order
         {
@@ -42,8 +63,26 @@ public class Order : Entity
             SalesChannelId = salesChannelId,
             UserId = userId,
             EventId = eventId,
+            PromotionCodeId = promotionCodeId,
             Discount = discount,
             LoyaltyPointsUsed = loyaltyPointsUsed
         };
+    }
+
+    public void Accept(DateTimeOffset now) => AcceptedAt = now;
+    public void StartPreparing(DateTimeOffset now) => InProgressAt = now;
+    public void MarkReady(DateTimeOffset now) => ReadyAt = now;
+    public void Close(DateTimeOffset now) => ClosedAt = now;
+
+    public void Cancel(DateTimeOffset now, string? reason)
+    {
+        CancelledAt = now;
+        CancellationReason = reason;
+    }
+
+    public void AssignPromotion(Guid promotionCodeId, decimal discount)
+    {
+        PromotionCodeId = promotionCodeId;
+        Discount = discount;
     }
 }

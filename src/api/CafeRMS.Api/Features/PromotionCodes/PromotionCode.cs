@@ -48,4 +48,6 @@ public class PromotionCode : CompanyOwnedSoftDeletableEntity
         ValidUntil = validUntil;
         MaxUses = maxUses;
     }
+
+    public void RegisterUsage() => UsesCount += 1;
 }

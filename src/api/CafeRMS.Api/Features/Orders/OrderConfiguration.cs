@@ -10,6 +10,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>, IEntityTypeCo
         builder.HasKey(x => x.Id);
         builder.Ignore(x => x.IsClosed);
         builder.Ignore(x => x.IsCancelled);
+        builder.Ignore(x => x.Status);
         builder.Property(x => x.Discount).HasPrecision(18, 2);
         builder.Property(x => x.CancellationReason).HasMaxLength(500);
         builder.HasOne(x => x.Outlet).WithMany().HasForeignKey(x => x.OutletId).OnDelete(DeleteBehavior.Cascade);
@@ -17,6 +18,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>, IEntityTypeCo
         builder.HasOne(x => x.SalesChannel).WithMany().HasForeignKey(x => x.SalesChannelId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.Event).WithMany().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.PromotionCode).WithMany().HasForeignKey(x => x.PromotionCodeId).OnDelete(DeleteBehavior.SetNull);
     }
 
     public void Configure(EntityTypeBuilder<OrderLine> builder)
