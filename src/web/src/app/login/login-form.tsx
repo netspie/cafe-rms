@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ShibaMark } from "@/components/shiba-mark"
 import {
   Form,
   FormControl,
@@ -61,9 +62,15 @@ export function LoginForm() {
   return (
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
+        <CardHeader className="items-center text-center gap-2">
+          <ShibaMark className="h-12 w-12" />
           <CardTitle>CafeRMS Admin</CardTitle>
-          <CardDescription>Sign in to manage your cafe.</CardDescription>
+          <CardDescription>
+            <span className="block">Sign in to manage your cafe.</span>
+            <span className="mt-1 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">
+              よろしく ・ welcome back
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

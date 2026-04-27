@@ -33,6 +33,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { ShibaMark } from "@/components/shiba-mark"
 
 interface NavItem {
   href: string
@@ -85,9 +86,14 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/admin" className="flex items-center gap-2 px-2 py-3 font-semibold">
-          <Coffee className="h-5 w-5" />
-          CafeRMS
+        <Link href="/admin" className="flex items-center gap-2 px-2 py-3">
+          <ShibaMark className="h-7 w-7" />
+          <div className="flex flex-col leading-tight">
+            <span className="font-semibold tracking-tight">CafeRMS</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              いらっしゃい
+            </span>
+          </div>
         </Link>
       </SidebarHeader>
       <SidebarContent>

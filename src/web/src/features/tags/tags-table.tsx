@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
+import { ShibaMark } from "@/components/shiba-mark"
 import { tagsApi } from "./api"
 
 const PAGE_SIZE = 20
@@ -106,8 +107,11 @@ export function TagsTable() {
             )}
             {query.data?.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  No tags yet. Create the first one.
+                <TableCell colSpan={4} className="py-12">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <ShibaMark className="h-10 w-10 opacity-60" />
+                    <p className="text-sm">No tags yet — let&apos;s make the first one.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
