@@ -1,5 +1,3 @@
-import { cn } from "@/lib/utils"
-
 // Hand-drawn line-art Shiba face. Pure monochrome — uses `currentColor` so it
 // picks up whatever color the surrounding text is. Inspired by the kawaii
 // merch you'd find at Mame Shiba Cafe in Harajuku.
@@ -12,7 +10,7 @@ export function ShibaMark({ className, ...props }: React.SVGProps<SVGSVGElement>
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn("h-6 w-6", className)}
+      className={`h-6 w-6 ${className ?? ""}`}
       aria-hidden
       {...props}
     >
