@@ -1,47 +1,25 @@
-"use client"
-
-// Admin dashboard. Stat cards click through to the relevant list. Counts
-// come from each list endpoint with pageSize=1 — we only need the `total`.
-
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import { Calendar, Coffee, ShoppingCart, Star } from "lucide-react"
-
 import { ShibaMark } from "@/components/shiba-mark"
-import { api, type PagedResult } from "@/lib/api"
-
-interface Counts {
-  placedOrders: number | null
-  events: number | null
-  products: number | null
-  loyaltyEntries: number | null
-}
+import { api, type PagedResult } from "@/lib/server-api"
 
 interface Me { firstName: string }
 
-export default function AdminDashboard() {
-  const [me, setMe] = useState<Me | null>(null)
-  const [counts, setCounts] = useState<Counts>({ placedOrders: null, events: null, products: null, loyaltyEntries: null })
+async function totalOf(path: string): Promise<number | null> {
+  try {
+    const r = await api.get<PagedResult<unknown>>(path)
+    return r.total
+  } catch { return null }
+}
 
-  useEffect(() => {
-    api.get<Me>("/api/me").then(setMe).catch(() => {})
-
-    async function pull(path: string): Promise<number | null> {
-      try {
-        const r = await api.get<PagedResult<unknown>>(path)
-        return r.total
-      } catch { return null }
-    }
-
-    Promise.all([
-      pull("/api/orders?page=1&pageSize=1&status=Placed"),
-      pull("/api/events?page=1&pageSize=1"),
-      pull("/api/products?page=1&pageSize=1"),
-      pull("/api/loyalty/entries?page=1&pageSize=1"),
-    ]).then(([placedOrders, events, products, loyaltyEntries]) => {
-      setCounts({ placedOrders, events, products, loyaltyEntries })
-    })
-  }, [])
+export default async function AdminDashboard() {
+  const [me, placedOrders, events, products, loyaltyEntries] = await Promise.all([
+    api.get<Me>("/api/me").catch(() => null),
+    totalOf("/api/orders?page=1&pageSize=1&status=Placed"),
+    totalOf("/api/events?page=1&pageSize=1"),
+    totalOf("/api/products?page=1&pageSize=1"),
+    totalOf("/api/loyalty/entries?page=1&pageSize=1"),
+  ])
 
   return (
     <div className="space-y-6">
@@ -56,10 +34,10 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard href="/admin/orders" label="Open orders" value={counts.placedOrders} icon={<ShoppingCart className="h-4 w-4" />} hint="Status = Placed" />
-        <StatCard href="/admin/events" label="Events" value={counts.events} icon={<Calendar className="h-4 w-4" />} hint="All statuses" />
-        <StatCard href="/admin/products" label="Products" value={counts.products} icon={<Coffee className="h-4 w-4" />} />
-        <StatCard href="/admin/loyalty" label="Loyalty entries" value={counts.loyaltyEntries} icon={<Star className="h-4 w-4" />} hint="Earned + redeemed + adjustments" />
+        <StatCard href="/admin/orders" label="Open orders" value={placedOrders} icon={<ShoppingCart className="h-4 w-4" />} hint="Status = Placed" />
+        <StatCard href="/admin/events" label="Events" value={events} icon={<Calendar className="h-4 w-4" />} hint="All statuses" />
+        <StatCard href="/admin/products" label="Products" value={products} icon={<Coffee className="h-4 w-4" />} />
+        <StatCard href="/admin/loyalty" label="Loyalty entries" value={loyaltyEntries} icon={<Star className="h-4 w-4" />} hint="Earned + redeemed + adjustments" />
       </div>
 
       <section className="rounded-lg border bg-card p-4">
@@ -83,7 +61,7 @@ function StatCard({ href, label, value, icon, hint }: { href: string; label: str
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
         <span className="text-muted-foreground">{icon}</span>
       </div>
-      <p className="mt-2 text-2xl font-semibold">{value === null ? "…" : value}</p>
+      <p className="mt-2 text-2xl font-semibold">{value === null ? "—" : value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </Link>
   )

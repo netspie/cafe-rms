@@ -1,28 +1,40 @@
-"use client"
-
-// Loyalty — single page. Two inline sections: activity log (paged, filterable
-// by user) and a manual adjustment form (positive = bonus, negative = withdrawal).
-
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
-
+import Link from "next/link"
+import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
-import { ApiError, api, type PagedResult } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/server-api"
 
 interface LoyaltyEntry { id: string; userId: string; points: number; reason: string | null; createdAt: string }
 interface UserRow { id: string; firstName: string; lastName: string; email: string }
 
 const PAGE_SIZE = 20
 
-export default function LoyaltyPage() {
-  const [users, setUsers] = useState<UserRow[]>([])
+async function recordAdjustment(formData: FormData) {
+  "use server"
+  await api.post("/api/loyalty/entries", {
+    userId: formData.get("userId") as string,
+    points: Number(formData.get("points")),
+    reason: formData.get("reason") as string,
+  })
+  revalidatePath("/admin/loyalty")
+}
 
-  useEffect(() => {
-    api.get<UserRow[]>("/api/users")
-      .then(setUsers)
-      .catch(() => {})
-  }, [])
+export default async function LoyaltyPage({ searchParams }: { searchParams: Promise<{ page?: string; user?: string }> }) {
+  const sp = await searchParams
+  const page = Number(sp.page ?? 1)
+  const userId = sp.user ?? ""
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
+  if (userId) search.set("userId", userId)
+
+  const [entries, users] = await Promise.all([
+    api.get<PagedResult<LoyaltyEntry>>(`/api/loyalty/entries?${search}`),
+    api.get<UserRow[]>("/api/users"),
+  ])
+  const userName = (id: string) => {
+    const u = users.find((x) => x.id === id)
+    return u ? `${u.firstName} ${u.lastName}` : `${id.slice(0, 8)}…`
+  }
+  const totalPages = Math.max(1, Math.ceil(entries.total / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -32,147 +44,82 @@ export default function LoyaltyPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ActivitySection users={users} />
-        </div>
-        <AdjustmentSection users={users} />
+        <section className="rounded-lg border bg-card p-4 lg:col-span-2">
+          <h2 className="text-base font-semibold">Activity</h2>
+          <p className="mb-4 text-xs text-muted-foreground">Latest first. Filter by customer to audit a single account.</p>
+          <div className="space-y-4">
+            <form className="flex items-center gap-3">
+              <select name="user" defaultValue={userId} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
+                <option value="">All users</option>
+                {users.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+              </select>
+              <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Filter</button>
+            </form>
+            <div className="overflow-hidden rounded-md border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">When</th>
+                    <th className="px-3 py-2 font-medium">User</th>
+                    <th className="px-3 py-2 text-right font-medium">Points</th>
+                    <th className="px-3 py-2 font-medium">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.items.length === 0 && (
+                    <tr><td colSpan={4} className="px-3 py-12">
+                      <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                        <ShibaMark className="h-10 w-10 opacity-60" />
+                        <p>No loyalty activity matches this filter.</p>
+                      </div>
+                    </td></tr>
+                  )}
+                  {entries.items.map((e) => (
+                    <tr key={e.id} className="border-t">
+                      <td className="px-3 py-2 text-muted-foreground">{new Date(e.createdAt).toLocaleString()}</td>
+                      <td className="px-3 py-2">{userName(e.userId)}</td>
+                      <td className="px-3 py-2 text-right">
+                        <span className={"inline-flex rounded-full px-2.5 py-0.5 font-mono text-xs " + (e.points >= 0 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive")}>
+                          {e.points >= 0 ? `+${e.points}` : e.points}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{e.reason ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{entries.total} total</p>
+              <div className="flex items-center gap-2">
+                {page > 1 ? <Link href={{ query: { ...(userId ? { user: userId } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
+                <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+                {page < totalPages ? <Link href={{ query: { ...(userId ? { user: userId } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="text-base font-semibold">Manual adjustment</h2>
+          <p className="mb-4 text-xs text-muted-foreground">Bonus or withdrawal — leaves an entry in the activity log.</p>
+          <form action={recordAdjustment} className="space-y-4">
+            <Field label="User">
+              <select name="userId" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
+                <option value="">Pick a user…</option>
+                {users.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} — {u.email}</option>)}
+              </select>
+            </Field>
+            <Field label="Points" hint="Positive for a bonus, negative to withdraw.">
+              <input name="points" type="number" step="1" required className="h-9 w-32 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+            </Field>
+            <Field label="Reason">
+              <input name="reason" required placeholder="e.g. complaint resolution, birthday gift" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+            </Field>
+            <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Record adjustment</button>
+          </form>
+        </section>
       </div>
     </div>
-  )
-}
-
-function ActivitySection({ users }: { users: UserRow[] }) {
-  const [page, setPage] = useState(1)
-  const [userId, setUserId] = useState("")
-  const [data, setData] = useState<PagedResult<LoyaltyEntry> | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
-    if (userId) params.set("userId", userId)
-    api.get<PagedResult<LoyaltyEntry>>(`/api/loyalty/entries?${params}`)
-      .then(setData)
-      .catch((err) => { if (err instanceof ApiError) toast.error(err.message) })
-      .finally(() => setLoading(false))
-  }, [page, userId, refreshKey])
-
-  const userName = (id: string) => {
-    const u = users.find((x) => x.id === id)
-    return u ? `${u.firstName} ${u.lastName}` : `${id.slice(0, 8)}…`
-  }
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
-
-  return (
-    <section className="rounded-lg border bg-card p-4">
-      <h2 className="text-base font-semibold">Activity</h2>
-      <p className="mb-4 text-xs text-muted-foreground">Latest first. Filter by customer to audit a single account.</p>
-
-      <div className="space-y-4">
-        <select value={userId} onChange={(e) => { setPage(1); setUserId(e.target.value) }} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
-          <option value="">All users</option>
-          {users.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
-        </select>
-
-        <div className="overflow-hidden rounded-md border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-medium">When</th>
-                <th className="px-3 py-2 font-medium">User</th>
-                <th className="px-3 py-2 text-right font-medium">Points</th>
-                <th className="px-3 py-2 font-medium">Reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>}
-              {!loading && data?.items.length === 0 && (
-                <tr><td colSpan={4} className="px-3 py-12">
-                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <ShibaMark className="h-10 w-10 opacity-60" />
-                    <p>No loyalty activity matches this filter.</p>
-                  </div>
-                </td></tr>
-              )}
-              {!loading && data?.items.map((e) => (
-                <tr key={e.id} className="border-t">
-                  <td className="px-3 py-2 text-muted-foreground">{new Date(e.createdAt).toLocaleString()}</td>
-                  <td className="px-3 py-2">{userName(e.userId)}</td>
-                  <td className="px-3 py-2 text-right">
-                    <span className={"inline-flex rounded-full px-2.5 py-0.5 font-mono text-xs " + (e.points >= 0 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive")}>
-                      {e.points >= 0 ? `+${e.points}` : e.points}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">{e.reason ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{data ? `${data.total} total` : ""}</p>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Previous</button>
-            <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Next</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function AdjustmentSection({ users }: { users: UserRow[] }) {
-  const [userId, setUserId] = useState("")
-  const [points, setPoints] = useState("")
-  const [reason, setReason] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setErrors({})
-    try {
-      await api.post("/api/loyalty/entries", { userId, points: Number(points), reason })
-      toast.success("Adjustment recorded")
-      setUserId("")
-      setPoints("")
-      setReason("")
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.problem.errors) {
-          const flat: Record<string, string> = {}
-          for (const [k, v] of Object.entries(err.problem.errors)) flat[k.toLowerCase()] = v[0]
-          setErrors(flat)
-        } else toast.error(err.message)
-      }
-    } finally { setSubmitting(false) }
-  }
-
-  return (
-    <section className="rounded-lg border bg-card p-4">
-      <h2 className="text-base font-semibold">Manual adjustment</h2>
-      <p className="mb-4 text-xs text-muted-foreground">Bonus or withdrawal — leaves an entry in the activity log.</p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="User" error={errors.userid}>
-          <select value={userId} onChange={(e) => setUserId(e.target.value)} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
-            <option value="">Pick a user…</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} — {u.email}</option>)}
-          </select>
-        </Field>
-        <Field label="Points" hint="Positive for a bonus, negative to withdraw." error={errors.points}>
-          <input type="number" step="1" value={points} onChange={(e) => setPoints(e.target.value)} required className="h-9 w-32 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Reason" error={errors.reason}>
-          <input value={reason} onChange={(e) => setReason(e.target.value)} required placeholder="e.g. complaint resolution, birthday gift" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <button type="submit" disabled={submitting} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
-          {submitting ? "Saving…" : "Record adjustment"}
-        </button>
-      </form>
-    </section>
   )
 }

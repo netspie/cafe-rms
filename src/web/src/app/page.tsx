@@ -1,13 +1,8 @@
-"use client"
-
-// Public homepage — the café directory. Lists every company that opted in
-// via Settings → Listed publicly. Anonymous endpoint, no auth needed.
+// Public homepage — pure server component. Anonymous endpoint, no auth.
+// The Bearer header is omitted because there's no cookie token.
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
-
 import { ShibaMark } from "@/components/shiba-mark"
-import { api } from "@/lib/api"
 
 interface PublicCompany {
   id: string
@@ -20,14 +15,16 @@ interface PublicCompany {
   logoUrl: string | null
 }
 
-export default function PublicHomePage() {
-  const [companies, setCompanies] = useState<PublicCompany[] | null>(null)
+const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5179"
 
-  useEffect(() => {
-    api.get<PublicCompany[]>("/api/companies/public")
-      .then(setCompanies)
-      .catch(() => setCompanies([]))
-  }, [])
+async function listPublicCompanies(): Promise<PublicCompany[]> {
+  const res = await fetch(`${API_BASE}/api/companies/public`, { cache: "no-store" })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export default async function PublicHomePage() {
+  const companies = await listPublicCompanies()
 
   return (
     <div className="min-h-dvh bg-background">
@@ -51,18 +48,14 @@ export default function PublicHomePage() {
           </p>
         </section>
 
-        {companies === null && (
-          <p className="text-center text-sm text-muted-foreground">Loading…</p>
-        )}
-
-        {companies?.length === 0 && (
+        {companies.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
             <ShibaMark className="h-14 w-14 opacity-60" />
             <p className="text-sm">No public cafés listed yet.</p>
           </div>
         )}
 
-        {companies && companies.length > 0 && (
+        {companies.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {companies.map((c) => (
               <article key={c.id} className="rounded-lg border bg-card p-4">
