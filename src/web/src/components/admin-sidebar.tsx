@@ -17,24 +17,12 @@ import {
   Shield,
   Heart,
   Star,
-  UserCircle2,
-  type LucideIcon,
   PrinterCheck,
   Banknote,
   ListOrdered,
+  UserCircle2,
+  type LucideIcon,
 } from "lucide-react"
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
 import { ShibaMark } from "@/components/shiba-mark"
 
 interface NavItem {
@@ -88,41 +76,43 @@ const groups: { title: string; items: NavItem[] }[] = [
 export function AdminSidebar() {
   const pathname = usePathname()
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <Link href="/admin" className="flex items-center gap-2 px-2 py-3">
-          <ShibaMark className="h-7 w-7" />
-          <div className="flex flex-col leading-tight">
-            <span className="font-semibold tracking-tight">CafeRMS</span>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              いらっしゃい
-            </span>
-          </div>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
+    <aside className="flex w-64 shrink-0 flex-col border-r bg-card">
+      <Link href="/admin" className="flex items-center gap-2 border-b px-3 py-3">
+        <ShibaMark className="h-7 w-7" />
+        <div className="flex flex-col leading-tight">
+          <span className="font-semibold tracking-tight">CafeRMS</span>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">いらっしゃい</span>
+        </div>
+      </Link>
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
         {groups.map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const Icon = item.icon
-                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton render={<Link href={item.href} />} isActive={active}>
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <div key={group.title} className="mb-4">
+            <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              {group.title}
+            </p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={
+                        "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors " +
+                        (active ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")
+                      }
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         ))}
-      </SidebarContent>
-    </Sidebar>
+      </nav>
+    </aside>
   )
 }

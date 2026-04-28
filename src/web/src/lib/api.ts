@@ -1,6 +1,9 @@
-// Hand-written fetch wrapper. Reads the JWT from the httpOnly cookie via the
-// Next.js Route Handler proxy (`/api/proxy/[...path]`) so client code never has
-// to touch the token. Throws ApiError with the API's ProblemDetails body parsed.
+// Raw fetch wrapper. Reads the JWT from localStorage and attaches it as
+// "Authorization: Bearer ...". On 401 it clears the session and bounces to
+// /login. Errors come back as ApiError with the API's ProblemDetails parsed,
+// including the per-field `errors` map FluentValidation emits on 422.
+
+import { getToken, clearSession, redirectToLogin } from "./auth"
 
 export interface ProblemDetails {
   type?: string
@@ -14,18 +17,28 @@ export class ApiError extends Error {
   constructor(public status: number, public problem: ProblemDetails) {
     super(problem.detail ?? problem.title ?? `HTTP ${status}`)
   }
+  fieldError(name: string): string | undefined {
+    return this.problem.errors?.[name]?.[0]
+  }
 }
 
-const PROXY_BASE = "/api/proxy"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5179"
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${PROXY_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  })
+  const token = getToken()
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init.headers as Record<string, string> | undefined),
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
+
+  if (response.status === 401) {
+    clearSession()
+    redirectToLogin()
+    throw new ApiError(401, { status: 401, title: "Session expired" })
+  }
 
   if (response.status === 204) return undefined as T
 
