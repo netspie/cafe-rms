@@ -1,50 +1,31 @@
 "use client"
 
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { useMutation, useQuery } from "@tanstack/react-query"
+// Account — profile readout + change-password form. Single file.
+
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
-import { ApiError } from "@/lib/api"
-import { meApi } from "@/features/me/api"
+import { Field } from "@/components/field"
+import { ApiError, api } from "@/lib/api"
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Required"),
-  newPassword: z.string().min(8, "Min 8 characters"),
-  confirm: z.string().min(8, "Min 8 characters"),
-}).refine((d) => d.newPassword === d.confirm, {
-  message: "Passwords do not match",
-  path: ["confirm"],
-})
-type PasswordFormValues = z.infer<typeof passwordSchema>
+interface MeResult {
+  firstName: string
+  lastName: string
+  email: string
+  accountType: string
+  roles: string[]
+}
 
 export default function AccountPage() {
-  const meQuery = useQuery({ queryKey: ["me"], queryFn: () => meApi.get() })
+  const [me, setMe] = useState<MeResult | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const form = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: { currentPassword: "", newPassword: "", confirm: "" },
-  })
-
-  const mutation = useMutation({
-    mutationFn: (values: PasswordFormValues) =>
-      meApi.changePassword({ currentPassword: values.currentPassword, newPassword: values.newPassword }),
-    onSuccess: () => {
-      toast.success("Password changed")
-      form.reset({ currentPassword: "", newPassword: "", confirm: "" })
-    },
-    onError: (err) => {
-      if (err instanceof ApiError) toast.error(err.problem.detail ?? err.problem.title ?? err.message)
-      else toast.error("Could not change password")
-    },
-  })
+  useEffect(() => {
+    api.get<MeResult>("/api/me")
+      .then(setMe)
+      .catch((err) => { if (err instanceof ApiError) toast.error(err.message) })
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -54,78 +35,87 @@ export default function AccountPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Profile</CardTitle>
-            <CardDescription>Read-only — names are managed from the Users page.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {meQuery.isLoading && <Skeleton className="h-24 w-full" />}
-            {meQuery.data && (
-              <>
-                <div><span className="text-muted-foreground">Name: </span>{meQuery.data.firstName} {meQuery.data.lastName}</div>
-                <div><span className="text-muted-foreground">Email: </span>{meQuery.data.email}</div>
-                <div><span className="text-muted-foreground">Account type: </span>{meQuery.data.accountType}</div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-muted-foreground">Roles:</span>
-                  {meQuery.data.roles.length === 0 && <span>—</span>}
-                  {meQuery.data.roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Change password</CardTitle>
-            <CardDescription>At least 8 characters.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="currentPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Current password</FormLabel>
-                      <FormControl><Input type="password" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New password</FormLabel>
-                      <FormControl><Input type="password" {...field} /></FormControl>
-                      <FormDescription>Min 8 characters.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="confirm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm new password</FormLabel>
-                      <FormControl><Input type="password" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? "Saving…" : "Change password"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+        <ProfileSection me={me} loading={loading} />
+        <PasswordSection />
       </div>
     </div>
+  )
+}
+
+function ProfileSection({ me, loading }: { me: MeResult | null; loading: boolean }) {
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <h2 className="text-base font-semibold">Profile</h2>
+      <p className="mb-4 text-xs text-muted-foreground">Read-only — names are managed from the Users page.</p>
+      {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {me && (
+        <div className="space-y-2 text-sm">
+          <div><span className="text-muted-foreground">Name: </span>{me.firstName} {me.lastName}</div>
+          <div><span className="text-muted-foreground">Email: </span>{me.email}</div>
+          <div><span className="text-muted-foreground">Account type: </span>{me.accountType}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">Roles:</span>
+            {me.roles.length === 0 && <span>—</span>}
+            {me.roles.map((r) => <span key={r} className="inline-flex rounded-full bg-secondary px-2.5 py-0.5 text-xs">{r}</span>)}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function PasswordSection() {
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [mismatch, setMismatch] = useState<string | undefined>()
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setMismatch(undefined)
+    if (newPassword !== confirm) {
+      setMismatch("Passwords do not match")
+      return
+    }
+    setSubmitting(true)
+    setErrors({})
+    try {
+      await api.put("/api/auth/password", { currentPassword, newPassword })
+      toast.success("Password changed")
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirm("")
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.problem.errors) {
+          const flat: Record<string, string> = {}
+          for (const [k, v] of Object.entries(err.problem.errors)) flat[k.toLowerCase()] = v[0]
+          setErrors(flat)
+        } else toast.error(err.message)
+      }
+    } finally { setSubmitting(false) }
+  }
+
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <h2 className="text-base font-semibold">Change password</h2>
+      <p className="mb-4 text-xs text-muted-foreground">At least 8 characters.</p>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Current password" error={errors.currentpassword}>
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="New password" hint="Min 8 characters." error={errors.newpassword}>
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Confirm new password" error={mismatch}>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <button type="submit" disabled={submitting} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+          {submitting ? "Saving…" : "Change password"}
+        </button>
+      </form>
+    </section>
   )
 }

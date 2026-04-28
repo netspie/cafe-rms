@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { ShibaMark } from "@/components/shiba-mark"
 
 export default function NotFound() {
@@ -11,8 +10,8 @@ export default function NotFound() {
         <p className="text-muted-foreground">The Shiba sniffed around but couldn&apos;t find what you asked for.</p>
       </div>
       <div className="flex gap-2">
-        <Button render={<Link href="/admin" />} nativeButton={false}>Back to admin</Button>
-        <Button render={<Link href="/" />} nativeButton={false} variant="outline">Public site</Button>
+        <Link href="/admin" className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Back to admin</Link>
+        <Link href="/" className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-accent">Public site</Link>
       </div>
     </div>
   )

@@ -1,139 +1,99 @@
 "use client"
 
+// Admin dashboard. Stat cards click through to the relevant list. Counts
+// come from each list endpoint with pageSize=1 — we only need the `total`.
+
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import { Calendar, Coffee, ShoppingCart, Star } from "lucide-react"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ShibaMark } from "@/components/shiba-mark"
-import { ordersApi } from "@/features/orders/api"
-import { eventsApi } from "@/features/events/api"
-import { productsApi } from "@/features/products/api"
-import { loyaltyApi } from "@/features/loyalty/api"
-import { meApi } from "@/features/me/api"
+import { api, type PagedResult } from "@/lib/api"
 
-interface StatCardProps {
-  href: string
-  label: string
-  value: string | number
-  isLoading: boolean
-  icon: React.ReactNode
-  hint?: string
+interface Counts {
+  placedOrders: number | null
+  events: number | null
+  products: number | null
+  loyaltyEntries: number | null
 }
 
-function StatCard({ href, label, value, isLoading, icon, hint }: StatCardProps) {
-  return (
-    <Link href={href} className="block">
-      <Card className="transition-colors hover:border-primary/50">
-        <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-          <div className="text-muted-foreground">{icon}</div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-8 w-16" /> : <p className="text-2xl font-semibold">{value}</p>}
-          {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-        </CardContent>
-      </Card>
-    </Link>
-  )
-}
+interface Me { firstName: string }
 
 export default function AdminDashboard() {
-  const meQuery = useQuery({ queryKey: ["me"], queryFn: () => meApi.get() })
+  const [me, setMe] = useState<Me | null>(null)
+  const [counts, setCounts] = useState<Counts>({ placedOrders: null, events: null, products: null, loyaltyEntries: null })
 
-  const placedOrders = useQuery({
-    queryKey: ["orders", "dashboard-placed"],
-    queryFn: () => ordersApi.list({ page: 1, pageSize: 1, status: "Placed" }),
-  })
+  useEffect(() => {
+    api.get<Me>("/api/me").then(setMe).catch(() => {})
 
-  const publishedEvents = useQuery({
-    queryKey: ["events", "dashboard-published"],
-    queryFn: () => eventsApi.list({ page: 1, pageSize: 1 }),
-  })
+    async function pull(path: string): Promise<number | null> {
+      try {
+        const r = await api.get<PagedResult<unknown>>(path)
+        return r.total
+      } catch { return null }
+    }
 
-  const productCount = useQuery({
-    queryKey: ["products", "dashboard-total"],
-    queryFn: () => productsApi.list({ page: 1, pageSize: 1 }),
-  })
-
-  const loyaltyActivity = useQuery({
-    queryKey: ["loyalty-entries", "dashboard"],
-    queryFn: () => loyaltyApi.list({ page: 1, pageSize: 1 }),
-  })
+    Promise.all([
+      pull("/api/orders?page=1&pageSize=1&status=Placed"),
+      pull("/api/events?page=1&pageSize=1"),
+      pull("/api/products?page=1&pageSize=1"),
+      pull("/api/loyalty/entries?page=1&pageSize=1"),
+    ]).then(([placedOrders, events, products, loyaltyEntries]) => {
+      setCounts({ placedOrders, events, products, loyaltyEntries })
+    })
+  }, [])
 
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
-        <ShibaMark className="h-8 w-8 mt-1" />
+        <ShibaMark className="mt-1 h-8 w-8" />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome back{meQuery.data ? `, ${meQuery.data.firstName}` : ""}
+            Welcome back{me ? `, ${me.firstName}` : ""}
           </h1>
-          <p className="text-muted-foreground">
-            A quick view of your café — click any card to drill in.
-          </p>
+          <p className="text-muted-foreground">A quick view of your café — click any card to drill in.</p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          href="/admin/orders"
-          label="Open orders"
-          value={placedOrders.data?.total ?? 0}
-          isLoading={placedOrders.isLoading}
-          icon={<ShoppingCart className="h-4 w-4" />}
-          hint="Status = Placed"
-        />
-        <StatCard
-          href="/admin/events"
-          label="Events"
-          value={publishedEvents.data?.total ?? 0}
-          isLoading={publishedEvents.isLoading}
-          icon={<Calendar className="h-4 w-4" />}
-          hint="All statuses"
-        />
-        <StatCard
-          href="/admin/products"
-          label="Products"
-          value={productCount.data?.total ?? 0}
-          isLoading={productCount.isLoading}
-          icon={<Coffee className="h-4 w-4" />}
-        />
-        <StatCard
-          href="/admin/loyalty"
-          label="Loyalty entries"
-          value={loyaltyActivity.data?.total ?? 0}
-          isLoading={loyaltyActivity.isLoading}
-          icon={<Star className="h-4 w-4" />}
-          hint="Earned + redeemed + adjustments"
-        />
+        <StatCard href="/admin/orders" label="Open orders" value={counts.placedOrders} icon={<ShoppingCart className="h-4 w-4" />} hint="Status = Placed" />
+        <StatCard href="/admin/events" label="Events" value={counts.events} icon={<Calendar className="h-4 w-4" />} hint="All statuses" />
+        <StatCard href="/admin/products" label="Products" value={counts.products} icon={<Coffee className="h-4 w-4" />} />
+        <StatCard href="/admin/loyalty" label="Loyalty entries" value={counts.loyaltyEntries} icon={<Star className="h-4 w-4" />} hint="Earned + redeemed + adjustments" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>What&apos;s next?</CardTitle>
-          <CardDescription>Common starting points.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-          <Link href="/admin/products/new" className="rounded-md border px-3 py-2 hover:border-primary/50">
-            <p className="font-medium">Add a product</p>
-            <p className="text-muted-foreground">New menu item with tags, allergens, and prices.</p>
-          </Link>
-          <Link href="/admin/events/new" className="rounded-md border px-3 py-2 hover:border-primary/50">
-            <p className="font-medium">Plan an event</p>
-            <p className="text-muted-foreground">Set days, then publish to make it visible.</p>
-          </Link>
-          <Link href="/admin/users/new" className="rounded-md border px-3 py-2 hover:border-primary/50">
-            <p className="font-medium">Invite a teammate</p>
-            <p className="text-muted-foreground">Create a staff account and assign roles.</p>
-          </Link>
-          <Link href="/admin/settings" className="rounded-md border px-3 py-2 hover:border-primary/50">
-            <p className="font-medium">Update café details</p>
-            <p className="text-muted-foreground">Address, currency, logo — shown to customers.</p>
-          </Link>
-        </CardContent>
-      </Card>
+      <section className="rounded-lg border bg-card p-4">
+        <h2 className="text-base font-semibold">What&apos;s next?</h2>
+        <p className="mb-4 text-xs text-muted-foreground">Common starting points.</p>
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <QuickLink href="/admin/products" title="Add a product" hint="New menu item with tags, allergens, and prices." />
+          <QuickLink href="/admin/events" title="Plan an event" hint="Set days, then publish to make it visible." />
+          <QuickLink href="/admin/users" title="Invite a teammate" hint="Create a staff account and assign roles." />
+          <QuickLink href="/admin/settings" title="Update café details" hint="Address, currency, logo — shown to customers." />
+        </div>
+      </section>
     </div>
+  )
+}
+
+function StatCard({ href, label, value, icon, hint }: { href: string; label: string; value: number | null; icon: React.ReactNode; hint?: string }) {
+  return (
+    <Link href={href} className="block rounded-lg border bg-card p-4 transition-colors hover:border-primary/50">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <span className="text-muted-foreground">{icon}</span>
+      </div>
+      <p className="mt-2 text-2xl font-semibold">{value === null ? "…" : value}</p>
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+    </Link>
+  )
+}
+
+function QuickLink({ href, title, hint }: { href: string; title: string; hint: string }) {
+  return (
+    <Link href={href} className="rounded-md border px-3 py-2 hover:border-primary/50">
+      <p className="font-medium">{title}</p>
+      <p className="text-muted-foreground">{hint}</p>
+    </Link>
   )
 }

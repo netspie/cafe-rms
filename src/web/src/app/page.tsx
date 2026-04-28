@@ -1,19 +1,33 @@
 "use client"
 
-import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
+// Public homepage — the café directory. Lists every company that opted in
+// via Settings → Listed publicly. Anonymous endpoint, no auth needed.
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+
 import { ShibaMark } from "@/components/shiba-mark"
-import { publicCompaniesApi } from "@/features/public-companies/api"
+import { api } from "@/lib/api"
+
+interface PublicCompany {
+  id: string
+  legalName: string
+  displayName: string
+  streetAddress: string
+  phone: string
+  timeZone: string
+  currency: string
+  logoUrl: string | null
+}
 
 export default function PublicHomePage() {
-  const query = useQuery({
-    queryKey: ["public-companies"],
-    queryFn: () => publicCompaniesApi.list(),
-  })
+  const [companies, setCompanies] = useState<PublicCompany[] | null>(null)
+
+  useEffect(() => {
+    api.get<PublicCompany[]>("/api/companies/public")
+      .then(setCompanies)
+      .catch(() => setCompanies([]))
+  }, [])
 
   return (
     <div className="min-h-dvh bg-background">
@@ -24,9 +38,9 @@ export default function PublicHomePage() {
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">いらっしゃい</p>
         </div>
         <div className="flex-1" />
-        <Button render={<Link href="/login" />} nativeButton={false} variant="outline" size="sm">
+        <Link href="/login" className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-accent">
           Staff sign-in
-        </Button>
+        </Link>
       </header>
 
       <main className="mx-auto max-w-5xl space-y-8 px-6 py-12">
@@ -37,35 +51,29 @@ export default function PublicHomePage() {
           </p>
         </section>
 
-        {query.isLoading && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-44 w-full" />
-            ))}
-          </div>
+        {companies === null && (
+          <p className="text-center text-sm text-muted-foreground">Loading…</p>
         )}
 
-        {query.data?.length === 0 && (
+        {companies?.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
             <ShibaMark className="h-14 w-14 opacity-60" />
             <p className="text-sm">No public cafés listed yet.</p>
           </div>
         )}
 
-        {query.data && query.data.length > 0 && (
+        {companies && companies.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {query.data.map((c) => (
-              <Card key={c.id}>
-                <CardHeader>
-                  <CardTitle className="text-base">{c.displayName}</CardTitle>
-                  <CardDescription>{c.legalName}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-1 text-sm text-muted-foreground">
+            {companies.map((c) => (
+              <article key={c.id} className="rounded-lg border bg-card p-4">
+                <h3 className="text-base font-semibold">{c.displayName}</h3>
+                <p className="text-xs text-muted-foreground">{c.legalName}</p>
+                <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                   <p>{c.streetAddress}</p>
                   <p>{c.phone}</p>
                   <p className="text-xs">{c.timeZone} · {c.currency}</p>
-                </CardContent>
-              </Card>
+                </div>
+              </article>
             ))}
           </div>
         )}
