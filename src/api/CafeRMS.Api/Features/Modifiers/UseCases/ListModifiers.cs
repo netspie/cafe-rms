@@ -42,13 +42,12 @@ public static class ListModifiers
         public Guid? ModifierGroupId { get; init; }
     }
 
-    public sealed record Item(Guid Id, string Name, decimal PriceDelta, Guid ModifierGroupId, DateTimeOffset CreatedAt);
+    public sealed record Item(Guid Id, string Name, Guid ModifierGroupId, DateTimeOffset CreatedAt);
 
     public static async Task<PagedResult<Item>> Execute(Query query, AppDbContext db)
     {
         var sortable = new SortMap<Modifier>()
             .Add("name", x => x.Name)
-            .Add("priceDelta", x => x.PriceDelta)
             .Add("createdAt", x => x.CreatedAt);
 
         var queryable = db.Modifiers.AsQueryable();
@@ -62,7 +61,7 @@ public static class ListModifiers
 
         return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "name")
-            .Select(x => new Item(x.Id, x.Name, x.PriceDelta, x.ModifierGroupId, x.CreatedAt))
+            .Select(x => new Item(x.Id, x.Name, x.ModifierGroupId, x.CreatedAt))
             .ToPagedResultAsync(query);
     }
 }

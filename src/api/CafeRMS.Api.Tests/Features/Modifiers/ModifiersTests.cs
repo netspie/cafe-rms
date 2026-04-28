@@ -16,8 +16,8 @@ public sealed class ModifiersTests : IDisposable
 
     public void Dispose() => factory.Dispose();
 
-    private sealed record ModifierDetail(Guid Id, string Name, decimal PriceDelta, Guid ModifierGroupId, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
-    private sealed record ModifierItem(Guid Id, string Name, decimal PriceDelta, Guid ModifierGroupId, DateTimeOffset CreatedAt);
+    private sealed record ModifierDetail(Guid Id, string Name, Guid ModifierGroupId, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+    private sealed record ModifierItem(Guid Id, string Name, Guid ModifierGroupId, DateTimeOffset CreatedAt);
     private sealed record PageDto(IReadOnlyList<ModifierItem> Items, int Page, int PageSize, int Total);
 
     [Test]
@@ -27,7 +27,7 @@ public sealed class ModifiersTests : IDisposable
         var groupId = await SeedGroupAsync(company.Id, "Milk type");
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ModifiersManage]);
 
-        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = groupId, name = "Oat milk", priceDelta = 0.5m });
+        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = groupId, name = "Oat milk" });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -38,7 +38,7 @@ public sealed class ModifiersTests : IDisposable
         var company = await factory.SeedCompanyAsync();
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ModifiersManage]);
 
-        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = Guid.NewGuid(), name = "Oat milk", priceDelta = 0m });
+        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = Guid.NewGuid(), name = "Oat milk" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -51,7 +51,7 @@ public sealed class ModifiersTests : IDisposable
         await SeedModifierAsync(company.Id, groupId, "Oat milk");
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ModifiersManage]);
 
-        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = groupId, name = "Oat milk", priceDelta = 0m });
+        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = groupId, name = "Oat milk" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
@@ -65,7 +65,7 @@ public sealed class ModifiersTests : IDisposable
         await SeedModifierAsync(company.Id, sizeGroup, "Small");
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ModifiersManage]);
 
-        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = cupSizeGroup, name = "Small", priceDelta = 0m });
+        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = cupSizeGroup, name = "Small" });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -77,17 +77,17 @@ public sealed class ModifiersTests : IDisposable
         var groupId = await SeedGroupAsync(company.Id, "Milk type");
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
 
-        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = groupId, name = "Oat milk", priceDelta = 0m });
+        var response = await client.PostAsJsonAsync("/api/modifiers", new { modifierGroupId = groupId, name = "Oat milk" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Test]
-    public async Task GetById_returns_modifier_with_priceDelta()
+    public async Task GetById_returns_modifier()
     {
         var company = await factory.SeedCompanyAsync();
         var groupId = await SeedGroupAsync(company.Id, "Milk type");
-        var id = await SeedModifierAsync(company.Id, groupId, "Oat milk", priceDelta: 0.5m);
+        var id = await SeedModifierAsync(company.Id, groupId, "Oat milk");
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ModifiersManage]);
 
         var response = await client.GetAsync($"/api/modifiers/{id}");
@@ -95,7 +95,7 @@ public sealed class ModifiersTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ModifierDetail>();
         body!.Name.Should().Be("Oat milk");
-        body.PriceDelta.Should().Be(0.5m);
+        body.ModifierGroupId.Should().Be(groupId);
     }
 
     [Test]
@@ -141,7 +141,7 @@ public sealed class ModifiersTests : IDisposable
         var id = await SeedModifierAsync(company.Id, groupId, "Oat milk");
         using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ModifiersManage]);
 
-        var response = await client.PutAsJsonAsync($"/api/modifiers/{id}", new { name = "Oat milk (organic)", priceDelta = 0.75m });
+        var response = await client.PutAsJsonAsync($"/api/modifiers/{id}", new { name = "Oat milk (organic)" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
@@ -180,11 +180,11 @@ public sealed class ModifiersTests : IDisposable
         return group.Id;
     }
 
-    private async Task<Guid> SeedModifierAsync(Guid companyId, Guid groupId, string name, decimal priceDelta = 0m)
+    private async Task<Guid> SeedModifierAsync(Guid companyId, Guid groupId, string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var modifier = Modifier.Create(name, groupId, companyId, priceDelta);
+        var modifier = Modifier.Create(name, groupId, companyId);
         db.Modifiers.Add(modifier);
         await db.SaveChangesAsync();
         return modifier.Id;

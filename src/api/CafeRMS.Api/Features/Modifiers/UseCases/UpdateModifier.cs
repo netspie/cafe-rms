@@ -18,13 +18,13 @@ public sealed class UpdateModifierController : ControllerBase
         [FromBody] UpdateModifierRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new UpdateModifier.Command(id, request.Name, request.PriceDelta);
+        var command = new UpdateModifier.Command(id, request.Name);
         await UpdateModifier.Execute(command, db);
         return NoContent();
     }
 }
 
-public sealed record UpdateModifierRequest(string Name, decimal PriceDelta);
+public sealed record UpdateModifierRequest(string Name);
 
 public sealed class UpdateModifierValidator : AbstractValidator<UpdateModifierRequest>
 {
@@ -37,7 +37,7 @@ public sealed class UpdateModifierValidator : AbstractValidator<UpdateModifierRe
 
 public static class UpdateModifier
 {
-    public sealed record Command(Guid Id, string Name, decimal PriceDelta);
+    public sealed record Command(Guid Id, string Name);
 
     public static async Task Execute(Command command, AppDbContext db)
     {
@@ -51,7 +51,7 @@ public static class UpdateModifier
         if (nameTaken)
             throw new ConflictException($"A modifier named '{command.Name}' already exists in this group.");
 
-        modifier.Update(command.Name, command.PriceDelta);
+        modifier.Update(command.Name);
         await db.SaveChangesAsync();
     }
 }

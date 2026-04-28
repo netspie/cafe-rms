@@ -5,7 +5,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { api, type PagedResult } from "@/lib/server-api"
 
-interface ModifierItem { id: string; name: string; priceDelta: number; modifierGroupId: string; createdAt: string }
+interface ModifierItem { id: string; name: string; modifierGroupId: string; createdAt: string }
 interface NamedRow { id: string; name: string }
 
 const PAGE_SIZE = 20
@@ -15,7 +15,6 @@ async function createModifier(formData: FormData) {
   await api.post("/api/modifiers", {
     modifierGroupId: formData.get("modifierGroupId") as string,
     name: formData.get("name") as string,
-    priceDelta: Number(formData.get("priceDelta")),
   })
   revalidatePath("/admin/modifiers")
 }
@@ -60,7 +59,7 @@ export default async function ModifiersListPage({ searchParams }: { searchParams
         <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
       </form>
 
-      <form action={createModifier} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">
+      <form action={createModifier} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <Field label="Group">
           <select name="modifierGroupId" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
             <option value="">Pick a group…</option>
@@ -69,9 +68,6 @@ export default async function ModifiersListPage({ searchParams }: { searchParams
         </Field>
         <Field label="Name">
           <input name="name" required placeholder="Oat milk" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Price delta">
-          <input name="priceDelta" type="number" step="0.01" defaultValue="0" required className="h-9 w-24 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
           <Plus className="h-4 w-4" />Add
@@ -84,13 +80,12 @@ export default async function ModifiersListPage({ searchParams }: { searchParams
             <tr>
               <th className="px-3 py-2 font-medium">Name</th>
               <th className="px-3 py-2 font-medium">Group</th>
-              <th className="px-3 py-2 text-right font-medium">Price delta</th>
               <th className="w-20 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {data.items.length === 0 && (
-              <tr><td colSpan={4} className="px-3 py-12">
+              <tr><td colSpan={3} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
                   <p>No modifiers match this filter.</p>
@@ -101,7 +96,6 @@ export default async function ModifiersListPage({ searchParams }: { searchParams
               <tr key={it.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{it.name}</td>
                 <td className="px-3 py-2 text-muted-foreground">{groupName(it.modifierGroupId)}</td>
-                <td className="px-3 py-2 text-right font-mono">{it.priceDelta >= 0 ? `+${it.priceDelta.toFixed(2)}` : it.priceDelta.toFixed(2)}</td>
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
                     <Link href={`/admin/modifiers/${it.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="Edit"><Pencil className="h-4 w-4" /></Link>

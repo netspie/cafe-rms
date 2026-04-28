@@ -7,27 +7,24 @@ public class Modifier : CompanyOwnedSoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
-    public decimal PriceDelta { get; private set; }
     public Guid ModifierGroupId { get; private init; }
     public ModifierGroup? ModifierGroup { get; private init; }
 
     private Modifier() { }
 
-    public static Modifier Create(string name, Guid modifierGroupId, Guid companyId, decimal priceDelta = 0m)
+    public static Modifier Create(string name, Guid modifierGroupId, Guid companyId)
     {
         return new Modifier
         {
             Id = Guid.NewGuid(),
             Name = name,
-            PriceDelta = priceDelta,
             ModifierGroupId = modifierGroupId,
             CompanyId = companyId
         };
     }
 
-    public void Update(string name, decimal priceDelta)
+    public void Update(string name)
     {
         Name = name;
-        PriceDelta = priceDelta;
     }
 }

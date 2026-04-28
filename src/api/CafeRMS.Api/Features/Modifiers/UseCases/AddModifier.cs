@@ -17,13 +17,13 @@ public sealed class AddModifierController : ControllerBase
         [FromBody] AddModifierRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddModifier.Command(db.CurrentCompanyId, request.ModifierGroupId, request.Name, request.PriceDelta);
+        var command = new AddModifier.Command(db.CurrentCompanyId, request.ModifierGroupId, request.Name);
         var result = await AddModifier.Execute(command, db);
         return new AddModifierResponse(result.Id);
     }
 }
 
-public sealed record AddModifierRequest(Guid ModifierGroupId, string Name, decimal PriceDelta);
+public sealed record AddModifierRequest(Guid ModifierGroupId, string Name);
 
 public sealed record AddModifierResponse(Guid Id);
 
@@ -39,7 +39,7 @@ public sealed class AddModifierValidator : AbstractValidator<AddModifierRequest>
 
 public static class AddModifier
 {
-    public sealed record Command(Guid CompanyId, Guid ModifierGroupId, string Name, decimal PriceDelta);
+    public sealed record Command(Guid CompanyId, Guid ModifierGroupId, string Name);
 
     public sealed record Result(Guid Id);
 
@@ -59,7 +59,7 @@ public static class AddModifier
         if (nameTaken)
             throw new ConflictException($"A modifier named '{command.Name}' already exists in this group.");
 
-        var modifier = Modifier.Create(command.Name, command.ModifierGroupId, command.CompanyId, command.PriceDelta);
+        var modifier = Modifier.Create(command.Name, command.ModifierGroupId, command.CompanyId);
         db.Modifiers.Add(modifier);
         await db.SaveChangesAsync();
         return new Result(modifier.Id);
