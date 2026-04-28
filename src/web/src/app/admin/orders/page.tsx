@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Eye } from "lucide-react"
 import { ShibaMark } from "@/components/shiba-mark"
+import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
 
 type OrderStatus = "Placed" | "Closed" | "Cancelled"
@@ -23,15 +24,18 @@ function statusClass(status: OrderStatus): string {
   return "bg-secondary text-secondary-foreground"
 }
 
-export default async function OrdersListPage({ searchParams }: { searchParams: Promise<{ page?: string; status?: string }> }) {
+export default async function OrdersListPage({ searchParams }: { searchParams: Promise<{ page?: string; status?: string; sort?: string }> }) {
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const status = (sp.status as OrderStatus | "") ?? ""
+  const sort = sp.sort ?? "-createdAt"
 
-  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort })
   if (status) search.set("status", status)
   const data = await api.get<PagedResult<OrderItem>>(`/api/orders?${search}`)
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+  const preserve: Record<string, string> = {}
+  if (status) preserve.status = status
 
   return (
     <div className="space-y-6">
@@ -54,7 +58,7 @@ export default async function OrdersListPage({ searchParams }: { searchParams: P
               <th className="px-3 py-2 font-medium">Status</th>
               <th className="px-3 py-2 font-medium">Order ID</th>
               <th className="px-3 py-2 font-medium">Customer</th>
-              <th className="px-3 py-2 font-medium">Created</th>
+              <SortableTh label="Created" field="createdAt" currentSort={sort} preserve={preserve} />
               <th className="px-3 py-2 font-medium">Closed</th>
               <th className="w-20 px-3 py-2" />
             </tr>
@@ -87,9 +91,9 @@ export default async function OrdersListPage({ searchParams }: { searchParams: P
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data.total} total</p>
         <div className="flex items-center gap-2">
-          {page > 1 ? <Link href={{ query: { ...(status ? { status } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
+          {page > 1 ? <Link href={{ query: { ...preserve, sort, page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          {page < totalPages ? <Link href={{ query: { ...(status ? { status } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
+          {page < totalPages ? <Link href={{ query: { ...preserve, sort, page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { Eye, Plus } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
+import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
 
 type EventStatus = "Draft" | "Published" | "Closed" | "Cancelled"
@@ -33,11 +34,12 @@ async function createEvent(formData: FormData) {
   redirect(`/admin/events/${created.id}`)
 }
 
-export default async function EventsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
+export default async function EventsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""
-  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
+  const sort = sp.sort ?? "-createdAt"
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort })
   if (filter) search.set("name", filter)
   const [data, productLists, priceGroups] = await Promise.all([
     api.get<PagedResult<EventItem>>(`/api/events?${search}`),
@@ -45,6 +47,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
     api.get<PagedResult<NamedRow>>(`/api/price-groups?page=1&pageSize=100&sort=name`),
   ])
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+  const preserve: Record<string, string> = {}
+  if (filter) preserve.q = filter
 
   return (
     <div className="space-y-6">
@@ -90,8 +94,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
           <thead className="bg-muted/50 text-left">
             <tr>
               <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Created</th>
+              <SortableTh label="Name" field="name" currentSort={sort} preserve={preserve} />
+              <SortableTh label="Created" field="createdAt" currentSort={sort} preserve={preserve} />
               <th className="w-20 px-3 py-2" />
             </tr>
           </thead>
@@ -121,9 +125,9 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data.total} total</p>
         <div className="flex items-center gap-2">
-          {page > 1 ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
+          {page > 1 ? <Link href={{ query: { ...preserve, sort, page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          {page < totalPages ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
+          {page < totalPages ? <Link href={{ query: { ...preserve, sort, page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
       </div>
     </div>

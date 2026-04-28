@@ -3,6 +3,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
+import { SortableTh } from "@/components/sortable-th"
 import { api } from "@/lib/server-api"
 import { ALL_PERMISSIONS, PERMISSION_LABELS } from "@/features/auth/permissions"
 
@@ -21,8 +22,15 @@ async function deleteRole(id: string) {
   revalidatePath("/admin/roles")
 }
 
-export default async function RolesListPage() {
+export default async function RolesListPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
+  const sp = await searchParams
+  const sort = sp.sort ?? "name"
   const roles = await api.get<RoleItem[]>("/api/roles")
+
+  // /api/roles returns a flat list (small, no paging) — client/server sort is
+  // fine. Mirror the same direction-toggle as the SortableTh elsewhere.
+  const sortedRoles = sortRoles(roles, sort)
+  const preserve: Record<string, string> = {}
 
   return (
     <div className="space-y-6">
@@ -55,13 +63,13 @@ export default async function RolesListPage() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left">
             <tr>
-              <th className="px-3 py-2 font-medium">Name</th>
+              <SortableTh label="Name" field="name" currentSort={sort} preserve={preserve} />
               <th className="px-3 py-2 font-medium">Permissions</th>
               <th className="w-20 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
-            {roles.length === 0 && (
+            {sortedRoles.length === 0 && (
               <tr><td colSpan={3} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
@@ -69,7 +77,7 @@ export default async function RolesListPage() {
                 </div>
               </td></tr>
             )}
-            {roles.map((r) => (
+            {sortedRoles.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{r.name}</td>
                 <td className="px-3 py-2">
@@ -93,4 +101,12 @@ export default async function RolesListPage() {
       </div>
     </div>
   )
+}
+
+function sortRoles(roles: RoleItem[], sortExpression: string): RoleItem[] {
+  const isDescending = sortExpression.startsWith("-")
+  const field = isDescending ? sortExpression.slice(1) : sortExpression
+  const multiplier = isDescending ? -1 : 1
+  if (field !== "name") return roles
+  return [...roles].sort((a, b) => a.name.localeCompare(b.name) * multiplier)
 }
