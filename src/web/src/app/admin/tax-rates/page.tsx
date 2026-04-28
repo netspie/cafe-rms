@@ -1,49 +1,38 @@
-"use client"
-
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
-import { toast } from "sonner"
-
+import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
-import { ApiError, api, type PagedResult } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/server-api"
 
 interface TaxRateItem { id: string; name: string; description: string; rate: number; createdAt: string }
 
 const PAGE_SIZE = 20
 
-export default function TaxRatesListPage() {
-  const [page, setPage] = useState(1)
-  const [filter, setFilter] = useState("")
-  const [data, setData] = useState<PagedResult<TaxRateItem> | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [showAdd, setShowAdd] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<TaxRateItem | null>(null)
+async function createTaxRate(formData: FormData) {
+  "use server"
+  await api.post("/api/tax-rates", {
+    name: formData.get("name") as string,
+    description: (formData.get("description") as string) ?? "",
+    rate: Number(formData.get("rate")),
+  })
+  revalidatePath("/admin/tax-rates")
+}
 
-  useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "name" })
-    if (filter) params.set("name", filter)
-    api.get<PagedResult<TaxRateItem>>(`/api/tax-rates?${params}`)
-      .then(setData)
-      .catch((err) => { if (err instanceof ApiError) toast.error(err.message) })
-      .finally(() => setLoading(false))
-  }, [page, filter, refreshKey])
+async function deleteTaxRate(id: string) {
+  "use server"
+  await api.delete(`/api/tax-rates/${id}`)
+  revalidatePath("/admin/tax-rates")
+}
 
-  async function handleDelete(item: TaxRateItem) {
-    try {
-      await api.delete(`/api/tax-rates/${item.id}`)
-      toast.success("Tax rate deleted")
-      setConfirmDelete(null)
-      setRefreshKey((k) => k + 1)
-    } catch (err) {
-      if (err instanceof ApiError) toast.error(err.message)
-    }
-  }
-
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
+export default async function TaxRatesListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
+  const sp = await searchParams
+  const page = Number(sp.page ?? 1)
+  const filter = sp.q ?? ""
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "name" })
+  if (filter) search.set("name", filter)
+  const data = await api.get<PagedResult<TaxRateItem>>(`/api/tax-rates?${search}`)
+  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -52,13 +41,25 @@ export default function TaxRatesListPage() {
         <p className="text-muted-foreground">VAT rates applied to products.</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <input placeholder="Filter by name…" value={filter} onChange={(e) => { setPage(1); setFilter(e.target.value) }} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        <div className="flex-1" />
-        <button onClick={() => setShowAdd(true)} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
-          <Plus className="h-4 w-4" />New tax rate
+      <form className="flex items-center gap-3">
+        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
+      </form>
+
+      <form action={createTaxRate} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[1fr_2fr_auto_auto] sm:items-end">
+        <Field label="Name">
+          <input name="name" required placeholder="VAT 23%" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Description">
+          <input name="description" placeholder="Standard rate" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Rate (%)">
+          <input name="rate" type="number" step="0.01" min="0" max="100" defaultValue="23" required className="h-9 w-24 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <Plus className="h-4 w-4" />Add
         </button>
-      </div>
+      </form>
 
       <div className="overflow-hidden rounded-md border">
         <table className="w-full text-sm">
@@ -72,16 +73,15 @@ export default function TaxRatesListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>}
-            {!loading && data?.items.length === 0 && (
+            {data.items.length === 0 && (
               <tr><td colSpan={5} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
-                  <p>No tax rates yet.</p>
+                  <p>No tax rates match this filter.</p>
                 </div>
               </td></tr>
             )}
-            {!loading && data?.items.map((it) => (
+            {data.items.map((it) => (
               <tr key={it.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{it.name}</td>
                 <td className="px-3 py-2 font-mono">{it.rate}%</td>
@@ -90,7 +90,9 @@ export default function TaxRatesListPage() {
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
                     <Link href={`/admin/tax-rates/${it.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="Edit"><Pencil className="h-4 w-4" /></Link>
-                    <button onClick={() => setConfirmDelete(it)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/10" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                    <form action={deleteTaxRate.bind(null, it.id)}>
+                      <button type="submit" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/10" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                    </form>
                   </div>
                 </td>
               </tr>
@@ -100,85 +102,12 @@ export default function TaxRatesListPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data ? `${data.total} total` : ""}</p>
+        <p className="text-sm text-muted-foreground">{data.total} total</p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Previous</button>
+          {page > 1 ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Next</button>
+          {page < totalPages ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
-      </div>
-
-      {showAdd && <AddDialog onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); setRefreshKey((k) => k + 1) }} />}
-      {confirmDelete && <ConfirmDialog title="Delete tax rate?" description={`Removes "${confirmDelete.name}". Products using it will need a new rate assigned.`} onConfirm={() => handleDelete(confirmDelete)} onCancel={() => setConfirmDelete(null)} />}
-    </div>
-  )
-}
-
-function AddDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [rate, setRate] = useState("23")
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setErrors({})
-    try {
-      await api.post("/api/tax-rates", { name, description, rate: Number(rate) })
-      toast.success("Tax rate created")
-      onCreated()
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.problem.errors) {
-          const flat: Record<string, string> = {}
-          for (const [k, v] of Object.entries(err.problem.errors)) flat[k.toLowerCase()] = v[0]
-          setErrors(flat)
-        } else toast.error(err.message)
-      }
-    } finally { setSubmitting(false) }
-  }
-
-  return (
-    <Modal title="New tax rate" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Name" error={errors.name}>
-          <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="VAT 23%" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Description" error={errors.description}>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard rate" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Rate (%)" hint="Between 0 and 100." error={errors.rate}>
-          <input type="number" step="0.01" min="0" max="100" value={rate} onChange={(e) => setRate(e.target.value)} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-9 rounded-md px-3 text-sm hover:bg-accent">Cancel</button>
-          <button type="submit" disabled={submitting} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">{submitting ? "Saving…" : "Create tax rate"}</button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-function ConfirmDialog({ title, description, onConfirm, onCancel }: { title: string; description: string; onConfirm: () => void; onCancel: () => void }) {
-  return (
-    <Modal title={title} onClose={onCancel}>
-      <p className="text-sm text-muted-foreground">{description}</p>
-      <div className="mt-6 flex justify-end gap-2">
-        <button onClick={onCancel} className="h-9 rounded-md px-3 text-sm hover:bg-accent">Cancel</button>
-        <button onClick={onConfirm} className="h-9 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground hover:opacity-90">Delete</button>
-      </div>
-    </Modal>
-  )
-}
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="mt-4">{children}</div>
       </div>
     </div>
   )
