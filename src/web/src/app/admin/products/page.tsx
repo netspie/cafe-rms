@@ -1,59 +1,46 @@
-"use client"
-
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { redirect } from "next/navigation"
 import { Pencil, Plus, Trash2 } from "lucide-react"
-import { toast } from "sonner"
-
+import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
-import { ApiError, api, type PagedResult } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/server-api"
 
 interface ProductItem { id: string; name: string; barcode: string | null; taxRateId: string; createdAt: string }
 interface TaxRateRow { id: string; name: string }
 
 const PAGE_SIZE = 20
 
-export default function ProductsListPage() {
-  const [page, setPage] = useState(1)
-  const [filter, setFilter] = useState("")
-  const [data, setData] = useState<PagedResult<ProductItem> | null>(null)
-  const [taxRates, setTaxRates] = useState<TaxRateRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [showAdd, setShowAdd] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<ProductItem | null>(null)
+async function createProduct(formData: FormData) {
+  "use server"
+  const created = await api.post<{ id: string }>("/api/products", {
+    name: formData.get("name") as string,
+    description: (formData.get("description") as string) || null,
+    barcode: (formData.get("barcode") as string) || null,
+    taxRateId: formData.get("taxRateId") as string,
+  })
+  revalidatePath("/admin/products")
+  redirect(`/admin/products/${created.id}`)
+}
 
-  useEffect(() => {
-    api.get<PagedResult<TaxRateRow>>(`/api/tax-rates?page=1&pageSize=100&sort=name`)
-      .then((r) => setTaxRates(r.items))
-      .catch(() => {})
-  }, [])
+async function deleteProduct(id: string) {
+  "use server"
+  await api.delete(`/api/products/${id}`)
+  revalidatePath("/admin/products")
+}
 
-  useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "name" })
-    if (filter) params.set("name", filter)
-    api.get<PagedResult<ProductItem>>(`/api/products?${params}`)
-      .then(setData)
-      .catch((err) => { if (err instanceof ApiError) toast.error(err.message) })
-      .finally(() => setLoading(false))
-  }, [page, filter, refreshKey])
-
-  async function handleDelete(item: ProductItem) {
-    try {
-      await api.delete(`/api/products/${item.id}`)
-      toast.success("Product deleted")
-      setConfirmDelete(null)
-      setRefreshKey((k) => k + 1)
-    } catch (err) {
-      if (err instanceof ApiError) toast.error(err.message)
-    }
-  }
-
-  const taxRateName = (id: string) => taxRates.find((t) => t.id === id)?.name ?? "—"
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
+export default async function ProductsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
+  const sp = await searchParams
+  const page = Number(sp.page ?? 1)
+  const filter = sp.q ?? ""
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "name" })
+  if (filter) search.set("name", filter)
+  const [data, taxes] = await Promise.all([
+    api.get<PagedResult<ProductItem>>(`/api/products?${search}`),
+    api.get<PagedResult<TaxRateRow>>(`/api/tax-rates?page=1&pageSize=100&sort=name`),
+  ])
+  const taxName = (id: string) => taxes.items.find((t) => t.id === id)?.name ?? "—"
+  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -62,13 +49,31 @@ export default function ProductsListPage() {
         <p className="text-muted-foreground">Items sold across the menu.</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <input placeholder="Filter by name…" value={filter} onChange={(e) => { setPage(1); setFilter(e.target.value) }} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        <div className="flex-1" />
-        <button onClick={() => setShowAdd(true)} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
-          <Plus className="h-4 w-4" />New product
+      <form className="flex items-center gap-3">
+        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
+      </form>
+
+      <form action={createProduct} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto] sm:items-end">
+        <Field label="Name">
+          <input name="name" required placeholder="Latte" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Description">
+          <input name="description" placeholder="Optional" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Barcode">
+          <input name="barcode" placeholder="Optional, unique" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Tax rate">
+          <select name="taxRateId" required className="h-9 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
+            <option value="">Pick…</option>
+            {taxes.items.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </Field>
+        <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <Plus className="h-4 w-4" />Add
         </button>
-      </div>
+      </form>
 
       <div className="overflow-hidden rounded-md border">
         <table className="w-full text-sm">
@@ -82,25 +87,26 @@ export default function ProductsListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>}
-            {!loading && data?.items.length === 0 && (
+            {data.items.length === 0 && (
               <tr><td colSpan={5} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
-                  <p>No products yet.</p>
+                  <p>No products match this filter.</p>
                 </div>
               </td></tr>
             )}
-            {!loading && data?.items.map((p) => (
+            {data.items.map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{p.name}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{p.barcode ?? "—"}</td>
-                <td className="px-3 py-2 text-muted-foreground">{taxRateName(p.taxRateId)}</td>
+                <td className="px-3 py-2 text-muted-foreground">{taxName(p.taxRateId)}</td>
                 <td className="px-3 py-2 text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</td>
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
                     <Link href={`/admin/products/${p.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="Edit"><Pencil className="h-4 w-4" /></Link>
-                    <button onClick={() => setConfirmDelete(p)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/10" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                    <form action={deleteProduct.bind(null, p.id)}>
+                      <button type="submit" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/10" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                    </form>
                   </div>
                 </td>
               </tr>
@@ -110,98 +116,12 @@ export default function ProductsListPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data ? `${data.total} total` : ""}</p>
+        <p className="text-sm text-muted-foreground">{data.total} total</p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Previous</button>
+          {page > 1 ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Next</button>
+          {page < totalPages ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
-      </div>
-
-      {showAdd && <AddDialog taxRates={taxRates} onClose={() => setShowAdd(false)} />}
-      {confirmDelete && <ConfirmDialog title="Delete product?" description={`Removes "${confirmDelete.name}".`} onConfirm={() => handleDelete(confirmDelete)} onCancel={() => setConfirmDelete(null)} />}
-    </div>
-  )
-}
-
-function AddDialog({ taxRates, onClose }: { taxRates: TaxRateRow[]; onClose: () => void }) {
-  const router = useRouter()
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [barcode, setBarcode] = useState("")
-  const [taxRateId, setTaxRateId] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setErrors({})
-    try {
-      const created = await api.post<{ id: string }>("/api/products", {
-        name,
-        description: description || null,
-        barcode: barcode || null,
-        taxRateId,
-      })
-      toast.success("Product created")
-      router.push(`/admin/products/${created.id}`)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.problem.errors) {
-          const flat: Record<string, string> = {}
-          for (const [k, v] of Object.entries(err.problem.errors)) flat[k.toLowerCase()] = v[0]
-          setErrors(flat)
-        } else toast.error(err.message)
-      }
-    } finally { setSubmitting(false) }
-  }
-
-  return (
-    <Modal title="New product" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Name" error={errors.name}>
-          <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Latte" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Description" error={errors.description}>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Barcode" hint="Optional, must be unique." error={errors.barcode}>
-          <input value={barcode} onChange={(e) => setBarcode(e.target.value)} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Tax rate" error={errors.taxrateid}>
-          <select value={taxRateId} onChange={(e) => setTaxRateId(e.target.value)} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
-            <option value="">Pick a tax rate…</option>
-            {taxRates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </Field>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-9 rounded-md px-3 text-sm hover:bg-accent">Cancel</button>
-          <button type="submit" disabled={submitting} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">{submitting ? "Saving…" : "Create product"}</button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-function ConfirmDialog({ title, description, onConfirm, onCancel }: { title: string; description: string; onConfirm: () => void; onCancel: () => void }) {
-  return (
-    <Modal title={title} onClose={onCancel}>
-      <p className="text-sm text-muted-foreground">{description}</p>
-      <div className="mt-6 flex justify-end gap-2">
-        <button onClick={onCancel} className="h-9 rounded-md px-3 text-sm hover:bg-accent">Cancel</button>
-        <button onClick={onConfirm} className="h-9 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground hover:opacity-90">Delete</button>
-      </div>
-    </Modal>
-  )
-}
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="mt-4">{children}</div>
       </div>
     </div>
   )
