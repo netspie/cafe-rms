@@ -1,58 +1,38 @@
-"use client"
+// Login — pure server component. The form posts to a server action that
+// authenticates against the C# API, sets an httpOnly cookie, and redirects.
+// On bad credentials the action throws — Next.js shows the error.tsx
+// boundary; the user clicks back to retry. UX is barebones, deliberately.
 
-import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState, Suspense } from "react"
-import { toast } from "sonner"
-
-import { ShibaMark } from "@/components/shiba-mark"
+import { redirect } from "next/navigation"
 import { Field } from "@/components/field"
-import { ApiError, api } from "@/lib/api"
-import { getToken, setSession } from "@/lib/auth"
+import { ShibaMark } from "@/components/shiba-mark"
+import { setToken } from "@/lib/auth-cookie"
 
-interface LoginResult {
-  accessToken: string
-  expiresAt: string
-  accountType: string
-}
+const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5179"
 
-function LoginInner() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+async function loginAction(formData: FormData) {
+  "use server"
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
 
-  // If already signed in, skip the form.
-  useEffect(() => {
-    if (getToken()) router.replace(searchParams.get("redirect") ?? "/admin")
-  }, [router, searchParams])
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+    cache: "no-store",
+  })
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setErrors({})
-    try {
-      const result = await api.post<LoginResult>("/api/auth/login", { email, password })
-      setSession(result.accessToken, result.accountType)
-      router.replace(searchParams.get("redirect") ?? "/admin")
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.problem.errors) {
-          const flat: Record<string, string> = {}
-          for (const [k, v] of Object.entries(err.problem.errors)) flat[k.toLowerCase()] = v[0]
-          setErrors(flat)
-        } else {
-          toast.error(err.problem.detail ?? err.problem.title ?? err.message)
-        }
-      } else {
-        toast.error("Network error — could not reach the server")
-      }
-    } finally {
-      setSubmitting(false)
-    }
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.detail ?? body?.title ?? "Wrong email or password.")
   }
 
+  const result = await response.json() as { accessToken: string; expiresAt: string }
+  await setToken(result.accessToken, new Date(result.expiresAt))
+  redirect("/admin")
+}
+
+export default function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-sm">
@@ -65,44 +45,18 @@ function LoginInner() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <Field label="Email" error={errors.email}>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-            />
+        <form action={loginAction} className="mt-6 space-y-4">
+          <Field label="Email">
+            <input name="email" type="email" autoComplete="email" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
           </Field>
-          <Field label="Password" error={errors.password}>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-            />
+          <Field label="Password">
+            <input name="password" type="password" autoComplete="current-password" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
           </Field>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="h-9 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          >
-            {submitting ? "Signing in…" : "Sign in"}
+          <button type="submit" className="h-9 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90">
+            Sign in
           </button>
         </form>
       </div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginInner />
-    </Suspense>
   )
 }
