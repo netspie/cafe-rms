@@ -1,16 +1,17 @@
-// Login — pure server component. The form posts to a server action that
-// authenticates against the C# API, sets an httpOnly cookie, and redirects.
-// On bad credentials the action throws — Next.js shows the error.tsx
-// boundary; the user clicks back to retry. UX is barebones, deliberately.
+// Login page — server shell + inline server action. The form itself lives in
+// login-form.tsx because we need useActionState to surface errors inline. On
+// bad credentials the action returns {error}; on success it sets the cookie
+// and redirects to /admin (the redirect throws a special signal that Next
+// catches — that's not the same as a "real" error, so no dev overlay pops).
 
 import { redirect } from "next/navigation"
-import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { setToken } from "@/lib/auth-cookie"
+import { LoginForm, type LoginState } from "./login-form"
 
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5179"
 
-async function loginAction(formData: FormData) {
+async function loginAction(_previousState: LoginState, formData: FormData): Promise<LoginState> {
   "use server"
   const email = formData.get("email") as string
   const password = formData.get("password") as string
@@ -24,7 +25,7 @@ async function loginAction(formData: FormData) {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
-    throw new Error(body?.detail ?? body?.title ?? "Wrong email or password.")
+    return { error: body?.detail ?? body?.title ?? "Wrong email or password." }
   }
 
   const result = await response.json() as { accessToken: string; expiresAt: string }
@@ -45,17 +46,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form action={loginAction} className="mt-6 space-y-4">
-          <Field label="Email">
-            <input name="email" type="email" autoComplete="email" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-          </Field>
-          <Field label="Password">
-            <input name="password" type="password" autoComplete="current-password" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-          </Field>
-          <button type="submit" className="h-9 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90">
-            Sign in
-          </button>
-        </form>
+        <LoginForm action={loginAction} />
       </div>
     </div>
   )
