@@ -481,3 +481,85 @@ Conventions for this branch:
 - [ ] `npm run dev`, click every page, fix translation bugs
 - [ ] Diff `wc -l` per page main vs strip — confirm the win is real
 - [ ] Decide: defend with `thesis-strip`, with `main`, or carry both
+
+---
+
+## Phase 10 — Server Components / Server Actions rewrite (branch `thesis-server`)
+
+A third-pass rewrite of the Next.js admin into Server Components + Server
+Actions. Branched from `thesis-strip`. Goal: cut another ~50% of the codebase
+by deleting `useState`/`useEffect`/`fetch` from the browser entirely. Most
+pages become `async function Page()` that fetches server-side and renders
+HTML; forms POST to server actions that call the C# API and `revalidatePath`.
+
+The defense pitch: *"Every page is HTML rendered by the server. Forms post
+to server functions that call the C# API and tell Next.js to revalidate.
+Almost no JavaScript runs in the browser."*
+
+Conventions:
+- Pages are `async function` server components by default. No `"use client"`
+  unless a section genuinely needs interactivity (per-row Save buttons,
+  badge-pill removers, drawer-style attach pickers).
+- `lib/server-api.ts` — server-only fetch wrapper. Reads JWT from an
+  httpOnly cookie, attaches Bearer, parses ProblemDetails. Never imported
+  by client code.
+- `app/actions.ts` (or per-feature `actions.ts`) — server actions called
+  by `<form action={...}>`. Pattern: receive `FormData`, call server-api,
+  `revalidatePath` on success, throw / redirect on error.
+- Auth: httpOnly cookie set by a `loginAction` server action. Logout =
+  cookie delete. Brings back a tiny login route equivalent — defensible
+  as "the server holds the token; the browser never sees it."
+- Filters / pagination: URL params, not local state. The form's submit
+  navigates to the same route with new `?page=2&q=foo`. Live-as-you-type
+  filtering is gone — accepted UX regression.
+- Confirm-delete: browser `confirm()` from a tiny client component, OR
+  a two-step "click row → confirmation page". Pick simplest.
+- Modals: native `<dialog>` element where unavoidable; otherwise inline
+  the form on the page (gated by a URL param like `?add=1`).
+
+Single-file goal still applies: each route remains one file (or one file
+plus a tiny `actions.ts` per feature when the action set is large).
+
+### S1 — Foundation + Tags template
+- [ ] Branch `thesis-server` from `thesis-strip` (already created)
+- [ ] `lib/server-api.ts` — server-only fetch wrapper, reads cookie token
+- [ ] `lib/auth-cookie.ts` — `getToken()` / `setToken()` / `clearToken()`
+      via `cookies()` (Next.js server-only API)
+- [ ] Login page: `<form action={loginAction}>` with redirect on success
+- [ ] Logout: server action that clears the cookie + redirect
+- [ ] Drop `lib/api.ts` (client wrapper) and `lib/auth.ts` (localStorage)
+- [ ] Drop `components/auth-guard.tsx` — replace with cookie check in
+      `app/admin/layout.tsx` (server component)
+- [ ] Tags as the template: list page = async server component with
+      inline create form (URL-param-gated), edit page = same shape
+
+### S2 — Simple entities
+- [ ] Allergens, PriceGroups, Tables, ModifierGroups, PrintoutTemplates
+- [ ] TaxRates, Modifiers (FK group via `<select name=...>`)
+- [ ] PromotionCodes (date inputs + max uses, server action handles it)
+
+### S3 — Sub-resource entities (small client islands accepted)
+- [ ] Products (basics is server, sub-resource sections are tiny client
+      islands — per-row Save for prices, badge-pill remover for attaches)
+- [ ] ProductLists (items section is a client island)
+- [ ] SalesChannels (price-groups linker is a client island)
+
+### S4 — Lifecycle entities
+- [ ] Orders (server-rendered list + detail, server-action close/cancel)
+- [ ] Events (server-rendered + per-section server actions for add-day,
+      remove-day, publish, close, cancel)
+
+### S5 — Auth & system pages
+- [ ] Users (server list + edit, server action assign/unassign)
+- [ ] Roles (server list + edit with permission checkbox grid → FormData)
+- [ ] Settings (Company + Outlet, both server actions)
+- [ ] Loyalty (server-rendered entries paged via URL, adjustment server action)
+- [ ] Account (server-rendered profile, change-password server action)
+- [ ] Dashboard (server-rendered counts, no client at all)
+- [ ] Public home `/` (server-rendered, fully static after fetch)
+- [ ] `/login`, `/not-found`
+
+### S6 — Verify + decide
+- [ ] `npm run dev`, click every page
+- [ ] `wc -l` diff: thesis-strip vs thesis-server — confirm the ~50% cut
+- [ ] Decide which branch to defend with on the day
