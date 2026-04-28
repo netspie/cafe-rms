@@ -2,6 +2,7 @@ import Link from "next/link"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
+import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
 
 interface LoyaltyEntry { id: string; userId: string; points: number; reason: string | null; createdAt: string }
@@ -19,16 +20,22 @@ async function recordAdjustment(formData: FormData) {
   revalidatePath("/admin/loyalty")
 }
 
-export default async function LoyaltyPage({ searchParams }: { searchParams: Promise<{ page?: string; user?: string }> }) {
+export default async function LoyaltyPage({ searchParams }: { searchParams: Promise<{ page?: string; user?: string; sort?: string }> }) {
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const userId = sp.user ?? ""
-  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
+  const sort = sp.sort ?? "-createdAt"
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort })
   if (userId) search.set("userId", userId)
+  const preserve: Record<string, string> = {}
+  if (userId) preserve.user = userId
 
+  // Loyalty members are guest customers (Sakura/Yuki/Hana in the demo seed).
+  // Guests live outside the tenant scope, so we ask /api/users for the
+  // Guest account type instead of the default Staff list.
   const [entries, users] = await Promise.all([
     api.get<PagedResult<LoyaltyEntry>>(`/api/loyalty/entries?${search}`),
-    api.get<UserRow[]>("/api/users"),
+    api.get<UserRow[]>("/api/users?accountType=Guest"),
   ])
   const userName = (id: string) => {
     const u = users.find((x) => x.id === id)
@@ -59,7 +66,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-left">
                   <tr>
-                    <th className="px-3 py-2 font-medium">When</th>
+                    <SortableTh label="When" field="createdAt" currentSort={sort} preserve={preserve} />
                     <th className="px-3 py-2 font-medium">User</th>
                     <th className="px-3 py-2 text-right font-medium">Points</th>
                     <th className="px-3 py-2 font-medium">Reason</th>
@@ -92,9 +99,9 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{entries.total} total</p>
               <div className="flex items-center gap-2">
-                {page > 1 ? <Link href={{ query: { ...(userId ? { user: userId } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
+                {page > 1 ? <Link href={{ query: { ...preserve, sort, page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
                 <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-                {page < totalPages ? <Link href={{ query: { ...(userId ? { user: userId } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
+                {page < totalPages ? <Link href={{ query: { ...preserve, sort, page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
               </div>
             </div>
           </div>

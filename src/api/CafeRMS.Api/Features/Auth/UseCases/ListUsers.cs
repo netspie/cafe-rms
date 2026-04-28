@@ -10,9 +10,15 @@ public sealed class ListUsersController : ControllerBase
 {
     [HttpGet("/api/users")]
     [Authorize(Policy = Permissions.UsersManage)]
-    public async Task<IReadOnlyList<ListUsers.Item>> Handle([FromServices] AppDbContext db) =>
-        await ListUsers.Execute(db.CurrentCompanyId, db);
+    public async Task<IReadOnlyList<ListUsers.Item>> Handle(
+        [FromQuery] ListUsersRequest request,
+        [FromServices] AppDbContext db) =>
+        await ListUsers.Execute(db.CurrentCompanyId, request.AccountType, request.Q, request.Role, db);
 }
+
+// AccountType: "Staff" (default) — staff for the current tenant.
+//              "Guest"           — guest customers, system-wide (guests have no companyId).
+public sealed record ListUsersRequest(string? AccountType = null, string? Q = null, string? Role = null);
 
 
 public static class ListUsers
@@ -22,14 +28,40 @@ public static class ListUsers
         string Email,
         string FirstName,
         string LastName,
+        string AccountType,
         IReadOnlyList<string> Roles);
 
-    public static async Task<IReadOnlyList<Item>> Execute(Guid companyId, AppDbContext db)
+    public static async Task<IReadOnlyList<Item>> Execute(
+        Guid companyId,
+        string? accountTypeFilter,
+        string? nameFilter,
+        string? roleFilter,
+        AppDbContext db)
     {
-        var users = await db.Users
-            .Where(x => x.AccountType == AccountType.Staff && x.CompanyId == companyId)
+        var requestedAccountType = accountTypeFilter switch
+        {
+            "Guest" => AccountType.Guest,
+            _ => AccountType.Staff
+        };
+
+        var queryable = db.Users.AsQueryable()
+            .Where(x => x.AccountType == requestedAccountType);
+
+        // Staff are tenant-scoped; guests aren't (they can buy at any cafe).
+        if (requestedAccountType == AccountType.Staff)
+            queryable = queryable.Where(x => x.CompanyId == companyId);
+
+        if (!string.IsNullOrWhiteSpace(nameFilter))
+        {
+            var needle = nameFilter.ToLower();
+            queryable = queryable.Where(x =>
+                x.FirstName.ToLower().Contains(needle) ||
+                x.LastName.ToLower().Contains(needle));
+        }
+
+        var users = await queryable
             .OrderBy(x => x.LastName).ThenBy(x => x.FirstName)
-            .Select(x => new { x.Id, x.Email, x.FirstName, x.LastName })
+            .Select(x => new { x.Id, x.Email, x.FirstName, x.LastName, x.AccountType })
             .ToListAsync();
 
         var userIds = users.Select(x => x.Id).ToList();
@@ -42,13 +74,21 @@ public static class ListUsers
                 (x, y) => new { x.UserId, RoleName = y.Name ?? "" })
             .ToListAsync();
 
-        return users
+        var items = users
             .Select(x => new Item(
                 x.Id,
                 x.Email ?? "",
                 x.FirstName,
                 x.LastName,
+                x.AccountType.ToString(),
                 assignments.Where(y => y.UserId == x.Id).Select(y => y.RoleName).ToList()))
             .ToList();
+
+        // Role filter is post-projection because role names are joined in
+        // the second round-trip rather than the main query.
+        if (!string.IsNullOrWhiteSpace(roleFilter))
+            items = [.. items.Where(x => x.Roles.Contains(roleFilter))];
+
+        return items;
     }
 }

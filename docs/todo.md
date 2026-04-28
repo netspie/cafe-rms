@@ -527,3 +527,29 @@ Lives in `Persistence/Seeding/YumeyaDemoSeeder.cs`, called from `StartupSeeder` 
 - [ ] Hook `YumeyaDemoSeeder` into `StartupSeeder.SeedAsync` — gated by `Seed:YumeyaOwnerPassword` config presence.
 - [ ] `dotnet build` green.
 - [ ] Manually drop the dev DB, run the API, confirm seed populates Yumeya end-to-end (browse via Scalar / web admin).
+
+----
+
+## Phase 11 — Admin UI polish (thesis-server)
+
+Three slices, ordered. Loyalty bugfix → Users page gets filters + clear scope → sweep sort + filter UI across the rest of the list pages.
+
+### S1 — Fix loyalty user picker
+- [ ] **Bug:** loyalty activity page calls `/api/users` to populate the customer picker, but that endpoint returns `AccountType.Staff` only. Customers (Sakura/Yuki/Hana) are `AccountType.Guest` and don't carry a `CompanyId`, so they never show up — neither in the filter dropdown nor in the manual-adjustment form.
+- [ ] **Fix:** extend `ListUsers.Execute` to accept an optional `accountType` filter. `?accountType=Staff` keeps the current behavior; `?accountType=Guest` lists guest accounts (no company filter, since guests aren't tenant-bound).
+- [ ] Loyalty page calls `/api/users?accountType=Guest` for the picker; Users page keeps the Staff default.
+- [ ] Wire the same filter into the activity-list-by-user param so the names render correctly.
+
+### S2 — Users page: account-type tabs + filters
+- [ ] Header is already "Staff members with admin panel access" — keep that, the page is intentionally scoped. The thing missing is filter UI on top of it.
+- [ ] Add `?accountType=Staff|Guest` toggle (two simple links / pill tabs, default Staff). Guest tab lists customer accounts (system-wide).
+- [ ] Add a name-prefix `?q=` filter (matches first or last name, case-insensitive).
+- [ ] Add a `?role=` filter (only meaningful in Staff mode — role names from `/api/roles`).
+- [ ] Server-side: extend `ListUsers.Execute` with the same filter params.
+- [ ] Hide the "Add" form when on the Guest tab (guests register themselves; admins don't provision them).
+
+### S3 — Sortable + filter sweep across remaining list pages
+- [ ] **Sortable headers:** Already done on `tags`. Apply the same pattern (read `?sort=` from searchParams, swap `<th>` → `<SortableTh>`, propagate sort through pagination links) to: allergens, tax-rates, modifier-groups, modifiers, printout-templates, tables, price-groups, promotion-codes, products, product-lists, sales-channels, orders, events, users, roles, loyalty.
+- [ ] **Filter inputs:** Most list endpoints already accept a `name`-prefix filter; the ones that don't get a quick add (e.g. orders by status, events by status). Render as a single `<input name="q">` plus `<button>` per page — no fancy filter chips.
+- [ ] After each batch of 4-5 pages, type-check + spot-check in the browser.
+- [ ] Pause for review between S3 batches to keep the diff readable.
