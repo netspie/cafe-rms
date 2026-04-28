@@ -481,3 +481,49 @@ Conventions for this branch:
 - [ ] `npm run dev`, click every page, fix translation bugs
 - [ ] Diff `wc -l` per page main vs strip — confirm the win is real
 - [ ] Decide: defend with `thesis-strip`, with `main`, or carry both
+
+----
+
+## Phase 10 — Demo seed (Yumeya Café)
+
+A whole, themed demo dataset so the app comes up "ready to play with": Japanese-style café in Warsaw, full reference data + pricing + ≈30 products + staff + 3 customers + loyalty history + 3 events + promo codes + sample orders. Replaces the existing bland "Demo Cafe" company seed.
+
+Lives in `Persistence/Seeding/YumeyaDemoSeeder.cs`, called from `StartupSeeder` after the SuperAdmin seed. Idempotent — looks for the Yumeya company by legal name and skips if already there. Bypasses the company-scoped global query filter via `db.SetCompanyContext(companyId)` once the company is provisioned.
+
+### S1 — Bootstrap + reference data
+- [ ] Provision Yumeya company + outlet + Owner via existing `CompanyProvisioning.CreateCompanyWithOwnerAsync` (replaces the old "Demo Cafe" call). Constants: legal name `Yumeya Sp. z o.o.`, owner `dariusz@yumeya.pl`, outlet `Yumeya Marszałkowska` at `ul. Marszałkowska 100, 00-001 Warszawa`, Europe/Warsaw, PLN.
+- [ ] Tax rates: VAT 8% (gastronomia), VAT 5% (na wynos), VAT 23% (towary).
+- [ ] Tags (10): Napoje gorące, Napoje zimne, Kawa, Matcha & herbata, Ciasta, Wagashi, Przekąski, Sezonowe, Wegańskie, Bezglutenowe.
+- [ ] Allergens (7): Mleko, Jajka, Gluten, Soja, Sezam, Orzechy, Orzeszki ziemne.
+- [ ] Modifier groups + modifiers: Rozmiar, Mleko, Słodkość, Temperatura, Dodatki (shot / bita śmietana / anko / mochi).
+- [ ] Tables on the demo outlet: Bar 1–3, Okno 1–2, Tatami, Ogródek 1–2.
+
+### S2 — Pricing
+- [ ] Price groups: Standardowa, Lojalność, Happy hour.
+- [ ] Sales channels: Lokal (POS), Online, Aplikacja mobilna — each with `IsTakeout` set correctly.
+- [ ] `SalesChannelPriceGroup` links: Lokal → Standardowa + Happy hour, Online → Standardowa, Aplikacja mobilna → Standardowa + Lojalność.
+
+### S3 — Products
+- [ ] Drinks (12): Matcha latte, Hojicha latte, Kuro goma latte, Sakura latte, Yuzu lemoniada, Ume soda, Ichigo milk, Kawa parzona, Espresso, Cappuccino, Earl grey, Genmaicha.
+- [ ] Cakes & desserts (10): Ichigo shortcake, Matcha tiramisu, Yuzu basque cheesecake, Mont Blanc, Hojicha roll cake, Kuro goma opera, Mochi donut, Ichigo daifuku, Dorayaki, Sakura mochi.
+- [ ] Savoury (5): Tamago sando, Mini katsu sando, Onigiri łosoś, Onigiri umeboshi, Zupa miso.
+- [ ] Merch (3): Kubek emaliowany, Furoshiki, Puszka matcha 50g.
+- [ ] For each product: tags + allergens + modifier-group attachments + prices in all three price groups (Standardowa, Lojalność = −10 %, Happy hour = −15 %).
+- [ ] One product list "Menu główne" with all consumables listed.
+
+### S4 — Staff, customers, loyalty
+- [ ] Roles + permission claims: Manager (all minus RolesManage), Barista (OrdersView/Manage + LoyaltyManage + ProductsManage view), Kuchnia (OrdersView).
+- [ ] Staff: Kierownik, Barista×2, Kuchnia.
+- [ ] Customers (Guest accountType): Sakura, Yuki, Hana — registered against Yumeya company.
+- [ ] Loyalty: Sakura — Złoty (~3 entries earn + 1 redemption); Yuki — Srebrny (1 earn); Hana — none (fresh).
+
+### S5 — Events, promotions, orders, printouts
+- [ ] Events: Matcha Tasting Workshop (closed), Sakura Hanami Afternoon (published, May 2026), Wagashi Making Class (draft, June 2026) — each with EventDays.
+- [ ] Promotion codes: WITAJ10 (10 %, max 1 use), SAKURA2026 (15 %, exp. 31 May), HANAMI (15 %, May only).
+- [ ] Sample orders (5) — closed dine-in, closed takeaway, placed pickup, cancelled, placed dine-in. One uses promo, one redeems loyalty points.
+- [ ] Printout templates (3): Paragon, Bonik dla kuchni, Potwierdzenie wydarzenia (placeholder URLs — Phase 8 wires real templates).
+
+### S6 — Wire-up + verify
+- [ ] Hook `YumeyaDemoSeeder` into `StartupSeeder.SeedAsync` — gated by `Seed:YumeyaOwnerPassword` config presence.
+- [ ] `dotnet build` green.
+- [ ] Manually drop the dev DB, run the API, confirm seed populates Yumeya end-to-end (browse via Scalar / web admin).
