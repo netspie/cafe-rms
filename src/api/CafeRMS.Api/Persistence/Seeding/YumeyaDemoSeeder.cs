@@ -68,7 +68,7 @@ public class YumeyaDemoSeeder(
         var salesChannels = await SeedSalesChannelsAsync(provisioned.CompanyId, priceGroups);
         var tables = await SeedTablesAsync(provisioned.CompanyId, provisioned.OutletId);
         var products = await SeedProductsAsync(provisioned.CompanyId, taxRates, tags, allergens, modifierGroups, priceGroups);
-        await SeedStaffAsync(provisioned.CompanyId, ownerPassword);
+        var staff = await SeedStaffAsync(provisioned.CompanyId, ownerPassword);
         var customers = await SeedCustomersAsync(ownerPassword);
         await SeedLoyaltyAsync(provisioned.CompanyId, customers);
         await SeedEventsAsync(provisioned.CompanyId);
@@ -77,6 +77,10 @@ public class YumeyaDemoSeeder(
         await SeedPrintoutTemplatesAsync(provisioned.CompanyId);
 
         await db.SaveChangesAsync();
+
+        await BackdateAuditsForVarietyAsync(
+            provisioned.CompanyId,
+            [provisioned.OwnerUserId, staff.ManagerUserId, staff.Barista1UserId, staff.Barista2UserId]);
 
         logger.LogInformation(
             "Seeded Yumeya demo company {LegalName} (CompanyId={CompanyId}, OutletId={OutletId}, OwnerUserId={OwnerUserId})",
@@ -500,7 +504,9 @@ public class YumeyaDemoSeeder(
     // when the user is in SystemRoles.Owner. Other roles get explicit RoleClaim rows
     // (one per permission), exactly matching the runtime CreateRole / UpdateRole flow.
 
-    private async Task SeedStaffAsync(Guid companyId, string staffPassword)
+    public sealed record StaffRefs(Guid ManagerUserId, Guid Barista1UserId, Guid Barista2UserId, Guid KitchenUserId);
+
+    private async Task<StaffRefs> SeedStaffAsync(Guid companyId, string staffPassword)
     {
         var managerRole = await CreateRoleWithPermissionsAsync(companyId, "Kierownik",
         [
@@ -523,10 +529,12 @@ public class YumeyaDemoSeeder(
             Permissions.OrdersView
         ]);
 
-        await CreateStaffAsync("kierownik@yumeya.pl", "Maja", "Kowalska", staffPassword, companyId, managerRole.Id);
-        await CreateStaffAsync("anna@yumeya.pl", "Anna", "Nowak", staffPassword, companyId, baristaRole.Id);
-        await CreateStaffAsync("kenji@yumeya.pl", "Kenji", "Tanaka", staffPassword, companyId, baristaRole.Id);
-        await CreateStaffAsync("yuna@yumeya.pl", "Yuna", "Kim", staffPassword, companyId, kitchenRole.Id);
+        var manager = await CreateStaffAsync("kierownik@yumeya.pl", "Maja", "Kowalska", staffPassword, companyId, managerRole.Id);
+        var barista1 = await CreateStaffAsync("anna@yumeya.pl", "Anna", "Nowak", staffPassword, companyId, baristaRole.Id);
+        var barista2 = await CreateStaffAsync("kenji@yumeya.pl", "Kenji", "Tanaka", staffPassword, companyId, baristaRole.Id);
+        var kitchen = await CreateStaffAsync("yuna@yumeya.pl", "Yuna", "Kim", staffPassword, companyId, kitchenRole.Id);
+
+        return new StaffRefs(manager.Id, barista1.Id, barista2.Id, kitchen.Id);
     }
 
     private async Task<AppRole> CreateRoleWithPermissionsAsync(Guid companyId, string roleName, string[] permissions)
@@ -548,7 +556,7 @@ public class YumeyaDemoSeeder(
         return role;
     }
 
-    private async Task CreateStaffAsync(string email, string firstName, string lastName, string password, Guid companyId, Guid roleId)
+    private async Task<AppUser> CreateStaffAsync(string email, string firstName, string lastName, string password, Guid companyId, Guid roleId)
     {
         var user = AppUser.Create(email, firstName, lastName, AccountType.Staff, companyId);
         var createResult = await userManager.CreateAsync(user, password);
@@ -559,6 +567,7 @@ public class YumeyaDemoSeeder(
         // doesn't fight the AppRole global query filter.
         db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = user.Id, RoleId = roleId });
         await db.SaveChangesAsync();
+        return user;
     }
 
     // === Customers (loyalty members) ===
@@ -745,5 +754,57 @@ public class YumeyaDemoSeeder(
             PrintoutTemplate.Create("Bonik dla kuchni", "/templates/bonik-kuchnia.docx", companyId),
             PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/templates/potwierdzenie-wydarzenia.docx", companyId));
         await db.SaveChangesAsync();
+    }
+
+    // === Backdate audit timestamps for sortable variety ===
+    //
+    // The AuditableSaveChangesInterceptor stamps every Added entity with
+    // CreatedAt = NOW() and CreatedBy = currentUserId, which means the seed
+    // would otherwise leave every list page looking like one big "everything
+    // created at the same instant by no-one in particular" blob — sorting by
+    // Created or Created-by would do nothing visible.
+    //
+    // Going through raw SQL bypasses the EF change tracker, which is what
+    // the interceptor hooks into. We:
+    //   * spread CreatedAt across the past few weeks (each row 36 h apart)
+    //   * rotate CreatedBy across the four staff users we provisioned
+    //
+    // Plain UPDATE per company-owned table — no migration needed, and the
+    // values are deterministic given the seeded row order.
+
+    private async Task BackdateAuditsForVarietyAsync(Guid companyId, Guid[] creatorUserIds)
+    {
+        string[] tables =
+        [
+            "tags", "allergens", "tax_rates",
+            "modifier_groups", "modifiers",
+            "price_groups", "sales_channels",
+            "tables", "products",
+            "promotion_codes", "events",
+            "product_lists", "printout_templates"
+        ];
+
+        foreach (var table in tables)
+        {
+            // $$ raw interpolated string so {0}..{4} stay as literal SQL placeholders
+            // for ExecuteSqlRawAsync, while {{table}} substitutes the C# value.
+            var sql = $$"""
+                WITH numbered AS (
+                    SELECT id, ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn
+                    FROM {{table}}
+                    WHERE company_id = {0}
+                )
+                UPDATE {{table}} AS t SET
+                    created_at = NOW() - (numbered.rn * INTERVAL '36 hours'),
+                    created_by = (ARRAY[{1}::uuid, {2}::uuid, {3}::uuid, {4}::uuid])[((numbered.rn - 1) % 4 + 1)::int]
+                FROM numbered
+                WHERE t.id = numbered.id;
+                """;
+
+            await db.Database.ExecuteSqlRawAsync(
+                sql,
+                companyId,
+                creatorUserIds[0], creatorUserIds[1], creatorUserIds[2], creatorUserIds[3]);
+        }
     }
 }
