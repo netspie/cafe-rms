@@ -17,6 +17,7 @@ import {
   Shield,
   Heart,
   Star,
+  UserCircle2,
   type LucideIcon,
   PrinterCheck,
   Banknote,
@@ -79,6 +80,7 @@ const groups: { title: string; items: NavItem[] }[] = [
       { href: "/admin/roles", label: "Roles", icon: Shield },
       { href: "/admin/printout-templates", label: "Printout templates", icon: PrinterCheck },
       { href: "/admin/settings", label: "Company & outlet", icon: Settings },
+      { href: "/admin/account", label: "My account", icon: UserCircle2 },
     ],
   },
 ]

@@ -14,6 +14,13 @@ export interface MeResult {
   permissions: string[]
 }
 
+export interface ChangePasswordInput {
+  currentPassword: string
+  newPassword: string
+}
+
 export const meApi = {
   get: () => api.get<MeResult>("/api/me"),
+  changePassword: (body: ChangePasswordInput) =>
+    api.put<void>("/api/auth/password", body),
 }
