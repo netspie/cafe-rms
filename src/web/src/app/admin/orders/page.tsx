@@ -1,12 +1,7 @@
-"use client"
-
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import { Eye } from "lucide-react"
-import { toast } from "sonner"
-
 import { ShibaMark } from "@/components/shiba-mark"
-import { ApiError, api, type PagedResult } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/server-api"
 
 type OrderStatus = "Placed" | "Closed" | "Cancelled"
 
@@ -20,13 +15,7 @@ interface OrderItem {
 }
 
 const PAGE_SIZE = 20
-
-const STATUS_OPTIONS: { value: "" | OrderStatus; label: string }[] = [
-  { value: "", label: "All statuses" },
-  { value: "Placed", label: "Placed" },
-  { value: "Closed", label: "Closed" },
-  { value: "Cancelled", label: "Cancelled" },
-]
+const STATUSES: ("" | OrderStatus)[] = ["", "Placed", "Closed", "Cancelled"]
 
 function statusClass(status: OrderStatus): string {
   if (status === "Placed") return "bg-primary/10 text-primary"
@@ -34,23 +23,15 @@ function statusClass(status: OrderStatus): string {
   return "bg-secondary text-secondary-foreground"
 }
 
-export default function OrdersListPage() {
-  const [page, setPage] = useState(1)
-  const [status, setStatus] = useState<"" | OrderStatus>("")
-  const [data, setData] = useState<PagedResult<OrderItem> | null>(null)
-  const [loading, setLoading] = useState(true)
+export default async function OrdersListPage({ searchParams }: { searchParams: Promise<{ page?: string; status?: string }> }) {
+  const sp = await searchParams
+  const page = Number(sp.page ?? 1)
+  const status = (sp.status as OrderStatus | "") ?? ""
 
-  useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
-    if (status) params.set("status", status)
-    api.get<PagedResult<OrderItem>>(`/api/orders?${params}`)
-      .then(setData)
-      .catch((err) => { if (err instanceof ApiError) toast.error(err.message) })
-      .finally(() => setLoading(false))
-  }, [page, status])
-
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
+  if (status) search.set("status", status)
+  const data = await api.get<PagedResult<OrderItem>>(`/api/orders?${search}`)
+  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -59,15 +40,12 @@ export default function OrdersListPage() {
         <p className="text-muted-foreground">All orders across outlets, newest first.</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <select
-          value={status}
-          onChange={(e) => { setPage(1); setStatus(e.target.value as "" | OrderStatus) }}
-          className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-        >
-          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      <form className="flex items-center gap-3">
+        <select name="status" defaultValue={status} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
+          {STATUSES.map((s) => <option key={s} value={s}>{s || "All statuses"}</option>)}
         </select>
-      </div>
+        <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Filter</button>
+      </form>
 
       <div className="overflow-hidden rounded-md border">
         <table className="w-full text-sm">
@@ -82,8 +60,7 @@ export default function OrdersListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>}
-            {!loading && data?.items.length === 0 && (
+            {data.items.length === 0 && (
               <tr><td colSpan={6} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
@@ -91,19 +68,15 @@ export default function OrdersListPage() {
                 </div>
               </td></tr>
             )}
-            {!loading && data?.items.map((o) => (
+            {data.items.map((o) => (
               <tr key={o.id} className="border-t">
-                <td className="px-3 py-2">
-                  <span className={"inline-flex rounded-full px-2.5 py-0.5 text-xs " + statusClass(o.status)}>{o.status}</span>
-                </td>
+                <td className="px-3 py-2"><span className={"inline-flex rounded-full px-2.5 py-0.5 text-xs " + statusClass(o.status)}>{o.status}</span></td>
                 <td className="px-3 py-2 font-mono text-xs">{o.id.slice(0, 8)}…</td>
                 <td className="px-3 py-2 text-muted-foreground">{o.userId ? `${o.userId.slice(0, 8)}…` : "Walk-in"}</td>
                 <td className="px-3 py-2 text-muted-foreground">{new Date(o.createdAt).toLocaleString()}</td>
                 <td className="px-3 py-2 text-muted-foreground">{o.closedAt ? new Date(o.closedAt).toLocaleString() : "—"}</td>
                 <td className="px-3 py-2">
-                  <Link href={`/admin/orders/${o.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="View order">
-                    <Eye className="h-4 w-4" />
-                  </Link>
+                  <Link href={`/admin/orders/${o.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="View order"><Eye className="h-4 w-4" /></Link>
                 </td>
               </tr>
             ))}
@@ -112,11 +85,11 @@ export default function OrdersListPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data ? `${data.total} total` : ""}</p>
+        <p className="text-sm text-muted-foreground">{data.total} total</p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Previous</button>
+          {page > 1 ? <Link href={{ query: { ...(status ? { status } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Next</button>
+          {page < totalPages ? <Link href={{ query: { ...(status ? { status } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
       </div>
     </div>

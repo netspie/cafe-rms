@@ -1,14 +1,5 @@
-"use client"
-
-// Order detail. Shows status badge + header timestamps, lines table with
-// totals, and Close / Cancel buttons (only when the order is still Placed).
-// Cancel takes an optional reason via inline modal.
-
-import { use, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-
-import { ApiError, api, type PagedResult } from "@/lib/api"
+import { revalidatePath } from "next/cache"
+import { api, type PagedResult } from "@/lib/server-api"
 
 type OrderStatus = "Placed" | "Closed" | "Cancelled"
 
@@ -22,7 +13,6 @@ interface OrderLine {
 
 interface OrderDetail {
   id: string
-  outletId: string
   status: OrderStatus
   closedAt: string | null
   cancelledAt: string | null
@@ -41,64 +31,28 @@ function statusClass(status: OrderStatus): string {
   return "bg-secondary text-secondary-foreground"
 }
 
-export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const router = useRouter()
-
-  const [order, setOrder] = useState<OrderDetail | null>(null)
-  const [products, setProducts] = useState<ProductRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [showCancel, setShowCancel] = useState(false)
-  const [cancelReason, setCancelReason] = useState("")
-  const [closing, setClosing] = useState(false)
-  const [cancelling, setCancelling] = useState(false)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const [o, prods] = await Promise.all([
-          api.get<OrderDetail>(`/api/orders/${id}`),
-          api.get<PagedResult<ProductRow>>(`/api/products?page=1&pageSize=200&sort=name`),
-        ])
-        setOrder(o)
-        setProducts(prods.items)
-      } catch (err) {
-        if (err instanceof ApiError) toast.error(err.message)
-      } finally { setLoading(false) }
-    }
-    load()
-  }, [id, refreshKey])
-
-  if (loading || !order) return <p className="text-sm text-muted-foreground">Loading…</p>
-
-  const productName = (productId: string) => products.find((p) => p.id === productId)?.name ?? `${productId.slice(0, 8)}…`
+export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const [order, products] = await Promise.all([
+    api.get<OrderDetail>(`/api/orders/${id}`),
+    api.get<PagedResult<ProductRow>>(`/api/products?page=1&pageSize=200&sort=name`),
+  ])
+  const productName = (productId: string) => products.items.find((p) => p.id === productId)?.name ?? `${productId.slice(0, 8)}…`
   const isPlaced = order.status === "Placed"
   const subtotal = order.lines.reduce((s, l) => s + l.quantity * (l.netPerOne + l.vatPerOne), 0)
   const total = Math.max(0, subtotal - order.discount - order.loyaltyPointsUsed)
 
-  async function handleClose() {
-    setClosing(true)
-    try {
-      await api.post(`/api/orders/${id}/close`)
-      toast.success("Order closed")
-      setRefreshKey((k) => k + 1)
-    } catch (err) {
-      if (err instanceof ApiError) toast.error(err.message)
-    } finally { setClosing(false) }
+  async function closeOrder() {
+    "use server"
+    await api.post(`/api/orders/${id}/close`)
+    revalidatePath(`/admin/orders/${id}`)
   }
 
-  async function handleCancel() {
-    setCancelling(true)
-    try {
-      await api.post(`/api/orders/${id}/cancel`, { reason: cancelReason || null })
-      toast.success("Order cancelled")
-      setShowCancel(false)
-      setCancelReason("")
-      setRefreshKey((k) => k + 1)
-    } catch (err) {
-      if (err instanceof ApiError) toast.error(err.message)
-    } finally { setCancelling(false) }
+  async function cancelOrder(formData: FormData) {
+    "use server"
+    const reason = (formData.get("reason") as string) || null
+    await api.post(`/api/orders/${id}/cancel`, { reason })
+    revalidatePath(`/admin/orders/${id}`)
   }
 
   return (
@@ -122,19 +76,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
         {isPlaced && (
           <div className="flex gap-2">
-            <button
-              onClick={handleClose}
-              disabled={closing}
-              className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              {closing ? "Closing…" : "Close order"}
-            </button>
-            <button
-              onClick={() => setShowCancel(true)}
-              className="h-9 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground hover:opacity-90"
-            >
-              Cancel order
-            </button>
+            <form action={closeOrder}>
+              <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Close order</button>
+            </form>
           </div>
         )}
       </div>
@@ -185,49 +129,23 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </table>
       </section>
 
+      {isPlaced && (
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="mb-2 text-base font-semibold">Cancel this order</h2>
+          <p className="mb-4 text-sm text-muted-foreground">Optional reason — appears on the order record afterwards.</p>
+          <form action={cancelOrder} className="flex gap-2">
+            <input name="reason" placeholder="Reason (optional)" className="h-9 max-w-md flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+            <button type="submit" className="h-9 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground hover:opacity-90">Cancel order</button>
+          </form>
+        </section>
+      )}
+
       {order.cancellationReason && (
         <section className="rounded-lg border bg-card p-4">
           <h2 className="mb-2 text-base font-semibold">Cancellation reason</h2>
           <p className="text-sm text-muted-foreground">{order.cancellationReason}</p>
         </section>
       )}
-
-      <button type="button" onClick={() => router.push("/admin/orders")} className="h-9 rounded-md px-3 text-sm hover:bg-accent">
-        Back to list
-      </button>
-
-      {showCancel && (
-        <Modal title="Cancel this order?" onClose={() => setShowCancel(false)}>
-          <p className="text-sm text-muted-foreground">Optional reason — appears on the order record afterwards.</p>
-          <input
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            placeholder="Reason (optional)"
-            className="mt-4 h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-          />
-          <div className="mt-6 flex justify-end gap-2">
-            <button onClick={() => setShowCancel(false)} className="h-9 rounded-md px-3 text-sm hover:bg-accent">Keep order</button>
-            <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="h-9 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              {cancelling ? "Cancelling…" : "Cancel order"}
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  )
-}
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="mt-4">{children}</div>
-      </div>
     </div>
   )
 }

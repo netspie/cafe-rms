@@ -1,14 +1,10 @@
-"use client"
-
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { redirect } from "next/navigation"
 import { Eye, Plus } from "lucide-react"
-import { toast } from "sonner"
-
+import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
-import { ApiError, api, type PagedResult } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/server-api"
 
 type EventStatus = "Draft" | "Published" | "Closed" | "Cancelled"
 
@@ -24,34 +20,31 @@ function statusClass(status: EventStatus): string {
   return "border bg-transparent"
 }
 
-export default function EventsListPage() {
-  const [page, setPage] = useState(1)
-  const [filter, setFilter] = useState("")
-  const [data, setData] = useState<PagedResult<EventItem> | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [showAdd, setShowAdd] = useState(false)
-  const [productLists, setProductLists] = useState<NamedRow[]>([])
-  const [priceGroups, setPriceGroups] = useState<NamedRow[]>([])
+async function createEvent(formData: FormData) {
+  "use server"
+  const created = await api.post<{ id: string }>("/api/events", {
+    name: formData.get("name") as string,
+    description: (formData.get("description") as string) || null,
+    imageUrl: (formData.get("imageUrl") as string) || null,
+    productListId: (formData.get("productListId") as string) || null,
+    priceGroupId: (formData.get("priceGroupId") as string) || null,
+  })
+  revalidatePath("/admin/events")
+  redirect(`/admin/events/${created.id}`)
+}
 
-  useEffect(() => {
-    Promise.all([
-      api.get<PagedResult<NamedRow>>(`/api/product-lists?page=1&pageSize=100&sort=name`).then((r) => setProductLists(r.items)),
-      api.get<PagedResult<NamedRow>>(`/api/price-groups?page=1&pageSize=100&sort=name`).then((r) => setPriceGroups(r.items)),
-    ]).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
-    if (filter) params.set("name", filter)
-    api.get<PagedResult<EventItem>>(`/api/events?${params}`)
-      .then(setData)
-      .catch((err) => { if (err instanceof ApiError) toast.error(err.message) })
-      .finally(() => setLoading(false))
-  }, [page, filter, refreshKey])
-
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
+export default async function EventsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
+  const sp = await searchParams
+  const page = Number(sp.page ?? 1)
+  const filter = sp.q ?? ""
+  const search = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), sort: "-createdAt" })
+  if (filter) search.set("name", filter)
+  const [data, productLists, priceGroups] = await Promise.all([
+    api.get<PagedResult<EventItem>>(`/api/events?${search}`),
+    api.get<PagedResult<NamedRow>>(`/api/product-lists?page=1&pageSize=100&sort=name`),
+    api.get<PagedResult<NamedRow>>(`/api/price-groups?page=1&pageSize=100&sort=name`),
+  ])
+  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -60,13 +53,37 @@ export default function EventsListPage() {
         <p className="text-muted-foreground">Themed evenings, workshops, anything ticketed.</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <input placeholder="Filter by name…" value={filter} onChange={(e) => { setPage(1); setFilter(e.target.value) }} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        <div className="flex-1" />
-        <button onClick={() => setShowAdd(true)} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
-          <Plus className="h-4 w-4" />New event
+      <form className="flex items-center gap-3">
+        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
+      </form>
+
+      <form action={createEvent} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-[2fr_2fr_2fr_1.5fr_1.5fr_auto]">
+        <Field label="Name">
+          <input name="name" required placeholder="Spring jazz night" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Description">
+          <input name="description" placeholder="Optional" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Image URL">
+          <input name="imageUrl" placeholder="https://… (optional)" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        </Field>
+        <Field label="Product list">
+          <select name="productListId" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
+            <option value="">— No special list —</option>
+            {productLists.items.map((pl) => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Price group">
+          <select name="priceGroupId" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
+            <option value="">— Default pricing —</option>
+            {priceGroups.items.map((pg) => <option key={pg.id} value={pg.id}>{pg.name}</option>)}
+          </select>
+        </Field>
+        <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 lg:self-end">
+          <Plus className="h-4 w-4" />Add
         </button>
-      </div>
+      </form>
 
       <div className="overflow-hidden rounded-md border">
         <table className="w-full text-sm">
@@ -79,26 +96,21 @@ export default function EventsListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>}
-            {!loading && data?.items.length === 0 && (
+            {data.items.length === 0 && (
               <tr><td colSpan={4} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
-                  <p>No events yet — let&apos;s plan one.</p>
+                  <p>No events match this filter.</p>
                 </div>
               </td></tr>
             )}
-            {!loading && data?.items.map((e) => (
+            {data.items.map((e) => (
               <tr key={e.id} className="border-t">
-                <td className="px-3 py-2">
-                  <span className={"inline-flex rounded-full px-2.5 py-0.5 text-xs " + statusClass(e.status)}>{e.status}</span>
-                </td>
+                <td className="px-3 py-2"><span className={"inline-flex rounded-full px-2.5 py-0.5 text-xs " + statusClass(e.status)}>{e.status}</span></td>
                 <td className="px-3 py-2 font-medium">{e.name}</td>
                 <td className="px-3 py-2 text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</td>
                 <td className="px-3 py-2">
-                  <Link href={`/admin/events/${e.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="Open event">
-                    <Eye className="h-4 w-4" />
-                  </Link>
+                  <Link href={`/admin/events/${e.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="Open event"><Eye className="h-4 w-4" /></Link>
                 </td>
               </tr>
             ))}
@@ -107,93 +119,12 @@ export default function EventsListPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data ? `${data.total} total` : ""}</p>
+        <p className="text-sm text-muted-foreground">{data.total} total</p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Previous</button>
+          {page > 1 ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page - 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Previous</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Previous</span>}
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="h-8 rounded-md border px-3 text-sm hover:bg-accent disabled:opacity-50">Next</button>
+          {page < totalPages ? <Link href={{ query: { ...(filter ? { q: filter } : {}), page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
-      </div>
-
-      {showAdd && <AddDialog productLists={productLists} priceGroups={priceGroups} onClose={() => setShowAdd(false)} />}
-    </div>
-  )
-}
-
-function AddDialog({ productLists, priceGroups, onClose }: { productLists: NamedRow[]; priceGroups: NamedRow[]; onClose: () => void }) {
-  const router = useRouter()
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
-  const [productListId, setProductListId] = useState("")
-  const [priceGroupId, setPriceGroupId] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setErrors({})
-    try {
-      const created = await api.post<{ id: string }>("/api/events", {
-        name,
-        description: description || null,
-        imageUrl: imageUrl || null,
-        productListId: productListId || null,
-        priceGroupId: priceGroupId || null,
-      })
-      toast.success("Event created")
-      router.push(`/admin/events/${created.id}`)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.problem.errors) {
-          const flat: Record<string, string> = {}
-          for (const [k, v] of Object.entries(err.problem.errors)) flat[k.toLowerCase()] = v[0]
-          setErrors(flat)
-        } else toast.error(err.message)
-      }
-    } finally { setSubmitting(false) }
-  }
-
-  return (
-    <Modal title="New event" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Name" error={errors.name}>
-          <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Spring jazz night" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Description" error={errors.description}>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Image URL" error={errors.imageurl}>
-          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://… (optional)" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Product list" hint="Optional — restricts the menu shown for this event." error={errors.productlistid}>
-          <select value={productListId} onChange={(e) => setProductListId(e.target.value)} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
-            <option value="">— No special list —</option>
-            {productLists.map((pl) => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Price group" hint="Optional — overrides default product pricing." error={errors.pricegroupid}>
-          <select value={priceGroupId} onChange={(e) => setPriceGroupId(e.target.value)} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
-            <option value="">— Default pricing —</option>
-            {priceGroups.map((pg) => <option key={pg.id} value={pg.id}>{pg.name}</option>)}
-          </select>
-        </Field>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-9 rounded-md px-3 text-sm hover:bg-accent">Cancel</button>
-          <button type="submit" disabled={submitting} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">{submitting ? "Saving…" : "Create event"}</button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="mt-4">{children}</div>
       </div>
     </div>
   )
