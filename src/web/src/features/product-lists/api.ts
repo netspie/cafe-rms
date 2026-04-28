@@ -6,6 +6,18 @@ export interface ProductListListItem {
   createdAt: string
 }
 
+export interface ProductListDetail {
+  id: string
+  name: string
+  productIds: string[]
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface ProductListInput {
+  name: string
+}
+
 export interface ListProductListsQuery {
   page: number
   pageSize: number
@@ -22,4 +34,10 @@ export const productListsApi = {
     if (q.name) search.set("name", q.name)
     return api.get<PagedResult<ProductListListItem>>(`/api/product-lists?${search.toString()}`)
   },
+  get: (id: string) => api.get<ProductListDetail>(`/api/product-lists/${id}`),
+  create: (body: ProductListInput) => api.post<{ id: string }>("/api/product-lists", body),
+  update: (id: string, body: ProductListInput) => api.put<void>(`/api/product-lists/${id}`, body),
+  remove: (id: string) => api.delete<void>(`/api/product-lists/${id}`),
+  addProduct: (id: string, productId: string) => api.post<void>(`/api/product-lists/${id}/items`, { productId }),
+  removeProduct: (id: string, productId: string) => api.delete<void>(`/api/product-lists/${id}/items/${productId}`),
 }
