@@ -1,7 +1,3 @@
-// Stores the JWT in localStorage. Defense answer: a production deployment would
-// hold this in an httpOnly cookie to dodge XSS exfiltration; for the academic
-// scope we accept the risk to keep the auth flow easy to read end to end.
-
 const TOKEN_KEY = "caferms.auth.token"
 const ACCOUNT_TYPE_KEY = "caferms.auth.accountType"
 

@@ -1,8 +1,3 @@
-// Raw fetch wrapper. Reads the JWT from localStorage and attaches it as
-// "Authorization: Bearer ...". On 401 it clears the session and bounces to
-// /login. Errors come back as ApiError with the API's ProblemDetails parsed,
-// including the per-field `errors` map FluentValidation emits on 422.
-
 import { getToken, clearSession, redirectToLogin } from "./auth"
 
 export interface ProblemDetails {

@@ -35,7 +35,6 @@ public sealed class AddPriceGroupValidator : AbstractValidator<AddPriceGroupRequ
     }
 }
 
-
 public static class AddPriceGroup
 {
     public sealed record Command(Guid CompanyId, string Name);
