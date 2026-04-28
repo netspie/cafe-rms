@@ -423,3 +423,61 @@ Parameterized printouts from user-editable Word templates.
 - [ ] Rendering engine (e.g., `DocX` or `OpenXML` + placeholder replacement) — confirm library before adding
 - [ ] Endpoint: `/printouts/{templateId}?entityId=...` → rendered `.docx` / PDF
 - [ ] Seed default templates (receipt, event confirmation, etc.)
+
+---
+
+## Phase 9 — Thesis strip-down (frontend, branch `thesis-strip`)
+
+A second-pass rewrite of the Next.js admin into something verbally defensible: every line easy to walk through. Drops TanStack Query, react-hook-form, zod, `@base-ui/react`, the cookie-based auth proxy, and the `*-form.tsx` / `*-table.tsx` / `*-section.tsx` split files. Keeps Tailwind, `next/link`, `sonner`, `lucide-react`, `next-themes`, and the C# API as-is.
+
+Lives on its own branch. End state: each route is one file (~150–500 lines), ~5 imports, no abstractions besides a `<Field>` helper. Decide on defense day which branch to walk through.
+
+Conventions for this branch:
+- One `page.tsx` per route. List pages host an inline "Add" dialog with `useState`-backed form — no `/new` routes.
+- Auth: token in `localStorage`, `Authorization: Bearer` on every fetch. Defense answer: "production uses httpOnly cookies, accepted XSS exposure for academic scope."
+- Validation: server-only. 422 + ProblemDetails `errors` map → render under each input.
+- Data fetching: raw `fetch` via `lib/api.ts` wrapper, `useState`/`useEffect` per page. Refetch by re-running effect after mutation.
+- Components: raw HTML + Tailwind. One `<Field>` helper allowed (label + child input + error).
+
+### S1 — Foundation + Tags template
+- [ ] Switch to `thesis-strip`, drop `@base-ui/react` from package.json
+- [ ] Rewrite `lib/api.ts`: localStorage token, raw fetch, `ApiError` with field-level `errors`
+- [ ] Rewrite `app/login/page.tsx`: `useState` fields, fetch + store token
+- [ ] Delete `app/api/proxy/[...path]`, `app/api/auth/login`, `app/api/auth/logout`, `proxy.ts`
+- [ ] Add `lib/auth.ts` (token get/set/clear + 401 redirect helper)
+- [ ] Add `components/field.tsx` (~30 lines — label + child + error)
+- [ ] Plain `app/admin/layout.tsx` with `<aside>` sidebar + `<header>` topbar (theme toggle + logout)
+- [ ] Tags as template: `tags/page.tsx` (list + inline Add dialog) + `tags/[id]/page.tsx` (edit form)
+
+### S2 — Simple entities
+- [ ] Allergens
+- [ ] PriceGroups
+- [ ] Tables
+- [ ] TaxRates
+- [ ] ModifierGroups
+- [ ] PrintoutTemplates
+- [ ] Modifiers (FK picker via `<select>`)
+- [ ] PromotionCodes (date inputs + max uses)
+
+### S3 — Sub-resource entities
+- [ ] Products (5 sections inlined into edit page: tags, allergens, modifier-groups, images, prices)
+- [ ] ProductLists (items section inlined)
+- [ ] SalesChannels (price-groups linking inlined)
+
+### S4 — Lifecycle entities
+- [ ] Orders (list with status filter + detail with lines/totals + close/cancel)
+- [ ] Events (list + edit with days inlined + publish/close/cancel)
+
+### S5 — Auth & system pages
+- [ ] Users (list + edit with roles inlined)
+- [ ] Roles (list + edit with permission checkbox grid inlined)
+- [ ] Settings (Company + Outlet as two sections in one page)
+- [ ] Loyalty (entries + adjustment form inlined)
+- [ ] Account (profile readout + change password)
+- [ ] Dashboard (raw fetch counts)
+- [ ] Public home `/`, `/login`, `/not-found`
+
+### S6 — Verify + decide
+- [ ] `npm run dev`, click every page, fix translation bugs
+- [ ] Diff `wc -l` per page main vs strip — confirm the win is real
+- [ ] Decide: defend with `thesis-strip`, with `main`, or carry both
