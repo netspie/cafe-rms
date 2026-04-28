@@ -29,7 +29,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
 
-  if (response.status === 401) {
+  // 401 from a non-login endpoint = session expired → bounce to /login.
+  // 401 from the login endpoint itself = bad credentials → let the caller
+  // surface a "wrong email or password" message instead of redirecting.
+  if (response.status === 401 && !path.startsWith("/api/auth/login")) {
     clearSession()
     redirectToLogin()
     throw new ApiError(401, { status: 401, title: "Session expired" })
