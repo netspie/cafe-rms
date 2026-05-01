@@ -13,7 +13,6 @@
 import { LogOut } from "lucide-react"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { clearToken, getCompanyId, setCompanyId } from "@/lib/auth-cookie"
 import { api } from "@/lib/server-api"
 
@@ -91,7 +90,6 @@ export async function AdminTopbar() {
           </span>
         </div>
       )}
-      <ThemeToggle />
       <form action={logoutAction}>
         <button type="submit" className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm hover:bg-accent">
           <LogOut className="h-4 w-4" />
