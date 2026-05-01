@@ -41,17 +41,16 @@ export default async function SalesChannelsListPage({ searchParams }: { searchPa
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Sales channels</h1>
-        <p className="text-muted-foreground">Where the order came from — dine-in, takeout, etc.</p>
       </div>
 
       <form className="flex items-center gap-3">
-        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <input name="q" defaultValue={filter} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
       </form>
 
       <form action={createSalesChannel} className="flex flex-wrap items-end gap-3 rounded-md border bg-card p-3">
         <Field label="Name">
-          <input name="name" required placeholder="Dine-in / Takeout / Delivery" className="h-9 w-72 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="name" required className="h-9 w-72 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <label className="flex h-9 cursor-pointer items-center gap-2 text-sm">
           <input type="checkbox" name="isTakeout" className="h-4 w-4" />

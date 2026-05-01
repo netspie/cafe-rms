@@ -41,7 +41,6 @@ export default async function OrdersListPage({ searchParams }: { searchParams: P
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-        <p className="text-muted-foreground">All orders across outlets, newest first.</p>
       </div>
 
       <form className="flex items-center gap-3">

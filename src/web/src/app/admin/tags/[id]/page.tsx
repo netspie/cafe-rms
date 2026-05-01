@@ -37,8 +37,8 @@ export default async function EditTagPage({ params }: { params: Promise<{ id: st
         <Field label="Name">
           <input name="name" defaultValue={tag.name} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
-        <Field label="Image URL" hint="Optional. Used for badges in the UI.">
-          <input name="imageUrl" defaultValue={tag.imageUrl ?? ""} placeholder="https://…" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <Field label="Image URL">
+          <input name="imageUrl" defaultValue={tag.imageUrl ?? ""} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
           Save changes

@@ -123,7 +123,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
             <input name="description" defaultValue={event.description ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60" />
           </Field>
           <Field label="Image URL">
-            <input name="imageUrl" defaultValue={event.imageUrl ?? ""} placeholder="https://… (optional)" disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60" />
+            <input name="imageUrl" defaultValue={event.imageUrl ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60" />
           </Field>
           <Field label="Product list">
             <select name="productListId" defaultValue={event.productListId ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60">
@@ -173,7 +173,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           <h2 className="mb-2 text-base font-semibold">Cancel this event</h2>
           <p className="mb-4 text-sm text-muted-foreground">Optional reason — appears on the event record afterwards.</p>
           <form action={cancel} className="flex gap-2">
-            <input name="reason" placeholder="Reason (optional)" className="h-9 max-w-md flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+            <input name="reason" className="h-9 max-w-md flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             <button type="submit" className="h-9 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground hover:opacity-90">Cancel event</button>
           </form>
         </section>

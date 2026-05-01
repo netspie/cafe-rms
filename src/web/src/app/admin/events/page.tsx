@@ -54,23 +54,22 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
-        <p className="text-muted-foreground">Themed evenings, workshops, anything ticketed.</p>
       </div>
 
       <form className="flex items-center gap-3">
-        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <input name="q" defaultValue={filter} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
       </form>
 
       <form action={createEvent} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-[2fr_2fr_2fr_1.5fr_1.5fr_auto]">
         <Field label="Name">
-          <input name="name" required placeholder="Spring jazz night" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="name" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Description">
-          <input name="description" placeholder="Optional" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="description" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Image URL">
-          <input name="imageUrl" placeholder="https://… (optional)" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="imageUrl" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Product list">
           <select name="productListId" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">

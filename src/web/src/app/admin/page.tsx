@@ -29,32 +29,30 @@ export default async function AdminDashboard() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Welcome back{me ? `, ${me.firstName}` : ""}
           </h1>
-          <p className="text-muted-foreground">A quick view of your café — click any card to drill in.</p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard href="/admin/orders" label="Open orders" value={placedOrders} icon={<ShoppingCart className="h-4 w-4" />} hint="Status = Placed" />
-        <StatCard href="/admin/events" label="Events" value={events} icon={<Calendar className="h-4 w-4" />} hint="All statuses" />
+        <StatCard href="/admin/orders" label="Open orders" value={placedOrders} icon={<ShoppingCart className="h-4 w-4" />} />
+        <StatCard href="/admin/events" label="Events" value={events} icon={<Calendar className="h-4 w-4" />} />
         <StatCard href="/admin/products" label="Products" value={products} icon={<Coffee className="h-4 w-4" />} />
-        <StatCard href="/admin/loyalty" label="Loyalty entries" value={loyaltyEntries} icon={<Star className="h-4 w-4" />} hint="Earned + redeemed + adjustments" />
+        <StatCard href="/admin/loyalty" label="Loyalty entries" value={loyaltyEntries} icon={<Star className="h-4 w-4" />} />
       </div>
 
       <section className="rounded-lg border bg-card p-4">
-        <h2 className="text-base font-semibold">What&apos;s next?</h2>
-        <p className="mb-4 text-xs text-muted-foreground">Common starting points.</p>
+        <h2 className="mb-4 text-base font-semibold">What&apos;s next?</h2>
         <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <QuickLink href="/admin/products" title="Add a product" hint="New menu item with tags, allergens, and prices." />
-          <QuickLink href="/admin/events" title="Plan an event" hint="Set days, then publish to make it visible." />
-          <QuickLink href="/admin/users" title="Invite a teammate" hint="Create a staff account and assign roles." />
-          <QuickLink href="/admin/settings" title="Update café details" hint="Address, currency, logo — shown to customers." />
+          <QuickLink href="/admin/products" title="Add a product" />
+          <QuickLink href="/admin/events" title="Plan an event" />
+          <QuickLink href="/admin/users" title="Invite a teammate" />
+          <QuickLink href="/admin/settings" title="Update café details" />
         </div>
       </section>
     </div>
   )
 }
 
-function StatCard({ href, label, value, icon, hint }: { href: string; label: string; value: number | null; icon: React.ReactNode; hint?: string }) {
+function StatCard({ href, label, value, icon }: { href: string; label: string; value: number | null; icon: React.ReactNode }) {
   return (
     <Link href={href} className="block rounded-lg border bg-card p-4 transition-colors hover:border-primary/50">
       <div className="flex items-start justify-between gap-2">
@@ -62,16 +60,14 @@ function StatCard({ href, label, value, icon, hint }: { href: string; label: str
         <span className="text-muted-foreground">{icon}</span>
       </div>
       <p className="mt-2 text-2xl font-semibold">{value === null ? "—" : value}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </Link>
   )
 }
 
-function QuickLink({ href, title, hint }: { href: string; title: string; hint: string }) {
+function QuickLink({ href, title }: { href: string; title: string }) {
   return (
     <Link href={href} className="rounded-md border px-3 py-2 hover:border-primary/50">
       <p className="font-medium">{title}</p>
-      <p className="text-muted-foreground">{hint}</p>
     </Link>
   )
 }

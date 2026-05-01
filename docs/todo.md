@@ -482,6 +482,18 @@ Conventions for this branch:
 - [ ] Diff `wc -l` per page main vs strip — confirm the win is real
 - [ ] Decide: defend with `thesis-strip`, with `main`, or carry both
 
+### S7 — UX/copy strip (cross-cutting sweep)
+- [ ] **Seeder → Polish names.** All seeded entity names switch to Polish (Yumeya seeder is already PL — also sweep the SuperAdmin/demo seeder, role names, demo user names, anything user-visible coming out of `StartupSeeder` / `CompanyProvisioning`).
+- [ ] **Strip page/section subtitles** — keep page name + section name only. No descriptive paragraphs under headings (e.g. Change Password page: drop "At least 8 characters." and equivalents on every page).
+- [ ] **Strip field helper text** — no description / hint / explanation lines underneath any input (e.g. Manual adjustment Points hint, Reason hint, etc.). Label + input + error only.
+- [ ] **Strip placeholders** — every `<input>` / `<textarea>` / `<select>` loses its `placeholder=` attribute. Pure: label only.
+- [ ] **Title Case for labels** — wherever the text is a label / short phrase (not a sentence), capitalize every word. Applies to field labels, button text, table column headers, sidebar entries, tab names, etc. Sentences (paragraphs, errors, dialog body copy) stay sentence-case.
+- [ ] **Per-feature review pass** — walk every feature page individually with the user; this list is a starting set, expect more strips per page.
+
+### S8 — Technical strip (reflection + cleverness)
+- [ ] **Audit reflection usage** — `IAuditable` / `ISoftDeletable` / `ICompanyOwned` are filter-by-marker-interface walks in `AppDbContext.OnModelCreating` (`ApplyQueryFilters`, `ApplyXminConcurrencyTokens`). Defensible but reflection-heavy; consider whether to inline per-entity calls for full explainability. Same for `ResourceOwnerAttribute` (reflection-based property read). **Decide per site** — not a blanket strip.
+- [ ] More candidates to flag during the per-feature pass.
+
 ----
 
 ## Phase 10 — Demo seed (Yumeya Café)

@@ -30,7 +30,7 @@ export default async function EditPrintoutTemplatePage({ params }: { params: Pro
           <input name="name" defaultValue={item.name} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Template file URL">
-          <input name="templateFileUrl" defaultValue={item.templateFileUrl} required placeholder="https://… (.docx)" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="templateFileUrl" defaultValue={item.templateFileUrl} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save changes</button>
       </form>

@@ -65,11 +65,6 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-        <p className="text-muted-foreground">
-          {onStaffTab
-            ? "Staff members with admin panel access — invite, edit roles, deactivate."
-            : "Guest customers — registered through the public site, eligible for loyalty."}
-        </p>
       </div>
 
       <div className="flex items-center gap-1 border-b">
@@ -83,7 +78,6 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
           <input
             name="q"
             defaultValue={nameFilter}
-            placeholder="Filter by first/last name…"
             className="h-9 w-64 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
           />
         </Field>
@@ -105,9 +99,9 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
       {onStaffTab && (
         <form action={registerStaff} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
           <Field label="Email">
-            <input name="email" type="email" required placeholder="staff@cafe.example" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+            <input name="email" type="email" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
           </Field>
-          <Field label="Password" hint="Min 8 chars.">
+          <Field label="Password">
             <input name="password" type="password" required minLength={8} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
           </Field>
           <Field label="First name">

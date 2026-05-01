@@ -40,10 +40,6 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-2 text-center">
           <ShibaMark className="h-12 w-12" />
           <h1 className="text-lg font-semibold">CafeRMS Admin</h1>
-          <p className="text-sm text-muted-foreground">Sign in to manage your cafe.</p>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">
-            よろしく ・ welcome back
-          </p>
         </div>
 
         <LoginForm action={loginAction} />

@@ -49,14 +49,14 @@ export default async function EditPromotionCodePage({ params }: { params: Promis
           <input name="discountPercentage" type="number" step="0.01" min="0" max="100" defaultValue={item.discountPercentage} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Valid from" hint="Optional.">
+          <Field label="Valid from">
             <input name="validFrom" type="date" defaultValue={toDateInput(item.validFrom)} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
           </Field>
-          <Field label="Valid until" hint="Optional.">
+          <Field label="Valid until">
             <input name="validUntil" type="date" defaultValue={toDateInput(item.validUntil)} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
           </Field>
         </div>
-        <Field label="Max uses" hint="Empty = unlimited.">
+        <Field label="Max uses">
           <input name="maxUses" type="number" min="1" step="1" defaultValue={item.maxUses ?? ""} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save changes</button>

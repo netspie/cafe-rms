@@ -42,20 +42,19 @@ export default async function TaxRatesListPage({ searchParams }: { searchParams:
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Tax rates</h1>
-        <p className="text-muted-foreground">VAT rates applied to products.</p>
       </div>
 
       <form className="flex items-center gap-3">
-        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <input name="q" defaultValue={filter} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
       </form>
 
       <form action={createTaxRate} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[1fr_2fr_auto_auto] sm:items-end">
         <Field label="Name">
-          <input name="name" required placeholder="VAT 23%" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="name" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Description">
-          <input name="description" placeholder="Standard rate" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="description" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Rate (%)">
           <input name="rate" type="number" step="0.01" min="0" max="100" defaultValue="23" required className="h-9 w-24 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />

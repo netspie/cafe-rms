@@ -64,20 +64,18 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Company and outlet details — visible on receipts and listings.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border bg-card p-4">
-          <h2 className="text-base font-semibold">Company</h2>
-          <p className="mb-4 text-xs text-muted-foreground">Legal and billing information.</p>
+          <h2 className="mb-4 text-base font-semibold">Company</h2>
           <form action={updateCompany} className="space-y-4">
             <Field label="Legal name">
               <input name="legalName" defaultValue={company.legalName} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tax ID">
-                <input name="taxId" defaultValue={company.taxId} required placeholder="NIP" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                <input name="taxId" defaultValue={company.taxId} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
               </Field>
               <Field label="Billing phone">
                 <input name="billingPhone" defaultValue={company.billingPhone} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
@@ -99,8 +97,7 @@ export default async function SettingsPage() {
 
         {outlet && (
           <section className="rounded-lg border bg-card p-4">
-            <h2 className="text-base font-semibold">Outlet</h2>
-            <p className="mb-4 text-xs text-muted-foreground">Customer-facing café details.</p>
+            <h2 className="mb-4 text-base font-semibold">Outlet</h2>
             <form action={updateOutlet} className="space-y-4">
               <Field label="Display name">
                 <input name="displayName" defaultValue={outlet.displayName} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
@@ -113,7 +110,7 @@ export default async function SettingsPage() {
                   <input name="phone" defaultValue={outlet.phone} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
                 </Field>
                 <Field label="Time zone">
-                  <input name="timeZone" defaultValue={outlet.timeZone} required placeholder="Europe/Warsaw" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                  <input name="timeZone" defaultValue={outlet.timeZone} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
                 </Field>
               </div>
               <Field label="Currency">
@@ -121,8 +118,8 @@ export default async function SettingsPage() {
                   {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
-              <Field label="Logo URL" hint="Shown on receipts and the public listing.">
-                <input name="logoUrl" defaultValue={outlet.logoUrl ?? ""} placeholder="https://… (optional)" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+              <Field label="Logo URL">
+                <input name="logoUrl" defaultValue={outlet.logoUrl ?? ""} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
               </Field>
               <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save outlet</button>
             </form>

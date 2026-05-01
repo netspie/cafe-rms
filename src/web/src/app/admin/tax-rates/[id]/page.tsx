@@ -33,7 +33,7 @@ export default async function EditTaxRatePage({ params }: { params: Promise<{ id
         <Field label="Description">
           <input name="description" defaultValue={item.description} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
-        <Field label="Rate (%)" hint="Between 0 and 100.">
+        <Field label="Rate (%)">
           <input name="rate" type="number" step="0.01" min="0" max="100" defaultValue={item.rate} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save changes</button>

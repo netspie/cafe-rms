@@ -32,7 +32,7 @@ public class StartupSeeder(
         if (hasSuperAdmin)
             return;
 
-        var user = AppUser.Create(email, "Super", "Admin", AccountType.SuperAdmin);
+        var user = AppUser.Create(email, "Administrator", "Systemu", AccountType.SuperAdmin);
         var result = await userManager.CreateAsync(user, password);
 
         if (!result.Succeeded)

@@ -36,12 +36,11 @@ export default async function RolesListPage({ searchParams }: { searchParams: Pr
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Roles</h1>
-        <p className="text-muted-foreground">Permission groups assigned to staff users.</p>
       </div>
 
       <form action={createRole} className="space-y-4 rounded-md border bg-card p-3">
         <Field label="Name">
-          <input name="name" required placeholder="Manager / Barista / Cashier" className="h-9 max-w-sm rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="name" required className="h-9 max-w-sm rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <div className="space-y-2">
           <p className="text-sm font-medium">Permissions</p>

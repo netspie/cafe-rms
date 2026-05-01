@@ -38,17 +38,16 @@ export default async function PriceGroupsListPage({ searchParams }: { searchPara
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Price groups</h1>
-        <p className="text-muted-foreground">Named pricing tiers — Standard, Member, Event, etc.</p>
       </div>
 
       <form className="flex items-center gap-3">
-        <input name="q" defaultValue={filter} placeholder="Filter by name…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <input name="q" defaultValue={filter} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
       </form>
 
       <form action={createPriceGroup} className="flex items-end gap-3 rounded-md border bg-card p-3">
         <Field label="Name">
-          <input name="name" required placeholder="New price group" className="h-9 w-48 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="name" required className="h-9 w-48 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
           <Plus className="h-4 w-4" />Add price group

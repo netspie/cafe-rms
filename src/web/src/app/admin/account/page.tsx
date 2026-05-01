@@ -29,13 +29,11 @@ export default async function AccountPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
-        <p className="text-muted-foreground">Your profile and password.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border bg-card p-4">
-          <h2 className="text-base font-semibold">Profile</h2>
-          <p className="mb-4 text-xs text-muted-foreground">Read-only — names are managed from the Users page.</p>
+          <h2 className="mb-4 text-base font-semibold">Profile</h2>
           <div className="space-y-2 text-sm">
             <div><span className="text-muted-foreground">Name: </span>{me.firstName} {me.lastName}</div>
             <div><span className="text-muted-foreground">Email: </span>{me.email}</div>
@@ -49,13 +47,12 @@ export default async function AccountPage() {
         </section>
 
         <section className="rounded-lg border bg-card p-4">
-          <h2 className="text-base font-semibold">Change password</h2>
-          <p className="mb-4 text-xs text-muted-foreground">At least 8 characters.</p>
+          <h2 className="mb-4 text-base font-semibold">Change password</h2>
           <form action={changePassword} className="space-y-4">
             <Field label="Current password">
               <input name="currentPassword" type="password" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
-            <Field label="New password" hint="Min 8 characters.">
+            <Field label="New password">
               <input name="newPassword" type="password" required minLength={8} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
             <Field label="Confirm new password">

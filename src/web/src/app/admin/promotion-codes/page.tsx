@@ -56,17 +56,16 @@ export default async function PromotionCodesListPage({ searchParams }: { searchP
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Promotion codes</h1>
-        <p className="text-muted-foreground">Discount codes customers can apply at checkout.</p>
       </div>
 
       <form className="flex items-center gap-3">
-        <input name="q" defaultValue={filter} placeholder="Filter by code…" className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+        <input name="q" defaultValue={filter} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Search</button>
       </form>
 
       <form action={createPromotionCode} className="grid gap-3 rounded-md border bg-card p-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] sm:items-end">
         <Field label="Code">
-          <input name="code" required placeholder="SUMMER20" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="code" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Discount %">
           <input name="discountPercentage" type="number" step="0.01" min="0" max="100" defaultValue="10" required className="h-9 w-24 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
@@ -78,7 +77,7 @@ export default async function PromotionCodesListPage({ searchParams }: { searchP
           <input name="validUntil" type="date" className="h-9 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Max uses">
-          <input name="maxUses" type="number" min="1" step="1" placeholder="∞" className="h-9 w-20 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+          <input name="maxUses" type="number" min="1" step="1" className="h-9 w-20 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
           <Plus className="h-4 w-4" />Add

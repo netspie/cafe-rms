@@ -43,7 +43,6 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{user.firstName} {user.lastName}</h1>
-        <p className="text-muted-foreground">Staff profile and role assignment.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

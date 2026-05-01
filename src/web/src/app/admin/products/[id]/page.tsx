@@ -121,7 +121,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
-        <p className="text-muted-foreground">Edit details, link tags / allergens / modifier groups / images / prices.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -134,7 +133,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
             <Field label="Description">
               <input name="description" defaultValue={product.description ?? ""} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
-            <Field label="Barcode" hint="Optional, must be unique.">
+            <Field label="Barcode">
               <input name="barcode" defaultValue={product.barcode ?? ""} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
             <Field label="Tax rate">
@@ -226,7 +225,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               ))}
             </div>
             <form action={addImage} className="flex gap-2">
-              <input name="url" placeholder="https://…" className="h-9 max-w-md flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+              <input name="url" className="h-9 max-w-md flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
               <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Add image</button>
             </form>
           </div>
@@ -246,7 +245,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
                   step="0.01"
                   min="0"
                   defaultValue={priceFor(g.id)}
-                  placeholder="0.00"
                   className="h-9 w-32 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
                 <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Save</button>

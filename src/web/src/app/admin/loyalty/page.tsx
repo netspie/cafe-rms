@@ -47,13 +47,11 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Loyalty</h1>
-        <p className="text-muted-foreground">Point activity across customers — and manual adjustments.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-lg border bg-card p-4 lg:col-span-2">
-          <h2 className="text-base font-semibold">Activity</h2>
-          <p className="mb-4 text-xs text-muted-foreground">Latest first. Filter by customer to audit a single account.</p>
+          <h2 className="mb-4 text-base font-semibold">Activity</h2>
           <div className="space-y-4">
             <form className="flex items-center gap-3">
               <select name="user" defaultValue={userId} className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
@@ -108,8 +106,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
         </section>
 
         <section className="rounded-lg border bg-card p-4">
-          <h2 className="text-base font-semibold">Manual adjustment</h2>
-          <p className="mb-4 text-xs text-muted-foreground">Bonus or withdrawal — leaves an entry in the activity log.</p>
+          <h2 className="mb-4 text-base font-semibold">Manual adjustment</h2>
           <form action={recordAdjustment} className="space-y-4">
             <Field label="User">
               <select name="userId" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
@@ -117,11 +114,11 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                 {users.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} — {u.email}</option>)}
               </select>
             </Field>
-            <Field label="Points" hint="Positive for a bonus, negative to withdraw.">
+            <Field label="Points">
               <input name="points" type="number" step="1" required className="h-9 w-32 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
             <Field label="Reason">
-              <input name="reason" required placeholder="e.g. complaint resolution, birthday gift" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+              <input name="reason" required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
             </Field>
             <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Record adjustment</button>
           </form>
