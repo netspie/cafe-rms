@@ -2,7 +2,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.TaxRates;
 
-public class TaxRate : CompanyOwnedSoftDeletableEntity
+public class TaxRate : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -11,15 +11,14 @@ public class TaxRate : CompanyOwnedSoftDeletableEntity
 
     private TaxRate() { }
 
-    public static TaxRate Create(string name, string description, decimal rate, Guid companyId)
+    public static TaxRate Create(string name, string description, decimal rate)
     {
         return new TaxRate
         {
             Id = Guid.NewGuid(),
             Name = name,
             Description = description,
-            Rate = rate,
-            CompanyId = companyId
+            Rate = rate
         };
     }
 

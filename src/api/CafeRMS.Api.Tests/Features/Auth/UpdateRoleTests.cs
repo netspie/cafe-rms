@@ -15,9 +15,8 @@ public sealed class UpdateRoleTests : IDisposable
     [Test]
     public async Task UpdateRole_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        var role = await factory.SeedRoleAsync("Cashier");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/roles/{role.Id}", new
         {
@@ -31,9 +30,8 @@ public sealed class UpdateRoleTests : IDisposable
     [Test]
     public async Task UpdateRole_targeting_Owner_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var ownerRole = await factory.SeedRoleAsync(SystemRoles.Owner, company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        var ownerRole = await factory.SeedRoleAsync(SystemRoles.Owner);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/roles/{ownerRole.Id}", new
         {
@@ -47,9 +45,8 @@ public sealed class UpdateRoleTests : IDisposable
     [Test]
     public async Task UpdateRole_renaming_to_Owner_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        var role = await factory.SeedRoleAsync("Cashier");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/roles/{role.Id}", new
         {
@@ -63,9 +60,8 @@ public sealed class UpdateRoleTests : IDisposable
     [Test]
     public async Task UpdateRole_without_RolesManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        var role = await factory.SeedRoleAsync("Cashier");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PutAsJsonAsync($"/api/roles/{role.Id}", new { name = "X", permissions = Array.Empty<string>() });
 

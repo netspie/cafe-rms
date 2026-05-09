@@ -19,9 +19,8 @@ public sealed class DeletePriceGroupTests : IDisposable
     [Test]
     public async Task DeletePriceGroup_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedPriceGroupAsync(company.Id, "Standard");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        var id = await SeedPriceGroupAsync("Standard");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
 
         var response = await client.DeleteAsync($"/api/price-groups/{id}");
 
@@ -31,8 +30,7 @@ public sealed class DeletePriceGroupTests : IDisposable
     [Test]
     public async Task DeletePriceGroup_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
 
         var response = await client.DeleteAsync($"/api/price-groups/{Guid.NewGuid()}");
 
@@ -42,11 +40,10 @@ public sealed class DeletePriceGroupTests : IDisposable
     [Test]
     public async Task DeletePriceGroup_hard_deletes_sales_channel_links()
     {
-        var company = await factory.SeedCompanyAsync();
-        var pgId = await SeedPriceGroupAsync(company.Id, "Standard");
-        var scId = await SeedSalesChannelAsync(company.Id, "Dine-in");
+        var pgId = await SeedPriceGroupAsync("Standard");
+        var scId = await SeedSalesChannelAsync("Dine-in");
         await SeedLinkAsync(scId, pgId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
 
         var response = await client.DeleteAsync($"/api/price-groups/{pgId}");
 
@@ -57,21 +54,21 @@ public sealed class DeletePriceGroupTests : IDisposable
         remainingLinks.Should().Be(0);
     }
 
-    private async Task<Guid> SeedPriceGroupAsync(Guid companyId, string name)
+    private async Task<Guid> SeedPriceGroupAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var pg = PriceGroup.Create(name, companyId);
+        var pg = PriceGroup.Create(name);
         db.PriceGroups.Add(pg);
         await db.SaveChangesAsync();
         return pg.Id;
     }
 
-    private async Task<Guid> SeedSalesChannelAsync(Guid companyId, string name)
+    private async Task<Guid> SeedSalesChannelAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var sc = SalesChannel.Create(name, false, companyId);
+        var sc = SalesChannel.Create(name, false);
         db.SalesChannels.Add(sc);
         await db.SaveChangesAsync();
         return sc.Id;

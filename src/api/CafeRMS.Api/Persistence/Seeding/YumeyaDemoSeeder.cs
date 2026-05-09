@@ -1,7 +1,5 @@
-using System.Security.Claims;
 using CafeRMS.Api.Features.Allergens;
 using CafeRMS.Api.Features.Auth;
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.Events;
 using CafeRMS.Api.Features.Loyalty;
 using CafeRMS.Api.Features.ModifierGroups;
@@ -24,14 +22,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Persistence.Seeding;
 
-// Whole-cafe demo seed. Replaces the bland "Demo Cafe" with a themed Japanese café
-// in Warsaw — reference data, pricing, ~30 products, staff, customers, loyalty,
-// events, promotions, sample orders. Idempotent: looks up the Yumeya company by
-// its legal name and bails out if it's already there.
-//
-// Bypasses the company-scoped global query filter via db.SetCompanyContext(...)
-// after provisioning, so every subsequent query and add is naturally scoped to
-// Yumeya without any IgnoreQueryFilters scattered around.
+// Whole-cafe demo seed for Yumeya, the single themed Japanese café.
+// Idempotent: bails out if the outlet is already there.
 public class YumeyaDemoSeeder(
     AppDbContext db,
     UserManager<AppUser> userManager,
@@ -39,7 +31,6 @@ public class YumeyaDemoSeeder(
     IConfiguration config,
     ILogger<YumeyaDemoSeeder> logger)
 {
-    private const string CompanyLegalName = "Yumeya Sp. z o.o.";
     private const string OwnerEmail = "dariusz@yumeya.pl";
     private const string OutletDisplayName = "Yumeya Marszałkowska";
     private const string OutletAddress = "ul. Marszałkowska 100, 00-001 Warszawa";
@@ -53,72 +44,79 @@ public class YumeyaDemoSeeder(
             return;
         }
 
-        var isAlreadySeeded = await db.Companies.AnyAsync(x => x.LegalName == CompanyLegalName);
+        var isAlreadySeeded = await db.Outlets.AnyAsync(x => x.DisplayName == OutletDisplayName);
         if (isAlreadySeeded)
             return;
 
-        var provisioned = await ProvisionAsync(ownerPassword);
-        db.SetCompanyContext(provisioned.CompanyId);
+        var (ownerUserId, outletId) = await ProvisionAsync(ownerPassword);
 
-        var taxRates = await SeedTaxRatesAsync(provisioned.CompanyId);
-        var tags = await SeedTagsAsync(provisioned.CompanyId);
-        var allergens = await SeedAllergensAsync(provisioned.CompanyId);
-        var modifierGroups = await SeedModifierGroupsAsync(provisioned.CompanyId);
-        var priceGroups = await SeedPriceGroupsAsync(provisioned.CompanyId);
-        var salesChannels = await SeedSalesChannelsAsync(provisioned.CompanyId, priceGroups);
-        var tables = await SeedTablesAsync(provisioned.CompanyId, provisioned.OutletId);
-        var products = await SeedProductsAsync(provisioned.CompanyId, taxRates, tags, allergens, modifierGroups, priceGroups);
-        var staff = await SeedStaffAsync(provisioned.CompanyId, ownerPassword);
+        var taxRates = await SeedTaxRatesAsync();
+        var tags = await SeedTagsAsync();
+        var allergens = await SeedAllergensAsync();
+        var modifierGroups = await SeedModifierGroupsAsync();
+        var priceGroups = await SeedPriceGroupsAsync();
+        var salesChannels = await SeedSalesChannelsAsync(priceGroups);
+        var tables = await SeedTablesAsync(outletId);
+        var products = await SeedProductsAsync(taxRates, tags, allergens, modifierGroups, priceGroups);
+        var staff = await SeedStaffAsync(ownerPassword);
         var customers = await SeedCustomersAsync(ownerPassword);
-        await SeedLoyaltyAsync(provisioned.CompanyId, customers);
-        await SeedEventsAsync(provisioned.CompanyId);
-        var promotions = await SeedPromotionCodesAsync(provisioned.CompanyId);
-        await SeedSampleOrdersAsync(provisioned.OutletId, products, customers, tables, salesChannels, promotions);
-        await SeedPrintoutTemplatesAsync(provisioned.CompanyId);
+        await SeedLoyaltyAsync(customers);
+        await SeedEventsAsync();
+        var promotions = await SeedPromotionCodesAsync();
+        await SeedSampleOrdersAsync(outletId, products, customers, tables, salesChannels, promotions);
+        await SeedPrintoutTemplatesAsync();
 
         await db.SaveChangesAsync();
 
         await BackdateAuditsForVarietyAsync(
-            provisioned.CompanyId,
-            [provisioned.OwnerUserId, staff.ManagerUserId, staff.Barista1UserId, staff.Barista2UserId]);
+            [ownerUserId, staff.ManagerUserId, staff.Barista1UserId, staff.Barista2UserId]);
 
         logger.LogInformation(
-            "Seeded Yumeya demo company {LegalName} (CompanyId={CompanyId}, OutletId={OutletId}, OwnerUserId={OwnerUserId})",
-            CompanyLegalName, provisioned.CompanyId, provisioned.OutletId, provisioned.OwnerUserId);
+            "Seeded Yumeya demo (OutletId={OutletId}, OwnerUserId={OwnerUserId})",
+            outletId, ownerUserId);
     }
 
-    private Task<CompanyOwnerProvisioningResult> ProvisionAsync(string ownerPassword)
+    private async Task<(Guid OwnerUserId, Guid OutletId)> ProvisionAsync(string ownerPassword)
     {
-        var input = new CompanyOwnerProvisioningInput(
-            LegalName: CompanyLegalName,
-            TaxId: "5252525252",
-            InvoicingAddress: OutletAddress,
-            BillingEmail: "biuro@yumeya.pl",
-            BillingPhone: "+48221234567",
-            IsPublic: true,
-            OutletDisplayName: OutletDisplayName,
-            OutletStreetAddress: OutletAddress,
-            OutletPhone: "+48221234567",
-            OutletTimeZone: "Europe/Warsaw",
-            OutletCurrency: Currency.PLN,
-            OutletLogoUrl: null,
-            OwnerEmail: OwnerEmail,
-            OwnerPassword: ownerPassword,
-            OwnerFirstName: "Dariusz",
-            OwnerLastName: "Luśnia");
+        // Owner role must exist before we assign the owner user to it.
+        var ownerRole = await roleManager.FindByNameAsync(SystemRoles.Owner);
+        if (ownerRole is null)
+        {
+            ownerRole = AppRole.Create(SystemRoles.Owner);
+            var roleResult = await roleManager.CreateAsync(ownerRole);
+            if (!roleResult.Succeeded)
+                throw new DomainException(string.Join("; ", roleResult.Errors.Select(x => x.Description)));
+        }
 
-        return CompanyProvisioning.CreateCompanyWithOwnerAsync(input, userManager, roleManager, db);
+        var owner = AppUser.Create(OwnerEmail, "Dariusz", "Luśnia", AccountType.Staff);
+        var createResult = await userManager.CreateAsync(owner, ownerPassword);
+        if (!createResult.Succeeded)
+            throw new DomainException(string.Join("; ", createResult.Errors.Select(x => x.Description)));
+
+        db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = owner.Id, RoleId = ownerRole.Id });
+        await db.SaveChangesAsync();
+
+        var outlet = Outlet.Create(
+            OutletDisplayName,
+            OutletAddress,
+            "+48221234567",
+            "Europe/Warsaw",
+            Currency.PLN);
+        db.Outlets.Add(outlet);
+        await db.SaveChangesAsync();
+
+        return (owner.Id, outlet.Id);
     }
 
     // === Reference data ===
 
     public sealed record TaxRateRefs(TaxRate EatIn, TaxRate Takeaway, TaxRate Goods);
 
-    private async Task<TaxRateRefs> SeedTaxRatesAsync(Guid companyId)
+    private async Task<TaxRateRefs> SeedTaxRatesAsync()
     {
-        var eatIn = TaxRate.Create("VAT 8%", "Gastronomia na miejscu", 8m, companyId);
-        var takeaway = TaxRate.Create("VAT 5%", "Żywność na wynos", 5m, companyId);
-        var goods = TaxRate.Create("VAT 23%", "Towary (kubki, torby)", 23m, companyId);
+        var eatIn = TaxRate.Create("VAT 8%", "Gastronomia na miejscu", 8m);
+        var takeaway = TaxRate.Create("VAT 5%", "Żywność na wynos", 5m);
+        var goods = TaxRate.Create("VAT 23%", "Towary (kubki, torby)", 23m);
         db.TaxRates.AddRange(eatIn, takeaway, goods);
         await db.SaveChangesAsync();
         return new TaxRateRefs(eatIn, takeaway, goods);
@@ -129,18 +127,18 @@ public class YumeyaDemoSeeder(
         Tag Cakes, Tag Wagashi, Tag Savoury,
         Tag Seasonal, Tag Vegan, Tag GlutenFree);
 
-    private async Task<TagRefs> SeedTagsAsync(Guid companyId)
+    private async Task<TagRefs> SeedTagsAsync()
     {
-        var hotDrinks = Tag.Create("Napoje gorące", companyId);
-        var icedDrinks = Tag.Create("Napoje zimne", companyId);
-        var coffee = Tag.Create("Kawa", companyId);
-        var matchaTea = Tag.Create("Matcha & herbata", companyId);
-        var cakes = Tag.Create("Ciasta", companyId);
-        var wagashi = Tag.Create("Wagashi", companyId);
-        var savoury = Tag.Create("Przekąski", companyId);
-        var seasonal = Tag.Create("Sezonowe", companyId);
-        var vegan = Tag.Create("Wegańskie", companyId);
-        var glutenFree = Tag.Create("Bezglutenowe", companyId);
+        var hotDrinks = Tag.Create("Napoje gorące");
+        var icedDrinks = Tag.Create("Napoje zimne");
+        var coffee = Tag.Create("Kawa");
+        var matchaTea = Tag.Create("Matcha & herbata");
+        var cakes = Tag.Create("Ciasta");
+        var wagashi = Tag.Create("Wagashi");
+        var savoury = Tag.Create("Przekąski");
+        var seasonal = Tag.Create("Sezonowe");
+        var vegan = Tag.Create("Wegańskie");
+        var glutenFree = Tag.Create("Bezglutenowe");
         db.Tags.AddRange(hotDrinks, icedDrinks, coffee, matchaTea, cakes, wagashi, savoury, seasonal, vegan, glutenFree);
         await db.SaveChangesAsync();
         return new TagRefs(hotDrinks, icedDrinks, coffee, matchaTea, cakes, wagashi, savoury, seasonal, vegan, glutenFree);
@@ -150,15 +148,15 @@ public class YumeyaDemoSeeder(
         Allergen Milk, Allergen Egg, Allergen Gluten, Allergen Soy,
         Allergen Sesame, Allergen TreeNuts, Allergen Peanuts);
 
-    private async Task<AllergenRefs> SeedAllergensAsync(Guid companyId)
+    private async Task<AllergenRefs> SeedAllergensAsync()
     {
-        var milk = Allergen.Create("Mleko", companyId);
-        var egg = Allergen.Create("Jajka", companyId);
-        var gluten = Allergen.Create("Gluten", companyId);
-        var soy = Allergen.Create("Soja", companyId);
-        var sesame = Allergen.Create("Sezam", companyId);
-        var treeNuts = Allergen.Create("Orzechy", companyId);
-        var peanuts = Allergen.Create("Orzeszki ziemne", companyId);
+        var milk = Allergen.Create("Mleko");
+        var egg = Allergen.Create("Jajka");
+        var gluten = Allergen.Create("Gluten");
+        var soy = Allergen.Create("Soja");
+        var sesame = Allergen.Create("Sezam");
+        var treeNuts = Allergen.Create("Orzechy");
+        var peanuts = Allergen.Create("Orzeszki ziemne");
         db.Allergens.AddRange(milk, egg, gluten, soy, sesame, treeNuts, peanuts);
         await db.SaveChangesAsync();
         return new AllergenRefs(milk, egg, gluten, soy, sesame, treeNuts, peanuts);
@@ -169,47 +167,45 @@ public class YumeyaDemoSeeder(
         ModifierGroup Temperature, ModifierGroup ExtraShot,
         ModifierGroup WhippedCream, ModifierGroup ExtraSweet);
 
-    private async Task<ModifierGroupRefs> SeedModifierGroupsAsync(Guid companyId)
+    private async Task<ModifierGroupRefs> SeedModifierGroupsAsync()
     {
-        var size = ModifierGroup.Create("Rozmiar", companyId);
-        var milk = ModifierGroup.Create("Mleko", companyId);
-        var sweetness = ModifierGroup.Create("Słodkość", companyId);
-        var temperature = ModifierGroup.Create("Temperatura", companyId);
-        var extraShot = ModifierGroup.Create("Dodatkowy shot", companyId);
-        var whippedCream = ModifierGroup.Create("Bita śmietana", companyId);
-        var extraSweet = ModifierGroup.Create("Dodatki deserowe", companyId);
+        var size = ModifierGroup.Create("Rozmiar");
+        var milk = ModifierGroup.Create("Mleko");
+        var sweetness = ModifierGroup.Create("Słodkość");
+        var temperature = ModifierGroup.Create("Temperatura");
+        var extraShot = ModifierGroup.Create("Dodatkowy shot");
+        var whippedCream = ModifierGroup.Create("Bita śmietana");
+        var extraSweet = ModifierGroup.Create("Dodatki deserowe");
 
         db.ModifierGroups.AddRange(size, milk, sweetness, temperature, extraShot, whippedCream, extraSweet);
         await db.SaveChangesAsync();
 
-        // Modifier options. No price impact — modifiers are pure choices, the line
-        // price comes from the product alone.
         db.Modifiers.AddRange(
-            Modifier.Create("Standard", size.Id, companyId),
-            Modifier.Create("Duży", size.Id, companyId),
+            Modifier.Create("Standard", size.Id),
+            Modifier.Create("Duży", size.Id),
 
-            Modifier.Create("Krowie", milk.Id, companyId),
-            Modifier.Create("Owsiane", milk.Id, companyId),
-            Modifier.Create("Sojowe", milk.Id, companyId),
-            Modifier.Create("Migdałowe", milk.Id, companyId),
+            Modifier.Create("Krowie", milk.Id),
+            Modifier.Create("Owsiane", milk.Id),
+            Modifier.Create("Sojowe", milk.Id),
+            Modifier.Create("Migdałowe", milk.Id),
 
-            Modifier.Create("Brak", sweetness.Id, companyId),
-            Modifier.Create("Mała", sweetness.Id, companyId),
-            Modifier.Create("Standardowa", sweetness.Id, companyId),
-            Modifier.Create("Większa", sweetness.Id, companyId),
+            Modifier.Create("Brak", sweetness.Id),
+            Modifier.Create("Mała", sweetness.Id),
+            Modifier.Create("Standardowa", sweetness.Id),
+            Modifier.Create("Większa", sweetness.Id),
 
-            Modifier.Create("Gorące", temperature.Id, companyId),
-            Modifier.Create("Mrożone", temperature.Id, companyId),
+            Modifier.Create("Gorące", temperature.Id),
+            Modifier.Create("Mrożone", temperature.Id),
 
-            Modifier.Create("Bez", extraShot.Id, companyId),
-            Modifier.Create("Dodatkowy shot", extraShot.Id, companyId),
+            Modifier.Create("Bez", extraShot.Id),
+            Modifier.Create("Dodatkowy shot", extraShot.Id),
 
-            Modifier.Create("Bez", whippedCream.Id, companyId),
-            Modifier.Create("Z bitą śmietaną", whippedCream.Id, companyId),
+            Modifier.Create("Bez", whippedCream.Id),
+            Modifier.Create("Z bitą śmietaną", whippedCream.Id),
 
-            Modifier.Create("Bez dodatków", extraSweet.Id, companyId),
-            Modifier.Create("Dodatkowe anko", extraSweet.Id, companyId),
-            Modifier.Create("Dodatkowe mochi", extraSweet.Id, companyId));
+            Modifier.Create("Bez dodatków", extraSweet.Id),
+            Modifier.Create("Dodatkowe anko", extraSweet.Id),
+            Modifier.Create("Dodatkowe mochi", extraSweet.Id));
 
         await db.SaveChangesAsync();
         return new ModifierGroupRefs(size, milk, sweetness, temperature, extraShot, whippedCream, extraSweet);
@@ -219,11 +215,11 @@ public class YumeyaDemoSeeder(
 
     public sealed record PriceGroupRefs(PriceGroup Standard, PriceGroup Loyalty, PriceGroup HappyHour);
 
-    private async Task<PriceGroupRefs> SeedPriceGroupsAsync(Guid companyId)
+    private async Task<PriceGroupRefs> SeedPriceGroupsAsync()
     {
-        var standard = PriceGroup.Create("Standardowa", companyId);
-        var loyalty = PriceGroup.Create("Lojalność", companyId);
-        var happyHour = PriceGroup.Create("Happy hour", companyId);
+        var standard = PriceGroup.Create("Standardowa");
+        var loyalty = PriceGroup.Create("Lojalność");
+        var happyHour = PriceGroup.Create("Happy hour");
         db.PriceGroups.AddRange(standard, loyalty, happyHour);
         await db.SaveChangesAsync();
         return new PriceGroupRefs(standard, loyalty, happyHour);
@@ -231,11 +227,11 @@ public class YumeyaDemoSeeder(
 
     public sealed record SalesChannelRefs(SalesChannel Pos, SalesChannel Online, SalesChannel Mobile);
 
-    private async Task<SalesChannelRefs> SeedSalesChannelsAsync(Guid companyId, PriceGroupRefs priceGroups)
+    private async Task<SalesChannelRefs> SeedSalesChannelsAsync(PriceGroupRefs priceGroups)
     {
-        var pos = SalesChannel.Create("Lokal (POS)", isTakeout: false, companyId);
-        var online = SalesChannel.Create("Online", isTakeout: true, companyId);
-        var mobile = SalesChannel.Create("Aplikacja mobilna", isTakeout: true, companyId);
+        var pos = SalesChannel.Create("Lokal (POS)", isTakeout: false);
+        var online = SalesChannel.Create("Online", isTakeout: true);
+        var mobile = SalesChannel.Create("Aplikacja mobilna", isTakeout: true);
         db.SalesChannels.AddRange(pos, online, mobile);
         await db.SaveChangesAsync();
 
@@ -258,33 +254,22 @@ public class YumeyaDemoSeeder(
         Table Tatami,
         Table Patio1, Table Patio2);
 
-    private async Task<TableRefs> SeedTablesAsync(Guid companyId, Guid outletId)
+    private async Task<TableRefs> SeedTablesAsync(Guid outletId)
     {
-        var bar1 = Table.Create("Bar 1", outletId, companyId);
-        var bar2 = Table.Create("Bar 2", outletId, companyId);
-        var bar3 = Table.Create("Bar 3", outletId, companyId);
-        var window1 = Table.Create("Okno 1", outletId, companyId);
-        var window2 = Table.Create("Okno 2", outletId, companyId);
-        var tatami = Table.Create("Tatami", outletId, companyId);
-        var patio1 = Table.Create("Ogródek 1", outletId, companyId);
-        var patio2 = Table.Create("Ogródek 2", outletId, companyId);
+        var bar1 = Table.Create("Bar 1", outletId);
+        var bar2 = Table.Create("Bar 2", outletId);
+        var bar3 = Table.Create("Bar 3", outletId);
+        var window1 = Table.Create("Okno 1", outletId);
+        var window2 = Table.Create("Okno 2", outletId);
+        var tatami = Table.Create("Tatami", outletId);
+        var patio1 = Table.Create("Ogródek 1", outletId);
+        var patio2 = Table.Create("Ogródek 2", outletId);
         db.Tables.AddRange(bar1, bar2, bar3, window1, window2, tatami, patio1, patio2);
         await db.SaveChangesAsync();
         return new TableRefs(bar1, bar2, bar3, window1, window2, tatami, patio1, patio2);
     }
 
     // === Products ===
-    //
-    // 30 products spread across drinks / cakes / wagashi / savoury / merch.
-    // Each product gets:
-    //   * one tax rate (eat-in for consumables, goods for merch)
-    //   * a few tags (filterable categories on the menu)
-    //   * declared allergens (informative, not blocking)
-    //   * attached modifier groups (size / milk / sweetness / etc.)
-    //   * three prices — one per price group — Standard, Loyalty (-10%), HappyHour (-15%)
-    //
-    // The prices are computed from a single base value via Discount(...) so the seed
-    // stays compact and the math is easy to walk through during defense.
 
     public sealed record ProductRefs(
         Product MatchaLatte, Product HojichaLatte, Product KuroGomaLatte, Product SakuraLatte,
@@ -296,138 +281,130 @@ public class YumeyaDemoSeeder(
         Product TamagoSando, Product KatsuSando, Product OnigiriSalmon, Product OnigiriUmeboshi, Product ZupaMiso);
 
     private async Task<ProductRefs> SeedProductsAsync(
-        Guid companyId,
         TaxRateRefs taxRates,
         TagRefs tags,
         AllergenRefs allergens,
         ModifierGroupRefs modifierGroups,
         PriceGroupRefs priceGroups)
     {
-        // Drinks — eat-in VAT (8%)
-        var matchaLatte = AddProduct(companyId, "Matcha latte", taxRates.EatIn.Id, 18.00m, priceGroups,
+        var matchaLatte = AddProduct("Matcha latte", taxRates.EatIn.Id, 18.00m, priceGroups,
             [tags.HotDrinks, tags.MatchaTea, tags.Vegan],
             [allergens.Soy],
             [modifierGroups.Size, modifierGroups.Milk, modifierGroups.Sweetness, modifierGroups.Temperature, modifierGroups.ExtraShot, modifierGroups.WhippedCream]);
-        var hojichaLatte = AddProduct(companyId, "Hojicha latte", taxRates.EatIn.Id, 18.00m, priceGroups,
+        var hojichaLatte = AddProduct("Hojicha latte", taxRates.EatIn.Id, 18.00m, priceGroups,
             [tags.HotDrinks, tags.MatchaTea],
             [allergens.Milk],
             [modifierGroups.Size, modifierGroups.Milk, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var kuroGomaLatte = AddProduct(companyId, "Kuro goma latte", taxRates.EatIn.Id, 19.00m, priceGroups,
+        var kuroGomaLatte = AddProduct("Kuro goma latte", taxRates.EatIn.Id, 19.00m, priceGroups,
             [tags.HotDrinks],
             [allergens.Milk, allergens.Sesame],
             [modifierGroups.Size, modifierGroups.Milk, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var sakuraLatte = AddProduct(companyId, "Sakura latte", taxRates.EatIn.Id, 20.00m, priceGroups,
+        var sakuraLatte = AddProduct("Sakura latte", taxRates.EatIn.Id, 20.00m, priceGroups,
             [tags.HotDrinks, tags.Seasonal],
             [allergens.Milk],
             [modifierGroups.Size, modifierGroups.Milk, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var yuzuLemoniada = AddProduct(companyId, "Yuzu lemoniada", taxRates.EatIn.Id, 16.00m, priceGroups,
+        var yuzuLemoniada = AddProduct("Yuzu lemoniada", taxRates.EatIn.Id, 16.00m, priceGroups,
             [tags.IcedDrinks, tags.Vegan, tags.GlutenFree],
             [],
             [modifierGroups.Size, modifierGroups.Sweetness]);
-        var umeSoda = AddProduct(companyId, "Ume soda", taxRates.EatIn.Id, 16.00m, priceGroups,
+        var umeSoda = AddProduct("Ume soda", taxRates.EatIn.Id, 16.00m, priceGroups,
             [tags.IcedDrinks, tags.Vegan, tags.GlutenFree],
             [],
             [modifierGroups.Size, modifierGroups.Sweetness]);
-        var ichigoMilk = AddProduct(companyId, "Ichigo milk", taxRates.EatIn.Id, 17.00m, priceGroups,
+        var ichigoMilk = AddProduct("Ichigo milk", taxRates.EatIn.Id, 17.00m, priceGroups,
             [tags.IcedDrinks],
             [allergens.Milk],
             [modifierGroups.Size, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var kawaParzona = AddProduct(companyId, "Kawa parzona", taxRates.EatIn.Id, 12.00m, priceGroups,
+        var kawaParzona = AddProduct("Kawa parzona", taxRates.EatIn.Id, 12.00m, priceGroups,
             [tags.HotDrinks, tags.Coffee, tags.Vegan, tags.GlutenFree],
             [],
             [modifierGroups.Size, modifierGroups.Milk, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var espresso = AddProduct(companyId, "Espresso", taxRates.EatIn.Id, 9.00m, priceGroups,
+        var espresso = AddProduct("Espresso", taxRates.EatIn.Id, 9.00m, priceGroups,
             [tags.HotDrinks, tags.Coffee, tags.Vegan, tags.GlutenFree],
             [],
             [modifierGroups.Size, modifierGroups.ExtraShot]);
-        var cappuccino = AddProduct(companyId, "Cappuccino", taxRates.EatIn.Id, 14.00m, priceGroups,
+        var cappuccino = AddProduct("Cappuccino", taxRates.EatIn.Id, 14.00m, priceGroups,
             [tags.HotDrinks, tags.Coffee],
             [allergens.Milk],
             [modifierGroups.Size, modifierGroups.Milk, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var earlGrey = AddProduct(companyId, "Earl grey", taxRates.EatIn.Id, 12.00m, priceGroups,
+        var earlGrey = AddProduct("Earl grey", taxRates.EatIn.Id, 12.00m, priceGroups,
             [tags.HotDrinks, tags.MatchaTea, tags.Vegan, tags.GlutenFree],
             [],
             [modifierGroups.Size, modifierGroups.Sweetness, modifierGroups.Temperature]);
-        var genmaicha = AddProduct(companyId, "Genmaicha", taxRates.EatIn.Id, 12.00m, priceGroups,
+        var genmaicha = AddProduct("Genmaicha", taxRates.EatIn.Id, 12.00m, priceGroups,
             [tags.HotDrinks, tags.MatchaTea, tags.Vegan, tags.GlutenFree],
             [],
             [modifierGroups.Size, modifierGroups.Sweetness, modifierGroups.Temperature]);
 
-        // Cakes & desserts — eat-in VAT
-        var ichigoShortcake = AddProduct(companyId, "Ichigo shortcake", taxRates.EatIn.Id, 22.00m, priceGroups,
+        var ichigoShortcake = AddProduct("Ichigo shortcake", taxRates.EatIn.Id, 22.00m, priceGroups,
             [tags.Cakes],
             [allergens.Milk, allergens.Egg, allergens.Gluten],
             [modifierGroups.WhippedCream, modifierGroups.ExtraSweet]);
-        var matchaTiramisu = AddProduct(companyId, "Matcha tiramisu", taxRates.EatIn.Id, 24.00m, priceGroups,
+        var matchaTiramisu = AddProduct("Matcha tiramisu", taxRates.EatIn.Id, 24.00m, priceGroups,
             [tags.Cakes, tags.MatchaTea],
             [allergens.Milk, allergens.Egg, allergens.Gluten],
             [modifierGroups.ExtraSweet]);
-        var yuzuBasque = AddProduct(companyId, "Yuzu basque cheesecake", taxRates.EatIn.Id, 26.00m, priceGroups,
+        var yuzuBasque = AddProduct("Yuzu basque cheesecake", taxRates.EatIn.Id, 26.00m, priceGroups,
             [tags.Cakes],
             [allergens.Milk, allergens.Egg],
             [modifierGroups.ExtraSweet]);
-        var montBlanc = AddProduct(companyId, "Mont Blanc", taxRates.EatIn.Id, 28.00m, priceGroups,
+        var montBlanc = AddProduct("Mont Blanc", taxRates.EatIn.Id, 28.00m, priceGroups,
             [tags.Cakes],
             [allergens.Milk, allergens.Egg, allergens.Gluten, allergens.TreeNuts],
             [modifierGroups.WhippedCream]);
-        var hojichaRoll = AddProduct(companyId, "Hojicha roll cake", taxRates.EatIn.Id, 22.00m, priceGroups,
+        var hojichaRoll = AddProduct("Hojicha roll cake", taxRates.EatIn.Id, 22.00m, priceGroups,
             [tags.Cakes],
             [allergens.Milk, allergens.Egg, allergens.Gluten],
             [modifierGroups.WhippedCream]);
-        var kuroGomaOpera = AddProduct(companyId, "Kuro goma opera", taxRates.EatIn.Id, 26.00m, priceGroups,
+        var kuroGomaOpera = AddProduct("Kuro goma opera", taxRates.EatIn.Id, 26.00m, priceGroups,
             [tags.Cakes],
             [allergens.Milk, allergens.Egg, allergens.Gluten, allergens.Sesame],
             [modifierGroups.ExtraSweet]);
-        var mochiDonut = AddProduct(companyId, "Mochi donut", taxRates.EatIn.Id, 14.00m, priceGroups,
+        var mochiDonut = AddProduct("Mochi donut", taxRates.EatIn.Id, 14.00m, priceGroups,
             [tags.Cakes, tags.Wagashi],
             [allergens.Gluten, allergens.Milk],
             [modifierGroups.Sweetness]);
-        var ichigoDaifuku = AddProduct(companyId, "Ichigo daifuku", taxRates.EatIn.Id, 12.00m, priceGroups,
+        var ichigoDaifuku = AddProduct("Ichigo daifuku", taxRates.EatIn.Id, 12.00m, priceGroups,
             [tags.Wagashi, tags.GlutenFree],
             [],
             [modifierGroups.ExtraSweet]);
-        var dorayaki = AddProduct(companyId, "Dorayaki", taxRates.EatIn.Id, 10.00m, priceGroups,
+        var dorayaki = AddProduct("Dorayaki", taxRates.EatIn.Id, 10.00m, priceGroups,
             [tags.Wagashi],
             [allergens.Egg, allergens.Gluten],
             [modifierGroups.ExtraSweet]);
-        var sakuraMochi = AddProduct(companyId, "Sakura mochi", taxRates.EatIn.Id, 11.00m, priceGroups,
+        var sakuraMochi = AddProduct("Sakura mochi", taxRates.EatIn.Id, 11.00m, priceGroups,
             [tags.Wagashi, tags.Seasonal, tags.GlutenFree],
             [],
             [modifierGroups.ExtraSweet]);
 
-        // Savoury — eat-in VAT
-        var tamagoSando = AddProduct(companyId, "Tamago sando", taxRates.EatIn.Id, 18.00m, priceGroups,
+        var tamagoSando = AddProduct("Tamago sando", taxRates.EatIn.Id, 18.00m, priceGroups,
             [tags.Savoury],
             [allergens.Egg, allergens.Gluten, allergens.Milk],
             []);
-        var katsuSando = AddProduct(companyId, "Mini katsu sando", taxRates.EatIn.Id, 22.00m, priceGroups,
+        var katsuSando = AddProduct("Mini katsu sando", taxRates.EatIn.Id, 22.00m, priceGroups,
             [tags.Savoury],
             [allergens.Gluten, allergens.Milk, allergens.Soy],
             []);
-        var onigiriSalmon = AddProduct(companyId, "Onigiri łosoś", taxRates.EatIn.Id, 12.00m, priceGroups,
+        var onigiriSalmon = AddProduct("Onigiri łosoś", taxRates.EatIn.Id, 12.00m, priceGroups,
             [tags.Savoury, tags.GlutenFree],
             [],
             []);
-        var onigiriUmeboshi = AddProduct(companyId, "Onigiri umeboshi", taxRates.EatIn.Id, 10.00m, priceGroups,
+        var onigiriUmeboshi = AddProduct("Onigiri umeboshi", taxRates.EatIn.Id, 10.00m, priceGroups,
             [tags.Savoury, tags.Vegan, tags.GlutenFree],
             [],
             []);
-        var zupaMiso = AddProduct(companyId, "Zupa miso", taxRates.EatIn.Id, 14.00m, priceGroups,
+        var zupaMiso = AddProduct("Zupa miso", taxRates.EatIn.Id, 14.00m, priceGroups,
             [tags.Savoury, tags.Vegan, tags.GlutenFree],
             [allergens.Soy],
             [modifierGroups.Temperature]);
 
-        // Merch — goods VAT (23%)
-        AddProduct(companyId, "Kubek emaliowany Yumeya", taxRates.Goods.Id, 65.00m, priceGroups, [], [], []);
-        AddProduct(companyId, "Furoshiki", taxRates.Goods.Id, 95.00m, priceGroups, [], [], []);
-        AddProduct(companyId, "Puszka matcha 50g", taxRates.Goods.Id, 110.00m, priceGroups, [], [], []);
+        AddProduct("Kubek emaliowany Yumeya", taxRates.Goods.Id, 65.00m, priceGroups, [], [], []);
+        AddProduct("Furoshiki", taxRates.Goods.Id, 95.00m, priceGroups, [], [], []);
+        AddProduct("Puszka matcha 50g", taxRates.Goods.Id, 110.00m, priceGroups, [], [], []);
 
         await db.SaveChangesAsync();
 
-        // Single product list "Menu główne" — every consumable, in roughly the order
-        // a customer would scan a menu (drinks → cakes → wagashi → savoury). Merch
-        // intentionally excluded so it doesn't show up alongside the food.
-        var mainMenu = ProductList.Create("Menu główne", companyId);
+        var mainMenu = ProductList.Create("Menu główne");
         db.ProductLists.Add(mainMenu);
         await db.SaveChangesAsync();
 
@@ -455,11 +432,7 @@ public class YumeyaDemoSeeder(
             tamagoSando, katsuSando, onigiriSalmon, onigiriUmeboshi, zupaMiso);
     }
 
-    // Builds a Product + its tag / allergen / modifier-group links + three price rows
-    // (Standard, Loyalty -10%, HappyHour -15%) and stages everything on the change
-    // tracker. Caller invokes SaveChangesAsync once when the whole batch is built.
     private Product AddProduct(
-        Guid companyId,
         string name,
         Guid taxRateId,
         decimal standardNet,
@@ -468,7 +441,7 @@ public class YumeyaDemoSeeder(
         Allergen[] productAllergens,
         ModifierGroup[] productModifierGroups)
     {
-        var product = Product.Create(name, taxRateId, companyId);
+        var product = Product.Create(name, taxRateId);
         db.Products.Add(product);
 
         foreach (var tag in productTags)
@@ -491,24 +464,13 @@ public class YumeyaDemoSeeder(
     private static decimal Discount(decimal net, decimal percentage) =>
         Math.Round(net * (1m - percentage), 2);
 
-    // === Staff: roles + permission claims + users ===
-    //
-    // CompanyProvisioning already created the Owner role + the dariusz@yumeya.pl
-    // owner. Here we add the rest of the org chart:
-    //
-    //   * Manager  — broad access (everything except role admin)
-    //   * Barista  — orders, loyalty, edits to the menu
-    //   * Kuchnia  — orders view only
-    //
-    // Owner needs no permission claims — PermissionAuthorizationHandler short-circuits
-    // when the user is in SystemRoles.Owner. Other roles get explicit RoleClaim rows
-    // (one per permission), exactly matching the runtime CreateRole / UpdateRole flow.
+    // === Staff ===
 
     public sealed record StaffRefs(Guid ManagerUserId, Guid Barista1UserId, Guid Barista2UserId, Guid KitchenUserId);
 
-    private async Task<StaffRefs> SeedStaffAsync(Guid companyId, string staffPassword)
+    private async Task<StaffRefs> SeedStaffAsync(string staffPassword)
     {
-        var managerRole = await CreateRoleWithPermissionsAsync(companyId, "Kierownik",
+        var managerRole = await CreateRoleWithPermissionsAsync("Kierownik",
         [
             Permissions.OutletManage, Permissions.TablesManage,
             Permissions.ProductsManage, Permissions.ModifiersManage,
@@ -519,27 +481,27 @@ public class YumeyaDemoSeeder(
             Permissions.OrdersView, Permissions.OrdersManage,
             Permissions.ReportsView, Permissions.LoyaltyManage
         ]);
-        var baristaRole = await CreateRoleWithPermissionsAsync(companyId, "Barista",
+        var baristaRole = await CreateRoleWithPermissionsAsync("Barista",
         [
             Permissions.OrdersView, Permissions.OrdersManage,
             Permissions.LoyaltyManage, Permissions.ProductsManage
         ]);
-        var kitchenRole = await CreateRoleWithPermissionsAsync(companyId, "Kuchnia",
+        var kitchenRole = await CreateRoleWithPermissionsAsync("Kuchnia",
         [
             Permissions.OrdersView
         ]);
 
-        var manager = await CreateStaffAsync("kierownik@yumeya.pl", "Maja", "Kowalska", staffPassword, companyId, managerRole.Id);
-        var barista1 = await CreateStaffAsync("anna@yumeya.pl", "Anna", "Nowak", staffPassword, companyId, baristaRole.Id);
-        var barista2 = await CreateStaffAsync("kenji@yumeya.pl", "Kenji", "Tanaka", staffPassword, companyId, baristaRole.Id);
-        var kitchen = await CreateStaffAsync("yuna@yumeya.pl", "Yuna", "Kim", staffPassword, companyId, kitchenRole.Id);
+        var manager = await CreateStaffAsync("kierownik@yumeya.pl", "Maja", "Kowalska", staffPassword, managerRole.Id);
+        var barista1 = await CreateStaffAsync("anna@yumeya.pl", "Anna", "Nowak", staffPassword, baristaRole.Id);
+        var barista2 = await CreateStaffAsync("kenji@yumeya.pl", "Kenji", "Tanaka", staffPassword, baristaRole.Id);
+        var kitchen = await CreateStaffAsync("yuna@yumeya.pl", "Yuna", "Kim", staffPassword, kitchenRole.Id);
 
         return new StaffRefs(manager.Id, barista1.Id, barista2.Id, kitchen.Id);
     }
 
-    private async Task<AppRole> CreateRoleWithPermissionsAsync(Guid companyId, string roleName, string[] permissions)
+    private async Task<AppRole> CreateRoleWithPermissionsAsync(string roleName, string[] permissions)
     {
-        var role = AppRole.Create(roleName, companyId);
+        var role = AppRole.Create(roleName);
         var roleResult = await roleManager.CreateAsync(role);
         if (!roleResult.Succeeded)
             throw new DomainException(string.Join("; ", roleResult.Errors.Select(x => x.Description)));
@@ -556,21 +518,19 @@ public class YumeyaDemoSeeder(
         return role;
     }
 
-    private async Task<AppUser> CreateStaffAsync(string email, string firstName, string lastName, string password, Guid companyId, Guid roleId)
+    private async Task<AppUser> CreateStaffAsync(string email, string firstName, string lastName, string password, Guid roleId)
     {
-        var user = AppUser.Create(email, firstName, lastName, AccountType.Staff, companyId);
+        var user = AppUser.Create(email, firstName, lastName, AccountType.Staff);
         var createResult = await userManager.CreateAsync(user, password);
         if (!createResult.Succeeded)
             throw new DomainException(string.Join("; ", createResult.Errors.Select(x => x.Description)));
 
-        // Same trick as CompanyProvisioning — add the user-role link directly so it
-        // doesn't fight the AppRole global query filter.
         db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = user.Id, RoleId = roleId });
         await db.SaveChangesAsync();
         return user;
     }
 
-    // === Customers (loyalty members) ===
+    // === Customers ===
 
     public sealed record CustomerRefs(AppUser Sakura, AppUser Yuki, AppUser Hana);
 
@@ -591,35 +551,30 @@ public class YumeyaDemoSeeder(
         return user;
     }
 
-    // === Loyalty point history ===
+    // === Loyalty ===
 
-    private async Task SeedLoyaltyAsync(Guid companyId, CustomerRefs customers)
+    private async Task SeedLoyaltyAsync(CustomerRefs customers)
     {
-        // Sakura — Złoty: three earn entries + one redemption (balance ≈ 75 pts).
         db.LoyaltyPointLogs.AddRange(
-            LoyaltyPointLog.Create(customers.Sakura.Id, 50, companyId, "Zakup w lokalu"),
-            LoyaltyPointLog.Create(customers.Sakura.Id, 75, companyId, "Zakup online"),
-            LoyaltyPointLog.Create(customers.Sakura.Id, 100, companyId, "Udział w wydarzeniu"),
-            LoyaltyPointLog.Create(customers.Sakura.Id, -150, companyId, "Wykorzystanie punktów"));
+            LoyaltyPointLog.Create(customers.Sakura.Id, 50, "Zakup w lokalu"),
+            LoyaltyPointLog.Create(customers.Sakura.Id, 75, "Zakup online"),
+            LoyaltyPointLog.Create(customers.Sakura.Id, 100, "Udział w wydarzeniu"),
+            LoyaltyPointLog.Create(customers.Sakura.Id, -150, "Wykorzystanie punktów"));
 
-        // Yuki — Srebrny: a single earn.
         db.LoyaltyPointLogs.Add(
-            LoyaltyPointLog.Create(customers.Yuki.Id, 30, companyId, "Pierwsze zamówienie"));
+            LoyaltyPointLog.Create(customers.Yuki.Id, 30, "Pierwsze zamówienie"));
 
-        // Hana — fresh, no entries.
         await db.SaveChangesAsync();
     }
 
-    // === Events (covers the Phase 4 Events lifecycle) ===
+    // === Events ===
 
-    private async Task SeedEventsAsync(Guid companyId)
+    private async Task SeedEventsAsync()
     {
         var now = DateTimeOffset.UtcNow;
 
-        // Past, closed event — Matcha Tasting Workshop, two weeks ago.
         var matchaTasting = Event.Create(
             "Matcha Tasting Workshop",
-            companyId,
             description: "Wieczór degustacji matchy z trzech regionów Japonii.",
             imageUrl: null);
         db.Events.Add(matchaTasting);
@@ -628,10 +583,8 @@ public class YumeyaDemoSeeder(
         matchaTasting.Publish(now.AddDays(-21));
         matchaTasting.Close(now.AddDays(-13));
 
-        // Upcoming, published event — Sakura Hanami Afternoon, next month.
         var sakuraHanami = Event.Create(
             "Sakura Hanami Afternoon",
-            companyId,
             description: "Popołudnie pod kwitnącymi wiśniami z wagashi i herbatą.",
             imageUrl: null);
         db.Events.Add(sakuraHanami);
@@ -639,10 +592,8 @@ public class YumeyaDemoSeeder(
         db.EventDays.Add(EventDay.Create(sakuraHanami.Id, new DateOnly(2026, 5, 18)));
         sakuraHanami.Publish(now.AddDays(-2));
 
-        // Draft event — Wagashi Making Class, June.
         var wagashiClass = Event.Create(
             "Wagashi Making Class",
-            companyId,
             description: "Warsztaty robienia wagashi pod okiem zaproszonej cukierniczki.",
             imageUrl: null);
         db.Events.Add(wagashiClass);
@@ -656,12 +607,12 @@ public class YumeyaDemoSeeder(
 
     public sealed record PromotionRefs(PromotionCode Welcome10, PromotionCode Sakura2026, PromotionCode Hanami);
 
-    private async Task<PromotionRefs> SeedPromotionCodesAsync(Guid companyId)
+    private async Task<PromotionRefs> SeedPromotionCodesAsync()
     {
-        var welcome10 = PromotionCode.Create("WITAJ10", 10m, companyId, maxUses: 1);
-        var sakura2026 = PromotionCode.Create("SAKURA2026", 15m, companyId,
+        var welcome10 = PromotionCode.Create("WITAJ10", 10m, maxUses: 1);
+        var sakura2026 = PromotionCode.Create("SAKURA2026", 15m,
             validUntil: new DateTimeOffset(2026, 5, 31, 23, 59, 59, TimeSpan.Zero));
-        var hanami = PromotionCode.Create("HANAMI", 15m, companyId,
+        var hanami = PromotionCode.Create("HANAMI", 15m,
             validFrom: new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero),
             validUntil: new DateTimeOffset(2026, 5, 31, 23, 59, 59, TimeSpan.Zero));
         db.PromotionCodes.AddRange(welcome10, sakura2026, hanami);
@@ -670,16 +621,6 @@ public class YumeyaDemoSeeder(
     }
 
     // === Sample orders ===
-    //
-    // Five orders covering the lifecycle states the list filter can show:
-    //   1. Closed dine-in            — Sakura at the bar, paid + closed today
-    //   2. Closed takeaway           — Yuki via Online channel, picked up
-    //   3. Placed pickup             — Hana via Mobile, still waiting
-    //   4. Cancelled                 — POS walk-in cancelled by manager
-    //   5. Closed dine-in with promo — Sakura at Tatami, WITAJ10 applied
-    //
-    // VAT-per-line is the eat-in 8 % rate (or takeaway 5 %) computed from the line's
-    // standard net price — matches what runtime PlaceOrder writes to OrderLine.
 
     private async Task SeedSampleOrdersAsync(
         Guid outletId,
@@ -691,7 +632,6 @@ public class YumeyaDemoSeeder(
     {
         var now = DateTimeOffset.UtcNow;
 
-        // 1. Closed dine-in — Sakura, two coffees + a cake.
         var dineIn = Order.Create(outletId, tableId: tables.Bar1.Id, salesChannelId: salesChannels.Pos.Id, userId: customers.Sakura.Id);
         db.Orders.Add(dineIn);
         await db.SaveChangesAsync();
@@ -699,7 +639,6 @@ public class YumeyaDemoSeeder(
         AddOrderLine(dineIn.Id, products.IchigoShortcake, 1, 22.00m, 0.08m);
         dineIn.Close(now);
 
-        // 2. Closed takeaway — Yuki, lemoniada + onigiri via Online channel.
         var takeaway = Order.Create(outletId, salesChannelId: salesChannels.Online.Id, userId: customers.Yuki.Id);
         db.Orders.Add(takeaway);
         await db.SaveChangesAsync();
@@ -707,21 +646,18 @@ public class YumeyaDemoSeeder(
         AddOrderLine(takeaway.Id, products.OnigiriSalmon, 2, 12.00m, 0.05m);
         takeaway.Close(now.AddHours(-1));
 
-        // 3. Placed pickup — Hana, mobile order in flight.
         var pickup = Order.Create(outletId, salesChannelId: salesChannels.Mobile.Id, userId: customers.Hana.Id);
         db.Orders.Add(pickup);
         await db.SaveChangesAsync();
         AddOrderLine(pickup.Id, products.MatchaLatte, 1, 18.00m, 0.05m);
         AddOrderLine(pickup.Id, products.Dorayaki, 1, 10.00m, 0.05m);
 
-        // 4. Cancelled — walk-in POS that didn't pay.
         var cancelled = Order.Create(outletId, tableId: tables.Window2.Id, salesChannelId: salesChannels.Pos.Id);
         db.Orders.Add(cancelled);
         await db.SaveChangesAsync();
         AddOrderLine(cancelled.Id, products.Espresso, 1, 9.00m, 0.08m);
         cancelled.Cancel(now.AddHours(-3), "Klient nie wrócił po napój.");
 
-        // 5. Closed dine-in with WITAJ10 — Sakura at Tatami, 10 % off the line totals.
         var promoOrder = Order.Create(outletId, tableId: tables.Tatami.Id, salesChannelId: salesChannels.Pos.Id,
             userId: customers.Sakura.Id, loyaltyPointsUsed: 50);
         db.Orders.Add(promoOrder);
@@ -742,37 +678,19 @@ public class YumeyaDemoSeeder(
     }
 
     // === Printout templates ===
-    //
-    // Three placeholder templates so the Printouts admin page isn't empty. Phase 8
-    // wires real .docx files through the rendering engine — for now the URL points
-    // at a static asset that doesn't exist yet. The metadata is what matters here.
 
-    private async Task SeedPrintoutTemplatesAsync(Guid companyId)
+    private async Task SeedPrintoutTemplatesAsync()
     {
         db.PrintoutTemplates.AddRange(
-            PrintoutTemplate.Create("Paragon", "/templates/paragon.docx", companyId),
-            PrintoutTemplate.Create("Bonik dla kuchni", "/templates/bonik-kuchnia.docx", companyId),
-            PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/templates/potwierdzenie-wydarzenia.docx", companyId));
+            PrintoutTemplate.Create("Paragon", "/templates/paragon.docx"),
+            PrintoutTemplate.Create("Bonik dla kuchni", "/templates/bonik-kuchnia.docx"),
+            PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/templates/potwierdzenie-wydarzenia.docx"));
         await db.SaveChangesAsync();
     }
 
     // === Backdate audit timestamps for sortable variety ===
-    //
-    // The AuditableSaveChangesInterceptor stamps every Added entity with
-    // CreatedAt = NOW() and CreatedBy = currentUserId, which means the seed
-    // would otherwise leave every list page looking like one big "everything
-    // created at the same instant by no-one in particular" blob — sorting by
-    // Created or Created-by would do nothing visible.
-    //
-    // Going through raw SQL bypasses the EF change tracker, which is what
-    // the interceptor hooks into. We:
-    //   * spread CreatedAt across the past few weeks (each row 36 h apart)
-    //   * rotate CreatedBy across the four staff users we provisioned
-    //
-    // Plain UPDATE per company-owned table — no migration needed, and the
-    // values are deterministic given the seeded row order.
 
-    private async Task BackdateAuditsForVarietyAsync(Guid companyId, Guid[] creatorUserIds)
+    private async Task BackdateAuditsForVarietyAsync(Guid[] creatorUserIds)
     {
         string[] tables =
         [
@@ -786,24 +704,20 @@ public class YumeyaDemoSeeder(
 
         foreach (var table in tables)
         {
-            // $$ raw interpolated string so {0}..{4} stay as literal SQL placeholders
-            // for ExecuteSqlRawAsync, while {{table}} substitutes the C# value.
             var sql = $$"""
                 WITH numbered AS (
                     SELECT id, ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn
                     FROM {{table}}
-                    WHERE company_id = {0}
                 )
                 UPDATE {{table}} AS t SET
                     created_at = NOW() - (numbered.rn * INTERVAL '36 hours'),
-                    created_by = (ARRAY[{1}::uuid, {2}::uuid, {3}::uuid, {4}::uuid])[((numbered.rn - 1) % 4 + 1)::int]
+                    created_by = (ARRAY[{0}::uuid, {1}::uuid, {2}::uuid, {3}::uuid])[((numbered.rn - 1) % 4 + 1)::int]
                 FROM numbered
                 WHERE t.id = numbered.id;
                 """;
 
             await db.Database.ExecuteSqlRawAsync(
                 sql,
-                companyId,
                 creatorUserIds[0], creatorUserIds[1], creatorUserIds[2], creatorUserIds[3]);
         }
     }

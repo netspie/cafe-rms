@@ -30,8 +30,7 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Add_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PromotionsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PromotionsManage]);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes", new { code = "WELCOME10", discountPercentage = 10m });
 
@@ -41,9 +40,8 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Add_duplicate_code_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedPromoAsync(company.Id, "WELCOME10");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PromotionsManage]);
+        await SeedPromoAsync("WELCOME10");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PromotionsManage]);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes", new { code = "WELCOME10", discountPercentage = 5m });
 
@@ -53,8 +51,7 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Add_with_validFrom_after_validUntil_returns_400()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PromotionsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PromotionsManage]);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes", new
         {
@@ -70,8 +67,7 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Add_without_PromotionsManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes", new { code = "X", discountPercentage = 10m });
 
@@ -81,9 +77,8 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task GetById_returns_promo()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedPromoAsync(company.Id, "WELCOME10");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PromotionsManage]);
+        var id = await SeedPromoAsync("WELCOME10");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PromotionsManage]);
 
         var response = await client.GetAsync($"/api/promotion-codes/{id}");
 
@@ -94,26 +89,10 @@ public sealed class PromotionCodesTests : IDisposable
     }
 
     [Test]
-    public async Task List_does_not_include_other_companies_items()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        await SeedPromoAsync(ownCompany.Id, "OUR10");
-        await SeedPromoAsync(otherCompany.Id, "THEIRS20");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.PromotionsManage]);
-
-        var response = await client.GetAsync("/api/promotion-codes");
-
-        var body = await response.Content.ReadFromJsonAsync<PageDto>();
-        body!.Items.Select(x => x.Code).Should().Equal("OUR10");
-    }
-
-    [Test]
     public async Task Update_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedPromoAsync(company.Id, "WELCOME10");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PromotionsManage]);
+        var id = await SeedPromoAsync("WELCOME10");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PromotionsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/promotion-codes/{id}", new
         {
@@ -128,9 +107,8 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Delete_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedPromoAsync(company.Id, "WELCOME10");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PromotionsManage]);
+        var id = await SeedPromoAsync("WELCOME10");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PromotionsManage]);
 
         var response = await client.DeleteAsync($"/api/promotion-codes/{id}");
 
@@ -140,9 +118,8 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Validate_valid_code_returns_200_with_discount()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedPromoAsync(company.Id, "WELCOME10", discountPercentage: 10m);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        await SeedPromoAsync("WELCOME10", discountPercentage: 10m);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes/validate", new { code = "WELCOME10" });
 
@@ -155,8 +132,7 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Validate_unknown_code_returns_invalid_with_reason()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes/validate", new { code = "DOESNOTEXIST" });
 
@@ -169,11 +145,10 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Validate_expired_code_returns_invalid_with_expired_reason()
     {
-        var company = await factory.SeedCompanyAsync();
         await SeedPromoAsync(
-            company.Id, "EXPIRED", discountPercentage: 10m,
+            "EXPIRED", discountPercentage: 10m,
             validUntil: DateTimeOffset.UtcNow.AddDays(-1));
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes/validate", new { code = "EXPIRED" });
 
@@ -185,11 +160,10 @@ public sealed class PromotionCodesTests : IDisposable
     [Test]
     public async Task Validate_max_uses_reached_returns_invalid_with_reason()
     {
-        var company = await factory.SeedCompanyAsync();
         await SeedPromoAsync(
-            company.Id, "MAXED", discountPercentage: 10m,
+            "MAXED", discountPercentage: 10m,
             maxUses: 1, usesCount: 1);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/promotion-codes/validate", new { code = "MAXED" });
 
@@ -199,7 +173,6 @@ public sealed class PromotionCodesTests : IDisposable
     }
 
     private async Task<Guid> SeedPromoAsync(
-        Guid companyId,
         string code,
         decimal discountPercentage = 10m,
         DateTimeOffset? validFrom = null,
@@ -209,7 +182,7 @@ public sealed class PromotionCodesTests : IDisposable
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var promo = PromotionCode.Create(code, discountPercentage, companyId, validFrom, validUntil, maxUses);
+        var promo = PromotionCode.Create(code, discountPercentage, validFrom, validUntil, maxUses);
         if (usesCount > 0)
         {
             // UsesCount is private set via Update only updating settable fields; for tests

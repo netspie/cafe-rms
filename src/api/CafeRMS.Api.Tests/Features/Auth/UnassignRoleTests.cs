@@ -14,11 +14,10 @@ public sealed class UnassignRoleTests : IDisposable
     [Test]
     public async Task UnassignRole_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!", companyId: company.Id);
+        var role = await factory.SeedRoleAsync("Cashier");
+        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!");
         await factory.AssignRoleAsync(user.Id, role.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.DeleteAsync($"/api/users/{user.Id}/roles/{role.Id}");
 
@@ -28,11 +27,10 @@ public sealed class UnassignRoleTests : IDisposable
     [Test]
     public async Task UnassignRole_last_Owner_removal_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        var ownerRole = await factory.SeedRoleAsync(SystemRoles.Owner, company.Id);
-        var owner = await factory.SeedUserAsync(AccountType.Staff, "owner@x.local", "Pass1234!", companyId: company.Id);
+        var ownerRole = await factory.SeedRoleAsync(SystemRoles.Owner);
+        var owner = await factory.SeedUserAsync(AccountType.Staff, "owner@x.local", "Pass1234!");
         await factory.AssignRoleAsync(owner.Id, ownerRole.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.DeleteAsync($"/api/users/{owner.Id}/roles/{ownerRole.Id}");
 
@@ -42,10 +40,9 @@ public sealed class UnassignRoleTests : IDisposable
     [Test]
     public async Task UnassignRole_when_user_does_not_have_role_returns_404()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!", companyId: company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        var role = await factory.SeedRoleAsync("Cashier");
+        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.DeleteAsync($"/api/users/{user.Id}/roles/{role.Id}");
 
@@ -55,11 +52,10 @@ public sealed class UnassignRoleTests : IDisposable
     [Test]
     public async Task UnassignRole_without_RolesManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!", companyId: company.Id);
+        var role = await factory.SeedRoleAsync("Cashier");
+        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!");
         await factory.AssignRoleAsync(user.Id, role.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.DeleteAsync($"/api/users/{user.Id}/roles/{role.Id}");
 

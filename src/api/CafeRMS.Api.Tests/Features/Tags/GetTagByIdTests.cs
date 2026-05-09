@@ -20,9 +20,8 @@ public sealed class GetTagByIdTests : IDisposable
     [Test]
     public async Task GetTagById_happy_path_returns_tag()
     {
-        var company = await factory.SeedCompanyAsync();
-        var tagId = await SeedTagAsync(company.Id, "Vegan", "https://cdn/v.png");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var tagId = await SeedTagAsync("Vegan", "https://cdn/v.png");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync($"/api/tags/{tagId}");
 
@@ -35,19 +34,18 @@ public sealed class GetTagByIdTests : IDisposable
     [Test]
     public async Task GetTagById_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync($"/api/tags/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedTagAsync(Guid companyId, string name, string? imageUrl = null)
+    private async Task<Guid> SeedTagAsync(string name, string? imageUrl = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var tag = Tag.Create(name, companyId, imageUrl);
+        var tag = Tag.Create(name, imageUrl);
         db.Tags.Add(tag);
         await db.SaveChangesAsync();
         return tag.Id;

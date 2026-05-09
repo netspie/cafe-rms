@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Loyalty;
 
-public class LoyaltyPointLog : CompanyOwnedEntity
+public class LoyaltyPointLog : Entity
 {
     public Guid Id { get; private init; }
     public Guid UserId { get; private init; }
@@ -13,15 +13,14 @@ public class LoyaltyPointLog : CompanyOwnedEntity
 
     private LoyaltyPointLog() { }
 
-    public static LoyaltyPointLog Create(Guid userId, int points, Guid companyId, string? reason = null)
+    public static LoyaltyPointLog Create(Guid userId, int points, string? reason = null)
     {
         return new LoyaltyPointLog
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             Points = points,
-            Reason = reason,
-            CompanyId = companyId
+            Reason = reason
         };
     }
 }

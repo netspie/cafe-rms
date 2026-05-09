@@ -14,9 +14,8 @@ public sealed class DeleteRoleTests : IDisposable
     [Test]
     public async Task DeleteRole_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        var role = await factory.SeedRoleAsync("Cashier");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.DeleteAsync($"/api/roles/{role.Id}");
 
@@ -26,9 +25,8 @@ public sealed class DeleteRoleTests : IDisposable
     [Test]
     public async Task DeleteRole_targeting_Owner_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var ownerRole = await factory.SeedRoleAsync(SystemRoles.Owner, company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        var ownerRole = await factory.SeedRoleAsync(SystemRoles.Owner);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.DeleteAsync($"/api/roles/{ownerRole.Id}");
 
@@ -38,8 +36,7 @@ public sealed class DeleteRoleTests : IDisposable
     [Test]
     public async Task DeleteRole_returns_404_for_nonexistent_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.DeleteAsync($"/api/roles/{Guid.NewGuid()}");
 
@@ -49,9 +46,8 @@ public sealed class DeleteRoleTests : IDisposable
     [Test]
     public async Task DeleteRole_without_RolesManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        var role = await factory.SeedRoleAsync("Cashier");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.DeleteAsync($"/api/roles/{role.Id}");
 

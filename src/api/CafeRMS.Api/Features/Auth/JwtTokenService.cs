@@ -24,17 +24,9 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions, AppDbContex
             new(ClaimsPrincipalExtensions.AccountTypeClaim, user.AccountType.ToString())
         };
 
-        if (user.CompanyId is Guid companyId)
-            claims.Add(new Claim(ClaimsPrincipalExtensions.CompanyIdClaim, companyId.ToString()));
-
-        // Login runs without a company context: the AppRole ICompanyOwned filter would
-        // hide the user's roles (the JWT being generated IS what carries the companyId),
-        // so bypass filters and join roles by user id directly.
         var userRoles = await db.UserRoles
-            .IgnoreQueryFilters()
             .Where(x => x.UserId == user.Id)
-            .Join(db.Roles.IgnoreQueryFilters(), x => x.RoleId, x => x.Id, (x, y) => y)
-            .Where(x => x.DeletedAt == null)
+            .Join(db.Roles, x => x.RoleId, x => x.Id, (x, y) => y)
             .ToListAsync();
 
         foreach (var role in userRoles)

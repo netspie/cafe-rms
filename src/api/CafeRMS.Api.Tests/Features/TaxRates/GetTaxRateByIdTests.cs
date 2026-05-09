@@ -20,9 +20,8 @@ public sealed class GetTaxRateByIdTests : IDisposable
     [Test]
     public async Task GetTaxRateById_happy_path_returns_tax_rate()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedTaxRateAsync(company.Id, "VAT 23%", "Standard", 23m);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TaxRatesManage]);
+        var id = await SeedTaxRateAsync("VAT 23%", "Standard", 23m);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TaxRatesManage]);
 
         var response = await client.GetAsync($"/api/tax-rates/{id}");
 
@@ -35,19 +34,18 @@ public sealed class GetTaxRateByIdTests : IDisposable
     [Test]
     public async Task GetTaxRateById_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TaxRatesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TaxRatesManage]);
 
         var response = await client.GetAsync($"/api/tax-rates/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedTaxRateAsync(Guid companyId, string name, string description, decimal rate)
+    private async Task<Guid> SeedTaxRateAsync(string name, string description, decimal rate)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var taxRate = TaxRate.Create(name, description, rate, companyId);
+        var taxRate = TaxRate.Create(name, description, rate);
         db.TaxRates.Add(taxRate);
         await db.SaveChangesAsync();
         return taxRate.Id;

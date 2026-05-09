@@ -1,14 +1,10 @@
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace CafeRMS.Api.Features.Auth;
 
-public class AppRole : IdentityRole<Guid>, ICompanyOwned, IAuditable, ISoftDeletable
+public class AppRole : IdentityRole<Guid>, IAuditable, ISoftDeletable
 {
-    public Guid CompanyId { get; private init; }
-    public Company? Company { get; private init; }
-
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
@@ -18,14 +14,13 @@ public class AppRole : IdentityRole<Guid>, ICompanyOwned, IAuditable, ISoftDelet
 
     private AppRole() { }
 
-    public static AppRole Create(string name, Guid companyId)
+    public static AppRole Create(string name)
     {
         return new AppRole
         {
             Id = Guid.NewGuid(),
             Name = name,
-            NormalizedName = name.ToUpperInvariant(),
-            CompanyId = companyId
+            NormalizedName = name.ToUpperInvariant()
         };
     }
 }

@@ -30,31 +30,29 @@ public sealed class EventManagementE2ETests : IDisposable
     [Test]
     public async Task FullFlow_staff_creates_event_with_menu_then_guest_orders_then_close_credits_attendance()
     {
-        // ─── Setup: company + the catalog scaffolding the diagram references. ───
-        var company = await factory.SeedCompanyAsync();
-        Guid outletId, productId, priceGroupId, productListId, userId;
+        // ─── Setup: outlet + the catalog scaffolding the diagram references. ───
+        var outlet = await factory.SeedOutletAsync();
+        Guid outletId = outlet.Id;
+        Guid productId, priceGroupId, productListId, userId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var outlet = await db.Outlets.IgnoreQueryFilters().FirstAsync(x => x.CompanyId == company.Id);
-            outletId = outlet.Id;
-            var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m, company.Id);
+            var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m);
             db.TaxRates.Add(taxRate);
-            var product = Product.Create("Acoustic Set Coffee", taxRate.Id, company.Id);
+            var product = Product.Create("Acoustic Set Coffee", taxRate.Id);
             db.Products.Add(product);
             productId = product.Id;
-            var pg = PriceGroup.Create("Acoustic Night", company.Id);
+            var pg = PriceGroup.Create("Acoustic Night");
             db.PriceGroups.Add(pg);
             priceGroupId = pg.Id;
-            // Event price (cheaper than standard — typical event special).
             db.ProductPrices.Add(ProductPrice.Create(product.Id, pg.Id, 4.00m));
-            var user = AppUser.Create($"guest-{Guid.NewGuid()}@test.local", "Eva", "Attendee", AccountType.Guest, null);
+            var user = AppUser.Create($"guest-{Guid.NewGuid()}@test.local", "Eva", "Attendee", AccountType.Guest);
             db.Users.Add(user);
             userId = user.Id;
             await db.SaveChangesAsync();
         }
 
-        using var staff = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions:
+        using var staff = factory.CreateClientAs(AccountType.Staff, permissions:
         [
             Permissions.MenusManage,
             Permissions.EventsManage,

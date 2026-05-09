@@ -16,7 +16,7 @@ public sealed class AddTagController : ControllerBase
     public async Task<AddTag.Response> Handle(
         [FromBody] AddTag.Request request,
         [FromServices] AppDbContext db) =>
-        await AddTag.Execute(request, db.CurrentCompanyId, db);
+        await AddTag.Execute(request, db);
 }
 
 public static class AddTag
@@ -33,16 +33,13 @@ public static class AddTag
         }
     }
 
-    public static async Task<Response> Execute(Request request, Guid companyId, AppDbContext db)
+    public static async Task<Response> Execute(Request request, AppDbContext db)
     {
-        if (companyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a tag.");
-
         var nameTaken = await db.Tags.AnyAsync(x => x.Name == request.Name);
         if (nameTaken)
             throw new ConflictException($"A tag named '{request.Name}' already exists.");
 
-        var tag = Tag.Create(request.Name, companyId, request.ImageUrl);
+        var tag = Tag.Create(request.Name, request.ImageUrl);
         db.Tags.Add(tag);
         await db.SaveChangesAsync();
         return new Response(tag.Id);

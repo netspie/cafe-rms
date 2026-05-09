@@ -18,9 +18,8 @@ public sealed class UpdateTagTests : IDisposable
     [Test]
     public async Task UpdateTag_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var tagId = await SeedTagAsync(company.Id, "Vegan");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var tagId = await SeedTagAsync("Vegan");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/tags/{tagId}", new { name = "Plant-based", imageUrl = "https://cdn/p.png" });
 
@@ -30,21 +29,20 @@ public sealed class UpdateTagTests : IDisposable
     [Test]
     public async Task UpdateTag_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedTagAsync(company.Id, "Spicy");
-        var veganId = await SeedTagAsync(company.Id, "Vegan");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        await SeedTagAsync("Spicy");
+        var veganId = await SeedTagAsync("Vegan");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/tags/{veganId}", new { name = "Spicy", imageUrl = (string?)null });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    private async Task<Guid> SeedTagAsync(Guid companyId, string name)
+    private async Task<Guid> SeedTagAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var tag = Tag.Create(name, companyId);
+        var tag = Tag.Create(name);
         db.Tags.Add(tag);
         await db.SaveChangesAsync();
         return tag.Id;

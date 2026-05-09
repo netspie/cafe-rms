@@ -17,7 +17,7 @@ public sealed class AddLoyaltyAdjustmentController : ControllerBase
         [FromBody] AddLoyaltyAdjustmentRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddLoyaltyAdjustment.Command(db.CurrentCompanyId, request.UserId, request.Points, request.Reason);
+        var command = new AddLoyaltyAdjustment.Command(request.UserId, request.Points, request.Reason);
         var result = await AddLoyaltyAdjustment.Execute(command, db);
         return new AddLoyaltyAdjustmentResponse(result.Id);
     }
@@ -38,15 +38,12 @@ public sealed class AddLoyaltyAdjustmentValidator : AbstractValidator<AddLoyalty
 
 public static class AddLoyaltyAdjustment
 {
-    public sealed record Command(Guid CompanyId, Guid UserId, int Points, string Reason);
+    public sealed record Command(Guid UserId, int Points, string Reason);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required for a loyalty adjustment.");
-
         if (command.Points == 0)
             throw new DomainException("Points must be non-zero.");
 
@@ -54,7 +51,7 @@ public static class AddLoyaltyAdjustment
         if (!userExists)
             throw new NotFoundException("User not found.");
 
-        var entry = LoyaltyPointLog.Create(command.UserId, command.Points, command.CompanyId, command.Reason);
+        var entry = LoyaltyPointLog.Create(command.UserId, command.Points, command.Reason);
         db.LoyaltyPointLogs.Add(entry);
         await db.SaveChangesAsync();
         return new Result(entry.Id);

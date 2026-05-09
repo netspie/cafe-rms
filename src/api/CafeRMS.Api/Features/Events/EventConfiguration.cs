@@ -18,7 +18,6 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>, IEntityTypeCo
         builder.Property(x => x.CancellationReason).HasMaxLength(500);
         builder.HasOne(x => x.ProductList).WithMany().HasForeignKey(x => x.ProductListId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.PriceGroup).WithMany().HasForeignKey(x => x.PriceGroupId).OnDelete(DeleteBehavior.SetNull);
-        builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
     }
 
     public void Configure(EntityTypeBuilder<EventDay> builder)

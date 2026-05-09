@@ -17,7 +17,7 @@ public sealed class AddPriceGroupController : ControllerBase
         [FromBody] AddPriceGroupRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddPriceGroup.Command(db.CurrentCompanyId, request.Name);
+        var command = new AddPriceGroup.Command(request.Name);
         var result = await AddPriceGroup.Execute(command, db);
         return new AddPriceGroupResponse(result.Id);
     }
@@ -37,20 +37,17 @@ public sealed class AddPriceGroupValidator : AbstractValidator<AddPriceGroupRequ
 
 public static class AddPriceGroup
 {
-    public sealed record Command(Guid CompanyId, string Name);
+    public sealed record Command(string Name);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a price group.");
-
         var nameTaken = await db.PriceGroups.AnyAsync(x => x.Name == command.Name);
         if (nameTaken)
             throw new ConflictException($"A price group named '{command.Name}' already exists.");
 
-        var priceGroup = PriceGroup.Create(command.Name, command.CompanyId);
+        var priceGroup = PriceGroup.Create(command.Name);
         db.PriceGroups.Add(priceGroup);
         await db.SaveChangesAsync();
         return new Result(priceGroup.Id);

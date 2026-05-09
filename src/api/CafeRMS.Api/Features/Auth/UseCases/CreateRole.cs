@@ -18,7 +18,7 @@ public sealed class CreateRoleController : ControllerBase
         [FromBody] CreateRoleRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new CreateRole.Command(db.CurrentCompanyId, request.Name, request.Permissions ?? []);
+        var command = new CreateRole.Command(request.Name, request.Permissions ?? []);
         var result = await CreateRole.Execute(command, db);
         return new CreateRoleResponse(result.RoleId);
     }
@@ -39,15 +39,12 @@ public sealed class CreateRoleValidator : AbstractValidator<CreateRoleRequest>
 
 public static class CreateRole
 {
-    public sealed record Command(Guid CompanyId, string Name, IReadOnlyList<string> Permissions);
+    public sealed record Command(string Name, IReadOnlyList<string> Permissions);
 
     public sealed record Result(Guid RoleId);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a role.");
-
         if (string.Equals(command.Name, SystemRoles.Owner, StringComparison.OrdinalIgnoreCase))
             throw new ForbiddenException("The Owner role is system-managed and cannot be created.");
 
@@ -56,7 +53,7 @@ public static class CreateRole
         if (nameTaken)
             throw new ConflictException($"A role named '{command.Name}' already exists.");
 
-        var role = AppRole.Create(command.Name, command.CompanyId);
+        var role = AppRole.Create(command.Name);
         db.Roles.Add(role);
 
         foreach (var permission in command.Permissions)

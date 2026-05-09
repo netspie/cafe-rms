@@ -19,7 +19,6 @@ public sealed class RegisterStaffController : ControllerBase
         [FromServices] AppDbContext db)
     {
         var command = new RegisterStaff.Command(
-            db.CurrentCompanyId,
             request.Email,
             request.Password,
             request.FirstName,
@@ -60,7 +59,6 @@ public sealed class RegisterStaffValidator : AbstractValidator<RegisterStaffRequ
 public static class RegisterStaff
 {
     public sealed record Command(
-        Guid CompanyId,
         string Email,
         string Password,
         string FirstName,
@@ -79,9 +77,6 @@ public static class RegisterStaff
         RoleManager<AppRole> roleManager,
         AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to register staff.");
-
         // Owner role is assigned only via POST /api/users/{userId}/roles/{roleId}
         // (gated by Permissions.RolesManage). Block it here so a UsersManage holder
         // can't promote themselves or anyone else to Owner via the registration endpoint.
@@ -92,7 +87,7 @@ public static class RegisterStaff
         {
             var role = await roleManager.FindByNameAsync(roleName);
             if (role is null)
-                throw new NotFoundException($"Role '{roleName}' not found in the current company.");
+                throw new NotFoundException($"Role '{roleName}' not found.");
         }
 
         var existing = await userManager.FindByEmailAsync(command.Email);
@@ -105,8 +100,7 @@ public static class RegisterStaff
             command.Email,
             command.FirstName,
             command.LastName,
-            AccountType.Staff,
-            command.CompanyId);
+            AccountType.Staff);
 
         var createResult = await userManager.CreateAsync(user, command.Password);
         if (!createResult.Succeeded)

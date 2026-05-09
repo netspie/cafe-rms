@@ -29,9 +29,8 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Add_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var taxRateId = await SeedTaxRateAsync();
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PostAsJsonAsync("/api/products", new { name = "Espresso", taxRateId, barcode = (string?)null });
 
@@ -41,10 +40,9 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Add_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        await SeedProductAsync(company.Id, "Espresso", taxRateId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var taxRateId = await SeedTaxRateAsync();
+        await SeedProductAsync("Espresso", taxRateId);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PostAsJsonAsync("/api/products", new { name = "Espresso", taxRateId });
 
@@ -54,10 +52,9 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Add_duplicate_barcode_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        await SeedProductAsync(company.Id, "Espresso", taxRateId, barcode: "5901234567890");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var taxRateId = await SeedTaxRateAsync();
+        await SeedProductAsync("Espresso", taxRateId, barcode: "5901234567890");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PostAsJsonAsync("/api/products", new { name = "Doppio", taxRateId, barcode = "5901234567890" });
 
@@ -67,8 +64,7 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Add_with_unknown_taxRate_returns_404()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PostAsJsonAsync("/api/products", new { name = "Espresso", taxRateId = Guid.NewGuid() });
 
@@ -78,9 +74,8 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Add_without_ProductsManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        var taxRateId = await SeedTaxRateAsync();
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/products", new { name = "Espresso", taxRateId });
 
@@ -90,10 +85,9 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task GetById_returns_product_with_empty_collections()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        var id = await SeedProductAsync(company.Id, "Espresso", taxRateId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var taxRateId = await SeedTaxRateAsync();
+        var id = await SeedProductAsync("Espresso", taxRateId);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync($"/api/products/{id}");
 
@@ -107,8 +101,7 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task GetById_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync($"/api/products/{Guid.NewGuid()}");
 
@@ -118,12 +111,11 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task List_filter_by_taxRateId()
     {
-        var company = await factory.SeedCompanyAsync();
-        var t23 = await SeedTaxRateAsync(company.Id, "VAT 23%", 23m);
-        var t8 = await SeedTaxRateAsync(company.Id, "VAT 8%", 8m);
-        await SeedProductAsync(company.Id, "Espresso", t23);
-        await SeedProductAsync(company.Id, "Croissant", t8);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var t23 = await SeedTaxRateAsync("VAT 23%", 23m);
+        var t8 = await SeedTaxRateAsync("VAT 8%", 8m);
+        await SeedProductAsync("Espresso", t23);
+        await SeedProductAsync("Croissant", t8);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync($"/api/products?taxRateId={t8}");
 
@@ -132,29 +124,11 @@ public sealed class ProductsCrudTests : IDisposable
     }
 
     [Test]
-    public async Task List_does_not_include_other_companies_items()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        var ownTax = await SeedTaxRateAsync(ownCompany.Id);
-        var otherTax = await SeedTaxRateAsync(otherCompany.Id);
-        await SeedProductAsync(ownCompany.Id, "OurEspresso", ownTax);
-        await SeedProductAsync(otherCompany.Id, "TheirEspresso", otherTax);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.ProductsManage]);
-
-        var response = await client.GetAsync("/api/products");
-
-        var body = await response.Content.ReadFromJsonAsync<PageDto>();
-        body!.Items.Select(x => x.Name).Should().Equal("OurEspresso");
-    }
-
-    [Test]
     public async Task Update_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        var id = await SeedProductAsync(company.Id, "Espresso", taxRateId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var taxRateId = await SeedTaxRateAsync();
+        var id = await SeedProductAsync("Espresso", taxRateId);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/products/{id}", new { name = "Doppio Espresso", taxRateId });
 
@@ -164,10 +138,9 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Delete_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var taxRateId = await SeedTaxRateAsync(company.Id);
-        var id = await SeedProductAsync(company.Id, "Espresso", taxRateId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var taxRateId = await SeedTaxRateAsync();
+        var id = await SeedProductAsync("Espresso", taxRateId);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.DeleteAsync($"/api/products/{id}");
 
@@ -177,29 +150,28 @@ public sealed class ProductsCrudTests : IDisposable
     [Test]
     public async Task Delete_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.DeleteAsync($"/api/products/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedTaxRateAsync(Guid companyId, string name = "VAT 23%", decimal rate = 23m)
+    private async Task<Guid> SeedTaxRateAsync(string name = "VAT 23%", decimal rate = 23m)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var taxRate = TaxRate.Create(name, "x", rate, companyId);
+        var taxRate = TaxRate.Create(name, "x", rate);
         db.TaxRates.Add(taxRate);
         await db.SaveChangesAsync();
         return taxRate.Id;
     }
 
-    private async Task<Guid> SeedProductAsync(Guid companyId, string name, Guid taxRateId, string? barcode = null)
+    private async Task<Guid> SeedProductAsync(string name, Guid taxRateId, string? barcode = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var product = Product.Create(name, taxRateId, companyId, barcode: barcode);
+        var product = Product.Create(name, taxRateId, barcode: barcode);
         db.Products.Add(product);
         await db.SaveChangesAsync();
         return product.Id;

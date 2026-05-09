@@ -17,7 +17,7 @@ public sealed class AddEventController : ControllerBase
         [FromBody] AddEventRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddEvent.Command(db.CurrentCompanyId, request.Name, request.Description, request.ImageUrl, request.ProductListId, request.PriceGroupId);
+        var command = new AddEvent.Command(request.Name, request.Description, request.ImageUrl, request.ProductListId, request.PriceGroupId);
         var result = await AddEvent.Execute(command, db);
         return new AddEventResponse(result.Id);
     }
@@ -40,7 +40,6 @@ public sealed class AddEventValidator : AbstractValidator<AddEventRequest>
 public static class AddEvent
 {
     public sealed record Command(
-        Guid CompanyId,
         string Name,
         string? Description,
         string? ImageUrl,
@@ -51,9 +50,6 @@ public static class AddEvent
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create an event.");
-
         if (command.ProductListId is Guid plId)
         {
             var exists = await db.ProductLists.AnyAsync(x => x.Id == plId);
@@ -67,7 +63,7 @@ public static class AddEvent
                 throw new NotFoundException("Price group not found.");
         }
 
-        var ev = Event.Create(command.Name, command.CompanyId, command.Description, command.ImageUrl, command.ProductListId, command.PriceGroupId);
+        var ev = Event.Create(command.Name, command.Description, command.ImageUrl, command.ProductListId, command.PriceGroupId);
         db.Events.Add(ev);
         await db.SaveChangesAsync();
         return new Result(ev.Id);

@@ -9,8 +9,7 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
     {
         var user = context.User;
 
-        if (user.AccountType == AccountType.SuperAdmin ||
-            user.IsInRole(SystemRoles.Owner) ||
+        if (user.IsInRole(SystemRoles.Owner) ||
             user.HasPermission(requirement.Permission))
             context.Succeed(requirement);
 

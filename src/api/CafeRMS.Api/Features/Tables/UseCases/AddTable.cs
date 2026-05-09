@@ -17,7 +17,7 @@ public sealed class AddTableController : ControllerBase
         [FromBody] AddTableRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddTable.Command(db.CurrentCompanyId, request.Name);
+        var command = new AddTable.Command(request.Name);
         var result = await AddTable.Execute(command, db);
         return new AddTableResponse(result.Id);
     }
@@ -38,28 +38,23 @@ public sealed class AddTableValidator : AbstractValidator<AddTableRequest>
 
 public static class AddTable
 {
-    public sealed record Command(Guid CompanyId, string Name);
+    public sealed record Command(string Name);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a table.");
-
-        // OutletId is resolved server-side: every company has exactly one Outlet (1:1 enforced
-        // by unique index on Outlet.CompanyId), so the caller doesn't pass it.
+        // Single-cafe model: there's exactly one Outlet — pick the first.
         var outletId = await db.Outlets
-            .Where(x => x.CompanyId == command.CompanyId)
             .Select(x => (Guid?)x.Id)
             .FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Outlet not found for the current company.");
+            ?? throw new NotFoundException("Outlet not found.");
 
         var nameTaken = await db.Tables.AnyAsync(x => x.Name == command.Name);
         if (nameTaken)
             throw new ConflictException($"A table named '{command.Name}' already exists.");
 
-        var table = Table.Create(command.Name, outletId, command.CompanyId);
+        var table = Table.Create(command.Name, outletId);
         db.Tables.Add(table);
         await db.SaveChangesAsync();
         return new Result(table.Id);

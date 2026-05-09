@@ -17,7 +17,7 @@ public sealed class AddAllergenController : ControllerBase
         [FromBody] AddAllergenRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddAllergen.Command(db.CurrentCompanyId, request.Name);
+        var command = new AddAllergen.Command(request.Name);
         var result = await AddAllergen.Execute(command, db);
         return new AddAllergenResponse(result.Id);
     }
@@ -38,20 +38,17 @@ public sealed class AddAllergenValidator : AbstractValidator<AddAllergenRequest>
 
 public static class AddAllergen
 {
-    public sealed record Command(Guid CompanyId, string Name);
+    public sealed record Command(string Name);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create an allergen.");
-
         var nameTaken = await db.Allergens.AnyAsync(x => x.Name == command.Name);
         if (nameTaken)
             throw new ConflictException($"An allergen named '{command.Name}' already exists.");
 
-        var allergen = Allergen.Create(command.Name, command.CompanyId);
+        var allergen = Allergen.Create(command.Name);
         db.Allergens.Add(allergen);
         await db.SaveChangesAsync();
         return new Result(allergen.Id);

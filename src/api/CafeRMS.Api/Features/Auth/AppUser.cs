@@ -1,4 +1,3 @@
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Shared.Entities;
 using Microsoft.AspNetCore.Identity;
 
@@ -9,8 +8,6 @@ public class AppUser : IdentityUser<Guid>, IAuditable, ISoftDeletable
     public string FirstName { get; private set; } = "";
     public string LastName { get; private set; } = "";
     public AccountType AccountType { get; private init; }
-    public Guid? CompanyId { get; private init; }
-    public Company? Company { get; private init; }
 
     public DateTimeOffset CreatedAt { get; private init; }
     public Guid CreatedBy { get; private init; }
@@ -21,7 +18,7 @@ public class AppUser : IdentityUser<Guid>, IAuditable, ISoftDeletable
 
     private AppUser() { }
 
-    public static AppUser Create(string email, string firstName, string lastName, AccountType accountType, Guid? companyId = null)
+    public static AppUser Create(string email, string firstName, string lastName, AccountType accountType)
     {
         return new AppUser
         {
@@ -30,8 +27,7 @@ public class AppUser : IdentityUser<Guid>, IAuditable, ISoftDeletable
             Email = email,
             FirstName = firstName,
             LastName = lastName,
-            AccountType = accountType,
-            CompanyId = companyId
+            AccountType = accountType
         };
     }
 

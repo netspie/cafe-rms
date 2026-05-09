@@ -13,11 +13,10 @@ public sealed class ListUsersController : ControllerBase
     public async Task<IReadOnlyList<ListUsers.Item>> Handle(
         [FromQuery] ListUsersRequest request,
         [FromServices] AppDbContext db) =>
-        await ListUsers.Execute(db.CurrentCompanyId, request.AccountType, request.Q, request.Role, db);
+        await ListUsers.Execute(request.AccountType, request.Q, request.Role, db);
 }
 
-// AccountType: "Staff" (default) — staff for the current tenant.
-//              "Guest"           — guest customers, system-wide (guests have no companyId).
+// AccountType: "Staff" (default) or "Guest".
 public sealed record ListUsersRequest(string? AccountType = null, string? Q = null, string? Role = null);
 
 
@@ -32,7 +31,6 @@ public static class ListUsers
         IReadOnlyList<string> Roles);
 
     public static async Task<IReadOnlyList<Item>> Execute(
-        Guid companyId,
         string? accountTypeFilter,
         string? nameFilter,
         string? roleFilter,
@@ -46,10 +44,6 @@ public static class ListUsers
 
         var queryable = db.Users.AsQueryable()
             .Where(x => x.AccountType == requestedAccountType);
-
-        // Staff are tenant-scoped; guests aren't (they can buy at any cafe).
-        if (requestedAccountType == AccountType.Staff)
-            queryable = queryable.Where(x => x.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(nameFilter))
         {
@@ -84,8 +78,6 @@ public static class ListUsers
                 assignments.Where(y => y.UserId == x.Id).Select(y => y.RoleName).ToList()))
             .ToList();
 
-        // Role filter is post-projection because role names are joined in
-        // the second round-trip rather than the main query.
         if (!string.IsNullOrWhiteSpace(roleFilter))
             items = [.. items.Where(x => x.Roles.Contains(roleFilter))];
 

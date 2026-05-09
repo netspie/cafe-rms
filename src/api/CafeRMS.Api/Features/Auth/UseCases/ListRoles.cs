@@ -22,7 +22,6 @@ public static class ListRoles
 
     public static async Task<IReadOnlyList<Item>> Execute(AppDbContext db)
     {
-        // db.Roles is auto-scoped to the current company by AppRole's ICompanyOwned filter.
         var roles = await db.Roles
             .OrderBy(x => x.Name)
             .Select(x => new { x.Id, x.Name })

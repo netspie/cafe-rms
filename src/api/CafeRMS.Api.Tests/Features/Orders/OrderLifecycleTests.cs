@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Orders;
-using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Features.PriceGroups;
 using CafeRMS.Api.Features.Products;
 using CafeRMS.Api.Features.TaxRates;
@@ -60,8 +59,7 @@ public sealed class OrderLifecycleTests : IDisposable
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var balance = await db.LoyaltyPointLogs.IgnoreQueryFilters().Where(x => x.UserId == ctx.UserId).SumAsync(x => x.Points);
-        // Net per line = 5.00, qty 2 → 10.00 net total → 10 points.
+        var balance = await db.LoyaltyPointLogs.Where(x => x.UserId == ctx.UserId).SumAsync(x => x.Points);
         balance.Should().Be(10);
     }
 
@@ -108,41 +106,39 @@ public sealed class OrderLifecycleTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private sealed record TestContext(Guid CompanyId, Guid UserId, Guid OutletId, Guid OrderId, HttpClient Staff, HttpClient Guest);
+    private sealed record TestContext(Guid UserId, Guid OutletId, Guid OrderId, HttpClient Staff, HttpClient Guest);
 
     private async Task<TestContext> SeedAndPlaceAsync()
     {
-        var company = await factory.SeedCompanyAsync();
-        Guid outletId, productId, userId;
+        var outlet = await factory.SeedOutletAsync();
+        Guid productId, userId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var outlet = await db.Outlets.IgnoreQueryFilters().FirstAsync(x => x.CompanyId == company.Id);
-            outletId = outlet.Id;
-            var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m, company.Id);
+            var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m);
             db.TaxRates.Add(taxRate);
-            var product = Product.Create("Espresso", taxRate.Id, company.Id);
+            var product = Product.Create("Espresso", taxRate.Id);
             db.Products.Add(product);
             productId = product.Id;
-            var pg = PriceGroup.Create("Standard", company.Id);
+            var pg = PriceGroup.Create("Standard");
             db.PriceGroups.Add(pg);
             db.ProductPrices.Add(ProductPrice.Create(product.Id, pg.Id, 5.00m));
-            var user = AppUser.Create("guest@test.local", "Guest", "User", AccountType.Guest, null);
+            var user = AppUser.Create("guest@test.local", "Guest", "User", AccountType.Guest);
             db.Users.Add(user);
             userId = user.Id;
             await db.SaveChangesAsync();
         }
-        var staff = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.OrdersManage, Permissions.OrdersView]);
+        var staff = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.OrdersManage, Permissions.OrdersView]);
         var guest = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var place = await guest.PostAsJsonAsync("/api/my/orders", new
         {
-            outletId,
+            outletId = outlet.Id,
             loyaltyPointsUsed = 0,
             lines = new[] { new { productId, quantity = 2, priceGroupId = (Guid?)null } }
         });
         var resp = await place.Content.ReadFromJsonAsync<PlaceResp>();
-        return new TestContext(company.Id, userId, outletId, resp!.OrderId, staff, guest);
+        return new TestContext(userId, outlet.Id, resp!.OrderId, staff, guest);
     }
 
     private sealed record PlaceResp(Guid OrderId);

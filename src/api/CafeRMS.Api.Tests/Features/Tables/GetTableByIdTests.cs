@@ -21,9 +21,8 @@ public sealed class GetTableByIdTests : IDisposable
     [Test]
     public async Task GetTableById_happy_path_returns_table()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedTableAsync(company.Id, "Table 1");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TablesManage]);
+        var id = await SeedTableAsync("Table 1");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TablesManage]);
 
         var response = await client.GetAsync($"/api/tables/{id}");
 
@@ -35,23 +34,24 @@ public sealed class GetTableByIdTests : IDisposable
     [Test]
     public async Task GetTableById_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TablesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TablesManage]);
 
         var response = await client.GetAsync($"/api/tables/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedTableAsync(Guid companyId, string name)
+    private async Task<Guid> SeedTableAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var outletId = await db.Outlets.IgnoreQueryFilters()
-            .Where(x => x.CompanyId == companyId)
-            .Select(x => x.Id)
-            .FirstAsync();
-        var table = Table.Create(name, outletId, companyId);
+        var outletId = await db.Outlets.Select(x => x.Id).FirstOrDefaultAsync();
+        if (outletId == Guid.Empty)
+        {
+            var seeded = await factory.SeedOutletAsync();
+            outletId = seeded.Id;
+        }
+        var table = Table.Create(name, outletId);
         db.Tables.Add(table);
         await db.SaveChangesAsync();
         return table.Id;

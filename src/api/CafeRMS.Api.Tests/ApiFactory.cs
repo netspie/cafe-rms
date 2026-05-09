@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using CafeRMS.Api.Features.Auth;
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
@@ -13,7 +12,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.InMemory.Infrastructure.Internal;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
@@ -25,15 +23,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // ASPNETCORE_ENVIRONMENT = Testing skips StartupSeeder and the auto-migrate dev-only path.
         builder.UseEnvironment("Testing");
 
         builder.ConfigureServices(services =>
         {
-            // Strip every EF Core registration the production setup added for Npgsql, then
-            // wire AppDbContext to InMemory with its own internal service provider — sharing
-            // one root provider across two DB providers (Npgsql + InMemory) trips EF's
-            // "only a single database provider can be registered" guard.
             var efDescriptors = services.Where(x =>
                 x.ServiceType.FullName?.StartsWith("Microsoft.EntityFrameworkCore") == true ||
                 x.ServiceType == typeof(AppDbContext) ||
@@ -49,12 +42,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             {
                 options.UseInMemoryDatabase(dbName);
                 options.UseInternalServiceProvider(inMemoryEfServices);
-
-                // The InMemory provider doesn't support real transactions; downgrade the
-                // warning so use cases calling BeginTransactionAsync don't blow up.
                 options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
 
-                // Wire up the same audit / soft-delete interceptors the production registration uses.
                 options.AddInterceptors(
                     sp.GetRequiredService<CafeRMS.Api.Persistence.Interceptors.AuditableSaveChangesInterceptor>(),
                     sp.GetRequiredService<CafeRMS.Api.Persistence.Interceptors.SoftDeletableSaveChangesInterceptor>());
@@ -62,8 +51,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         });
     }
 
-    // Match the values committed in src/CafeRMS.Api/appsettings.json so the tokens we issue
-    // here are accepted by the same JwtBearer setup the API uses at runtime.
     public const string TestJwtIssuer = "CafeRMS";
     public const string TestJwtAudience = "CafeRMS";
     public const string TestJwtKey = "CHANGE-THIS-TO-A-LONG-SECRET-KEY-AT-LEAST-32-CHARS!";
@@ -74,25 +61,24 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         AccountType accountType,
         string email,
         string password,
-        Guid? companyId = null,
         string firstName = "Test",
         string lastName = "User")
     {
         using var scope = Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        var user = AppUser.Create(email, firstName, lastName, accountType, companyId);
+        var user = AppUser.Create(email, firstName, lastName, accountType);
         var result = await userManager.CreateAsync(user, password);
         if (!result.Succeeded)
             throw new InvalidOperationException("SeedUserAsync failed: " + string.Join("; ", result.Errors.Select(x => x.Description)));
         return user;
     }
 
-    public async Task<AppRole> SeedRoleAsync(string name, Guid companyId, IEnumerable<string>? permissions = null)
+    public async Task<AppRole> SeedRoleAsync(string name, IEnumerable<string>? permissions = null)
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
-        var role = AppRole.Create(name, companyId);
+        var role = AppRole.Create(name);
         var result = await roleManager.CreateAsync(role);
         if (!result.Succeeded)
             throw new InvalidOperationException("SeedRoleAsync failed: " + string.Join("; ", result.Errors.Select(x => x.Description)));
@@ -107,21 +93,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         return role;
     }
 
-    public async Task<Company> SeedCompanyAsync(
-        string legalName = "Test Cafe Sp. z o.o.",
-        string taxId = "0000000000",
-        bool isPublic = false)
+    public async Task<Outlet> SeedOutletAsync(string displayName = "Test Outlet")
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var company = Company.Create(legalName, taxId, "ul. Test 1, 00-001 Warsaw", "billing@test.local", "+48000000000");
-        company.IsPublic = isPublic;
-        db.Companies.Add(company);
-        db.Outlets.Add(Outlet.Create(
-            "Test Outlet", "ul. Test 1, 00-001 Warsaw", "+48000000000",
-            "Europe/Warsaw", Currency.PLN, company.Id));
+        var outlet = Outlet.Create(
+            displayName, "ul. Test 1, 00-001 Warsaw", "+48000000000",
+            "Europe/Warsaw", Currency.PLN);
+        db.Outlets.Add(outlet);
         await db.SaveChangesAsync();
-        return company;
+        return outlet;
     }
 
     public async Task AssignRoleAsync(Guid userId, Guid roleId)
@@ -135,20 +116,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public HttpClient CreateClientAs(
         AccountType accountType,
         Guid? userId = null,
-        Guid? companyId = null,
         IEnumerable<string>? permissions = null,
         IEnumerable<string>? roles = null)
     {
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", BuildToken(accountType, userId, companyId, permissions, roles));
+            new AuthenticationHeaderValue("Bearer", BuildToken(accountType, userId, permissions, roles));
         return client;
     }
 
     private static string BuildToken(
         AccountType accountType,
         Guid? userId,
-        Guid? companyId,
         IEnumerable<string>? permissions,
         IEnumerable<string>? roles)
     {
@@ -158,9 +137,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimsPrincipalExtensions.AccountTypeClaim, accountType.ToString())
         };
-
-        if (companyId is Guid cid)
-            claims.Add(new Claim(ClaimsPrincipalExtensions.CompanyIdClaim, cid.ToString()));
 
         foreach (var role in roles ?? [])
             claims.Add(new Claim(ClaimTypes.Role, role));

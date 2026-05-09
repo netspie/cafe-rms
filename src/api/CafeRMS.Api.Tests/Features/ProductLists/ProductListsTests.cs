@@ -25,8 +25,7 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task Add_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.PostAsJsonAsync("/api/product-lists", new { name = "Breakfast Menu" });
 
@@ -36,9 +35,8 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task Add_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedListAsync(company.Id, "Breakfast Menu");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        await SeedListAsync("Breakfast Menu");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.PostAsJsonAsync("/api/product-lists", new { name = "Breakfast Menu" });
 
@@ -48,8 +46,7 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task Add_without_MenusManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/product-lists", new { name = "Breakfast" });
 
@@ -59,11 +56,10 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task GetById_returns_list_with_product_ids()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast Menu");
-        var productId = await SeedProductAsync(company.Id, "Croissant");
+        var listId = await SeedListAsync("Breakfast Menu");
+        var productId = await SeedProductAsync("Croissant");
         await SeedItemAsync(listId, productId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.GetAsync($"/api/product-lists/{listId}");
 
@@ -73,26 +69,10 @@ public sealed class ProductListsTests : IDisposable
     }
 
     [Test]
-    public async Task List_does_not_include_other_companies_items()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        await SeedListAsync(ownCompany.Id, "OurList");
-        await SeedListAsync(otherCompany.Id, "TheirList");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.MenusManage]);
-
-        var response = await client.GetAsync("/api/product-lists");
-
-        var body = await response.Content.ReadFromJsonAsync<PageDto>();
-        body!.Items.Select(x => x.Name).Should().Equal("OurList");
-    }
-
-    [Test]
     public async Task Update_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        var listId = await SeedListAsync("Breakfast");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.PutAsJsonAsync($"/api/product-lists/{listId}", new { name = "Brunch" });
 
@@ -102,11 +82,10 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task Delete_hard_deletes_items()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast");
-        var productId = await SeedProductAsync(company.Id, "Croissant");
+        var listId = await SeedListAsync("Breakfast");
+        var productId = await SeedProductAsync("Croissant");
         await SeedItemAsync(listId, productId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.DeleteAsync($"/api/product-lists/{listId}");
 
@@ -120,10 +99,9 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task AddItem_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast");
-        var productId = await SeedProductAsync(company.Id, "Croissant");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        var listId = await SeedListAsync("Breakfast");
+        var productId = await SeedProductAsync("Croissant");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.PostAsJsonAsync($"/api/product-lists/{listId}/items", new { productId });
 
@@ -133,10 +111,9 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task AddItem_is_idempotent()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast");
-        var productId = await SeedProductAsync(company.Id, "Croissant");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        var listId = await SeedListAsync("Breakfast");
+        var productId = await SeedProductAsync("Croissant");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
         await client.PostAsJsonAsync($"/api/product-lists/{listId}/items", new { productId });
 
         var response = await client.PostAsJsonAsync($"/api/product-lists/{listId}/items", new { productId });
@@ -147,9 +124,8 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task AddItem_with_unknown_product_returns_404()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        var listId = await SeedListAsync("Breakfast");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.PostAsJsonAsync($"/api/product-lists/{listId}/items", new { productId = Guid.NewGuid() });
 
@@ -159,33 +135,32 @@ public sealed class ProductListsTests : IDisposable
     [Test]
     public async Task RemoveItem_returns_404_when_not_in_list()
     {
-        var company = await factory.SeedCompanyAsync();
-        var listId = await SeedListAsync(company.Id, "Breakfast");
-        var productId = await SeedProductAsync(company.Id, "Croissant");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.MenusManage]);
+        var listId = await SeedListAsync("Breakfast");
+        var productId = await SeedProductAsync("Croissant");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.MenusManage]);
 
         var response = await client.DeleteAsync($"/api/product-lists/{listId}/items/{productId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedListAsync(Guid companyId, string name)
+    private async Task<Guid> SeedListAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var list = ProductList.Create(name, companyId);
+        var list = ProductList.Create(name);
         db.ProductLists.Add(list);
         await db.SaveChangesAsync();
         return list.Id;
     }
 
-    private async Task<Guid> SeedProductAsync(Guid companyId, string name)
+    private async Task<Guid> SeedProductAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var taxRate = TaxRate.Create("VAT", "x", 23m, companyId);
+        var taxRate = TaxRate.Create("VAT", "x", 23m);
         db.TaxRates.Add(taxRate);
-        var product = Product.Create(name, taxRate.Id, companyId);
+        var product = Product.Create(name, taxRate.Id);
         db.Products.Add(product);
         await db.SaveChangesAsync();
         return product.Id;

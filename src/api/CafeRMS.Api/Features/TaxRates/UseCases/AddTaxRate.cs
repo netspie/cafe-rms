@@ -17,7 +17,7 @@ public sealed class AddTaxRateController : ControllerBase
         [FromBody] AddTaxRateRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddTaxRate.Command(db.CurrentCompanyId, request.Name, request.Description, request.Rate);
+        var command = new AddTaxRate.Command(request.Name, request.Description, request.Rate);
         var result = await AddTaxRate.Execute(command, db);
         return new AddTaxRateResponse(result.Id);
     }
@@ -40,20 +40,17 @@ public sealed class AddTaxRateValidator : AbstractValidator<AddTaxRateRequest>
 
 public static class AddTaxRate
 {
-    public sealed record Command(Guid CompanyId, string Name, string Description, decimal Rate);
+    public sealed record Command(string Name, string Description, decimal Rate);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a tax rate.");
-
         var nameTaken = await db.TaxRates.AnyAsync(x => x.Name == command.Name);
         if (nameTaken)
             throw new ConflictException($"A tax rate named '{command.Name}' already exists.");
 
-        var taxRate = TaxRate.Create(command.Name, command.Description, command.Rate, command.CompanyId);
+        var taxRate = TaxRate.Create(command.Name, command.Description, command.Rate);
         db.TaxRates.Add(taxRate);
         await db.SaveChangesAsync();
         return new Result(taxRate.Id);

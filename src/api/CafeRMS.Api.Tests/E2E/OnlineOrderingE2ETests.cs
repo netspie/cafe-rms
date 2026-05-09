@@ -35,23 +35,22 @@ public sealed class OnlineOrderingE2ETests : IDisposable
     [Test]
     public async Task FullFlow_register_place_with_promo_and_loyalty_then_staff_lifecycle_to_close()
     {
-        // ─── Setup: company + staff seed of catalog + promo (the staff side of the diagram). ───
-        var company = await factory.SeedCompanyAsync();
-        Guid outletId, productId;
+        // ─── Setup: outlet + staff seed of catalog + promo (the staff side of the diagram). ───
+        var outlet = await factory.SeedOutletAsync();
+        Guid outletId = outlet.Id;
+        Guid productId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var outlet = await db.Outlets.IgnoreQueryFilters().FirstAsync(x => x.CompanyId == company.Id);
-            outletId = outlet.Id;
-            var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m, company.Id);
+            var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m);
             db.TaxRates.Add(taxRate);
-            var product = Product.Create("Espresso", taxRate.Id, company.Id);
+            var product = Product.Create("Espresso", taxRate.Id);
             db.Products.Add(product);
             productId = product.Id;
-            var pg = PriceGroup.Create("Standard", company.Id);
+            var pg = PriceGroup.Create("Standard");
             db.PriceGroups.Add(pg);
             db.ProductPrices.Add(ProductPrice.Create(product.Id, pg.Id, 5.00m));
-            db.PromotionCodes.Add(PromotionCode.Create("WELCOME10", 10m, company.Id));
+            db.PromotionCodes.Add(PromotionCode.Create("WELCOME10", 10m));
             await db.SaveChangesAsync();
         }
 
@@ -74,12 +73,12 @@ public sealed class OnlineOrderingE2ETests : IDisposable
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var user = await db.Users.OrderByDescending(x => x.CreatedAt).FirstAsync(x => x.AccountType == AccountType.Guest);
             userId = user.Id;
-            db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, 100, company.Id, "test seed"));
+            db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, 100, "test seed"));
             await db.SaveChangesAsync();
         }
 
         using var guest = factory.CreateClientAs(AccountType.Guest, userId: userId);
-        using var staff = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.OrdersManage, Permissions.OrdersView]);
+        using var staff = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.OrdersManage, Permissions.OrdersView]);
 
         // ─── Step 2: Klient — place order with promo + loyalty redemption. ───
         var place = await guest.PostAsJsonAsync("/api/my/orders", new

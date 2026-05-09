@@ -2,20 +2,19 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Allergens;
 
-public class Allergen : CompanyOwnedSoftDeletableEntity
+public class Allergen : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
 
     private Allergen() { }
 
-    public static Allergen Create(string name, Guid companyId)
+    public static Allergen Create(string name)
     {
         return new Allergen
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            CompanyId = companyId
+            Name = name
         };
     }
 

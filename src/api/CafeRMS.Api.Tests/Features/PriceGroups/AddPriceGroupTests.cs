@@ -15,8 +15,7 @@ public sealed class AddPriceGroupTests : IDisposable
     [Test]
     public async Task AddPriceGroup_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
 
         var response = await client.PostAsJsonAsync("/api/price-groups", new { name = "Standard" });
 
@@ -26,8 +25,7 @@ public sealed class AddPriceGroupTests : IDisposable
     [Test]
     public async Task AddPriceGroup_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
         await client.PostAsJsonAsync("/api/price-groups", new { name = "Standard" });
 
         var response = await client.PostAsJsonAsync("/api/price-groups", new { name = "Standard" });
@@ -38,8 +36,7 @@ public sealed class AddPriceGroupTests : IDisposable
     [Test]
     public async Task AddPriceGroup_without_PricingManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/price-groups", new { name = "Standard" });
 

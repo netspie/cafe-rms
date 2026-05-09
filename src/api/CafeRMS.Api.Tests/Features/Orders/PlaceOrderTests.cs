@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Loyalty;
-using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Features.PriceGroups;
 using CafeRMS.Api.Features.Products;
 using CafeRMS.Api.Features.PromotionCodes;
@@ -26,7 +25,7 @@ public sealed class PlaceOrderTests : IDisposable
     [Test]
     public async Task PlaceMyOrder_happy_path_returns_id()
     {
-        var (companyId, userId, outletId, productId) = await SeedAsync();
+        var (userId, outletId, productId) = await SeedAsync();
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -42,7 +41,7 @@ public sealed class PlaceOrderTests : IDisposable
     [Test]
     public async Task PlaceMyOrder_with_unknown_product_returns_404()
     {
-        var (companyId, userId, outletId, _) = await SeedAsync();
+        var (userId, outletId, _) = await SeedAsync();
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -58,8 +57,8 @@ public sealed class PlaceOrderTests : IDisposable
     [Test]
     public async Task PlaceMyOrder_with_no_price_returns_404()
     {
-        var (companyId, userId, outletId, _) = await SeedAsync();
-        var pricelessProductId = await SeedProductWithoutPriceAsync(companyId);
+        var (userId, outletId, _) = await SeedAsync();
+        var pricelessProductId = await SeedProductWithoutPriceAsync();
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -75,7 +74,7 @@ public sealed class PlaceOrderTests : IDisposable
     [Test]
     public async Task PlaceMyOrder_empty_lines_returns_400()
     {
-        var (companyId, userId, outletId, _) = await SeedAsync();
+        var (userId, outletId, _) = await SeedAsync();
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -91,8 +90,8 @@ public sealed class PlaceOrderTests : IDisposable
     [Test]
     public async Task PlaceMyOrder_with_promo_increments_uses_and_applies_discount()
     {
-        var (companyId, userId, outletId, productId) = await SeedAsync();
-        await SeedPromoAsync(companyId, "WELCOME10", 10m);
+        var (userId, outletId, productId) = await SeedAsync();
+        await SeedPromoAsync("WELCOME10", 10m);
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -106,15 +105,15 @@ public sealed class PlaceOrderTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var promo = await db.PromotionCodes.IgnoreQueryFilters().FirstAsync(x => x.Code == "WELCOME10");
+        var promo = await db.PromotionCodes.FirstAsync(x => x.Code == "WELCOME10");
         promo.UsesCount.Should().Be(1);
     }
 
     [Test]
     public async Task PlaceMyOrder_with_loyalty_redemption_burns_points()
     {
-        var (companyId, userId, outletId, productId) = await SeedAsync();
-        await SeedLoyaltyPointsAsync(companyId, userId, 50);
+        var (userId, outletId, productId) = await SeedAsync();
+        await SeedLoyaltyPointsAsync(userId, 50);
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -127,15 +126,15 @@ public sealed class PlaceOrderTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var balance = await db.LoyaltyPointLogs.IgnoreQueryFilters().Where(x => x.UserId == userId).SumAsync(x => x.Points);
+        var balance = await db.LoyaltyPointLogs.Where(x => x.UserId == userId).SumAsync(x => x.Points);
         balance.Should().Be(30);
     }
 
     [Test]
     public async Task PlaceMyOrder_with_insufficient_loyalty_returns_400()
     {
-        var (companyId, userId, outletId, productId) = await SeedAsync();
-        await SeedLoyaltyPointsAsync(companyId, userId, 5);
+        var (userId, outletId, productId) = await SeedAsync();
+        await SeedLoyaltyPointsAsync(userId, 5);
         using var client = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
         var response = await client.PostAsJsonAsync("/api/my/orders", new
@@ -148,49 +147,48 @@ public sealed class PlaceOrderTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    private async Task<(Guid CompanyId, Guid UserId, Guid OutletId, Guid ProductId)> SeedAsync()
+    private async Task<(Guid UserId, Guid OutletId, Guid ProductId)> SeedAsync()
     {
-        var company = await factory.SeedCompanyAsync();
+        var outlet = await factory.SeedOutletAsync();
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var outlet = await db.Outlets.IgnoreQueryFilters().FirstAsync(x => x.CompanyId == company.Id);
-        var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m, company.Id);
+        var taxRate = TaxRate.Create("VAT 23%", "Standard", 23m);
         db.TaxRates.Add(taxRate);
-        var product = Product.Create("Espresso", taxRate.Id, company.Id);
+        var product = Product.Create("Espresso", taxRate.Id);
         db.Products.Add(product);
-        var pg = PriceGroup.Create("Standard", company.Id);
+        var pg = PriceGroup.Create("Standard");
         db.PriceGroups.Add(pg);
         db.ProductPrices.Add(ProductPrice.Create(product.Id, pg.Id, 5.00m));
-        var user = AppUser.Create("guest@test.local", "Guest", "User", AccountType.Guest, null);
+        var user = AppUser.Create("guest@test.local", "Guest", "User", AccountType.Guest);
         db.Users.Add(user);
         await db.SaveChangesAsync();
-        return (company.Id, user.Id, outlet.Id, product.Id);
+        return (user.Id, outlet.Id, product.Id);
     }
 
-    private async Task<Guid> SeedProductWithoutPriceAsync(Guid companyId)
+    private async Task<Guid> SeedProductWithoutPriceAsync()
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var taxRate = await db.TaxRates.IgnoreQueryFilters().FirstAsync(x => x.CompanyId == companyId);
-        var product = Product.Create("Priceless", taxRate.Id, companyId);
+        var taxRate = await db.TaxRates.FirstAsync();
+        var product = Product.Create("Priceless", taxRate.Id);
         db.Products.Add(product);
         await db.SaveChangesAsync();
         return product.Id;
     }
 
-    private async Task SeedPromoAsync(Guid companyId, string code, decimal pct)
+    private async Task SeedPromoAsync(string code, decimal pct)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.PromotionCodes.Add(PromotionCode.Create(code, pct, companyId));
+        db.PromotionCodes.Add(PromotionCode.Create(code, pct));
         await db.SaveChangesAsync();
     }
 
-    private async Task SeedLoyaltyPointsAsync(Guid companyId, Guid userId, int points)
+    private async Task SeedLoyaltyPointsAsync(Guid userId, int points)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, points, companyId, reason: "test seed"));
+        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, points, reason: "test seed"));
         await db.SaveChangesAsync();
     }
 }

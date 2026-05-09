@@ -57,7 +57,6 @@ public static class CloseEvent
             db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(
                 userId,
                 AttendanceBonusPoints,
-                ev.CompanyId,
                 reason: $"Attendance bonus for event {ev.Id}"));
         }
 

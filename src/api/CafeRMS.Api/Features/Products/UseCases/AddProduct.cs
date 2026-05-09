@@ -17,7 +17,7 @@ public sealed class AddProductController : ControllerBase
         [FromBody] AddProductRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddProduct.Command(db.CurrentCompanyId, request.Name, request.Description, request.Barcode, request.TaxRateId);
+        var command = new AddProduct.Command(request.Name, request.Description, request.Barcode, request.TaxRateId);
         var result = await AddProduct.Execute(command, db);
         return new AddProductResponse(result.Id);
     }
@@ -41,15 +41,12 @@ public sealed class AddProductValidator : AbstractValidator<AddProductRequest>
 
 public static class AddProduct
 {
-    public sealed record Command(Guid CompanyId, string Name, string? Description, string? Barcode, Guid TaxRateId);
+    public sealed record Command(string Name, string? Description, string? Barcode, Guid TaxRateId);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a product.");
-
         var taxRateExists = await db.TaxRates.AnyAsync(x => x.Id == command.TaxRateId);
         if (!taxRateExists)
             throw new NotFoundException("Tax rate not found.");
@@ -65,7 +62,7 @@ public static class AddProduct
                 throw new ConflictException($"A product with barcode '{command.Barcode}' already exists.");
         }
 
-        var product = Product.Create(command.Name, command.TaxRateId, command.CompanyId, command.Description, command.Barcode);
+        var product = Product.Create(command.Name, command.TaxRateId, command.Description, command.Barcode);
         db.Products.Add(product);
         await db.SaveChangesAsync();
         return new Result(product.Id);

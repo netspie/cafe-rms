@@ -2,7 +2,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Outlets;
 
-public class Outlet : CompanyOwnedSoftDeletableEntity
+public class Outlet : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string DisplayName { get; private set; } = "";
@@ -14,7 +14,7 @@ public class Outlet : CompanyOwnedSoftDeletableEntity
 
     private Outlet() { }
 
-    public static Outlet Create(string displayName, string streetAddress, string phone, string timeZone, Currency currency, Guid companyId, string? logoUrl = null)
+    public static Outlet Create(string displayName, string streetAddress, string phone, string timeZone, Currency currency, string? logoUrl = null)
     {
         return new Outlet
         {
@@ -24,7 +24,6 @@ public class Outlet : CompanyOwnedSoftDeletableEntity
             Phone = phone,
             TimeZone = timeZone,
             Currency = currency,
-            CompanyId = companyId,
             LogoUrl = logoUrl
         };
     }

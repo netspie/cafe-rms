@@ -14,7 +14,5 @@ public class OutletConfiguration : IEntityTypeConfiguration<Outlet>
         builder.Property(x => x.TimeZone).IsRequired().HasMaxLength(100);
         builder.Property(x => x.Currency).HasConversion<string>().HasMaxLength(5);
         builder.Property(x => x.LogoUrl).HasMaxLength(500);
-        builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(x => x.CompanyId).IsUnique();
     }
 }

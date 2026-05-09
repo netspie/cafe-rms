@@ -2,7 +2,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Tags;
 
-public class Tag : CompanyOwnedSoftDeletableEntity
+public class Tag : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -10,14 +10,13 @@ public class Tag : CompanyOwnedSoftDeletableEntity
 
     private Tag() { }
 
-    public static Tag Create(string name, Guid companyId, string? imageUrl = null)
+    public static Tag Create(string name, string? imageUrl = null)
     {
         return new Tag
         {
             Id = Guid.NewGuid(),
             Name = name,
-            ImageUrl = imageUrl,
-            CompanyId = companyId
+            ImageUrl = imageUrl
         };
     }
 

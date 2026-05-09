@@ -14,7 +14,7 @@ public sealed class GetUserByIdController : ControllerBase
     public async Task<GetUserById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>
-        await GetUserById.Execute(db.CurrentCompanyId, id, db);
+        await GetUserById.Execute(id, db);
 }
 
 
@@ -27,13 +27,13 @@ public static class GetUserById
         string LastName,
         IReadOnlyList<string> Roles);
 
-    public static async Task<Result> Execute(Guid companyId, Guid userId, AppDbContext db)
+    public static async Task<Result> Execute(Guid userId, AppDbContext db)
     {
         var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId)
             ?? throw new NotFoundException("User not found.");
 
-        if (user.AccountType != AccountType.Staff || user.CompanyId != companyId)
-            throw new ForbiddenException("User is not a staff member of the current company.");
+        if (user.AccountType != AccountType.Staff)
+            throw new ForbiddenException("Only staff users are accessible via this endpoint.");
 
         var roles = await db.UserRoles
             .Where(x => x.UserId == user.Id)

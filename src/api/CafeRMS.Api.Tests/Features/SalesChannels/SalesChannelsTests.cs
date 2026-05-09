@@ -26,8 +26,7 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Add_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.PostAsJsonAsync("/api/sales-channels", new { name = "Dine-in", isTakeout = false });
 
@@ -37,9 +36,8 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Add_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedChannelAsync(company.Id, "Dine-in", false);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        await SeedChannelAsync("Dine-in", false);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.PostAsJsonAsync("/api/sales-channels", new { name = "Dine-in", isTakeout = true });
 
@@ -49,8 +47,7 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Add_without_permission_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/sales-channels", new { name = "Dine-in", isTakeout = false });
 
@@ -60,11 +57,10 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task GetById_returns_channel_with_linked_price_groups()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        var pgId = await SeedPriceGroupAsync(company.Id, "Standard");
+        var scId = await SeedChannelAsync("Dine-in", false);
+        var pgId = await SeedPriceGroupAsync("Standard");
         await SeedLinkAsync(scId, pgId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.GetAsync($"/api/sales-channels/{scId}");
 
@@ -77,8 +73,7 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task GetById_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.GetAsync($"/api/sales-channels/{Guid.NewGuid()}");
 
@@ -86,26 +81,10 @@ public sealed class SalesChannelsTests : IDisposable
     }
 
     [Test]
-    public async Task List_does_not_include_other_companies_items()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        await SeedChannelAsync(ownCompany.Id, "OurChannel", false);
-        await SeedChannelAsync(otherCompany.Id, "TheirChannel", false);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.SalesChannelsManage]);
-
-        var response = await client.GetAsync("/api/sales-channels");
-
-        var body = await response.Content.ReadFromJsonAsync<PageDto>();
-        body!.Items.Select(x => x.Name).Should().Equal("OurChannel");
-    }
-
-    [Test]
     public async Task Update_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        var scId = await SeedChannelAsync("Dine-in", false);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/sales-channels/{scId}", new { name = "Takeout", isTakeout = true });
 
@@ -115,11 +94,10 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Delete_hard_deletes_links()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        var pgId = await SeedPriceGroupAsync(company.Id, "Standard");
+        var scId = await SeedChannelAsync("Dine-in", false);
+        var pgId = await SeedPriceGroupAsync("Standard");
         await SeedLinkAsync(scId, pgId);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.DeleteAsync($"/api/sales-channels/{scId}");
 
@@ -133,10 +111,9 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Link_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        var pgId = await SeedPriceGroupAsync(company.Id, "Standard");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        var scId = await SeedChannelAsync("Dine-in", false);
+        var pgId = await SeedPriceGroupAsync("Standard");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.PostAsync($"/api/sales-channels/{scId}/price-groups/{pgId}", null);
 
@@ -146,10 +123,9 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Link_is_idempotent()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        var pgId = await SeedPriceGroupAsync(company.Id, "Standard");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        var scId = await SeedChannelAsync("Dine-in", false);
+        var pgId = await SeedPriceGroupAsync("Standard");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
         await client.PostAsync($"/api/sales-channels/{scId}/price-groups/{pgId}", null);
 
         var response = await client.PostAsync($"/api/sales-channels/{scId}/price-groups/{pgId}", null);
@@ -160,9 +136,8 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Link_with_unknown_price_group_returns_404()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        var scId = await SeedChannelAsync("Dine-in", false);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.PostAsync($"/api/sales-channels/{scId}/price-groups/{Guid.NewGuid()}", null);
 
@@ -172,31 +147,30 @@ public sealed class SalesChannelsTests : IDisposable
     [Test]
     public async Task Unlink_returns_404_when_link_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        var scId = await SeedChannelAsync(company.Id, "Dine-in", false);
-        var pgId = await SeedPriceGroupAsync(company.Id, "Standard");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.SalesChannelsManage]);
+        var scId = await SeedChannelAsync("Dine-in", false);
+        var pgId = await SeedPriceGroupAsync("Standard");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.SalesChannelsManage]);
 
         var response = await client.DeleteAsync($"/api/sales-channels/{scId}/price-groups/{pgId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedChannelAsync(Guid companyId, string name, bool isTakeout)
+    private async Task<Guid> SeedChannelAsync(string name, bool isTakeout)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var sc = SalesChannel.Create(name, isTakeout, companyId);
+        var sc = SalesChannel.Create(name, isTakeout);
         db.SalesChannels.Add(sc);
         await db.SaveChangesAsync();
         return sc.Id;
     }
 
-    private async Task<Guid> SeedPriceGroupAsync(Guid companyId, string name)
+    private async Task<Guid> SeedPriceGroupAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var pg = PriceGroup.Create(name, companyId);
+        var pg = PriceGroup.Create(name);
         db.PriceGroups.Add(pg);
         await db.SaveChangesAsync();
         return pg.Id;

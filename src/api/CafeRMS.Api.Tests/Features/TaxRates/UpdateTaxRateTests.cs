@@ -18,9 +18,8 @@ public sealed class UpdateTaxRateTests : IDisposable
     [Test]
     public async Task UpdateTaxRate_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedTaxRateAsync(company.Id, "VAT 23%", "Standard", 23m);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TaxRatesManage]);
+        var id = await SeedTaxRateAsync("VAT 23%", "Standard", 23m);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TaxRatesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/tax-rates/{id}", new { name = "VAT 8%", description = "Reduced", rate = 8m });
 
@@ -30,21 +29,20 @@ public sealed class UpdateTaxRateTests : IDisposable
     [Test]
     public async Task UpdateTaxRate_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedTaxRateAsync(company.Id, "Reduced", "x", 8m);
-        var stdId = await SeedTaxRateAsync(company.Id, "Standard", "y", 23m);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TaxRatesManage]);
+        await SeedTaxRateAsync("Reduced", "x", 8m);
+        var stdId = await SeedTaxRateAsync("Standard", "y", 23m);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TaxRatesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/tax-rates/{stdId}", new { name = "Reduced", description = "y", rate = 23m });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    private async Task<Guid> SeedTaxRateAsync(Guid companyId, string name, string description, decimal rate)
+    private async Task<Guid> SeedTaxRateAsync(string name, string description, decimal rate)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var taxRate = TaxRate.Create(name, description, rate, companyId);
+        var taxRate = TaxRate.Create(name, description, rate);
         db.TaxRates.Add(taxRate);
         await db.SaveChangesAsync();
         return taxRate.Id;

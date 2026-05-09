@@ -17,7 +17,7 @@ public sealed class AddSalesChannelController : ControllerBase
         [FromBody] AddSalesChannelRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddSalesChannel.Command(db.CurrentCompanyId, request.Name, request.IsTakeout);
+        var command = new AddSalesChannel.Command(request.Name, request.IsTakeout);
         var result = await AddSalesChannel.Execute(command, db);
         return new AddSalesChannelResponse(result.Id);
     }
@@ -38,20 +38,17 @@ public sealed class AddSalesChannelValidator : AbstractValidator<AddSalesChannel
 
 public static class AddSalesChannel
 {
-    public sealed record Command(Guid CompanyId, string Name, bool IsTakeout);
+    public sealed record Command(string Name, bool IsTakeout);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a sales channel.");
-
         var nameTaken = await db.SalesChannels.AnyAsync(x => x.Name == command.Name);
         if (nameTaken)
             throw new ConflictException($"A sales channel named '{command.Name}' already exists.");
 
-        var channel = SalesChannel.Create(command.Name, command.IsTakeout, command.CompanyId);
+        var channel = SalesChannel.Create(command.Name, command.IsTakeout);
         db.SalesChannels.Add(channel);
         await db.SaveChangesAsync();
         return new Result(channel.Id);

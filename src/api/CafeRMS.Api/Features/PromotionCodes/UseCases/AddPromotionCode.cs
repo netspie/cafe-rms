@@ -18,7 +18,6 @@ public sealed class AddPromotionCodeController : ControllerBase
         [FromServices] AppDbContext db)
     {
         var command = new AddPromotionCode.Command(
-            db.CurrentCompanyId,
             request.Code,
             request.DiscountPercentage,
             request.ValidFrom,
@@ -52,7 +51,6 @@ public sealed class AddPromotionCodeValidator : AbstractValidator<AddPromotionCo
 public static class AddPromotionCode
 {
     public sealed record Command(
-        Guid CompanyId,
         string Code,
         decimal DiscountPercentage,
         DateTimeOffset? ValidFrom,
@@ -63,9 +61,6 @@ public static class AddPromotionCode
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a promotion code.");
-
         if (command.ValidFrom is DateTimeOffset from && command.ValidUntil is DateTimeOffset until && from > until)
             throw new DomainException("ValidFrom must be earlier than ValidUntil.");
 
@@ -76,7 +71,6 @@ public static class AddPromotionCode
         var promo = PromotionCode.Create(
             command.Code,
             command.DiscountPercentage,
-            command.CompanyId,
             command.ValidFrom,
             command.ValidUntil,
             command.MaxUses);

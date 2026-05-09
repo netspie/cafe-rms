@@ -38,10 +38,7 @@ public static class AddFavorite
 {
     public static async Task Execute(Guid userId, Guid productId, AppDbContext db)
     {
-        // Bypass the Product ICompanyOwned filter: Guests have no company in their JWT,
-        // and a favorite is just a UserId+ProductId pair anyway. We still need to confirm
-        // the product exists.
-        var productExists = await db.Products.IgnoreQueryFilters().AnyAsync(x => x.Id == productId && x.DeletedAt == null);
+        var productExists = await db.Products.AnyAsync(x => x.Id == productId);
         if (!productExists)
             throw new NotFoundException("Product not found.");
 

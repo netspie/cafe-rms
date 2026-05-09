@@ -39,12 +39,16 @@ public sealed class CancelMyOrderController : ControllerBase
 {
     [HttpPost("/api/my/orders/{id:guid}/cancel")]
     [Authorize(Policy = Policies.RequireGuest)]
-    [ResourceOwner<Order>("id", nameof(Order.UserId))]
     public async Task<IActionResult> Handle(
         [FromRoute] Guid id,
         [FromBody] CancelMyOrderRequest request,
         [FromServices] AppDbContext db)
     {
+        var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id)
+            ?? throw new NotFoundException("Order not found.");
+        if (order.UserId != User.UserId)
+            throw new NotFoundException("Order not found.");
+
         await CancelOrder.Execute(id, request.Reason, db, DateTimeOffset.UtcNow);
         return NoContent();
     }

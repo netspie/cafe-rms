@@ -11,11 +11,10 @@ public class TaxRateConfiguration : IEntityTypeConfiguration<TaxRate>
         builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
         builder.Property(x => x.Description).IsRequired().HasMaxLength(500);
         builder.Property(x => x.Rate).HasPrecision(18, 2);
-        builder.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(x => new { x.CompanyId, x.Name })
+        builder.HasIndex(x => x.Name)
             .IsUnique()
             .HasFilter("deleted_at IS NULL")
-            .HasDatabaseName("ix_tax_rates_company_id_name");
+            .HasDatabaseName("ix_tax_rates_name");
     }
 }

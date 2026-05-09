@@ -21,11 +21,10 @@ public sealed class ListAllergensTests : IDisposable
     [Test]
     public async Task ListAllergens_filter_and_sort_returns_matching_items()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedAllergenAsync(company.Id, "Peanuts");
-        await SeedAllergenAsync(company.Id, "Pecans");
-        await SeedAllergenAsync(company.Id, "Gluten");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        await SeedAllergenAsync("Peanuts");
+        await SeedAllergenAsync("Pecans");
+        await SeedAllergenAsync("Gluten");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync("/api/allergens?name=pe&sort=-name");
 
@@ -35,27 +34,11 @@ public sealed class ListAllergensTests : IDisposable
         body.Items.Select(x => x.Name).Should().Equal("Pecans", "Peanuts");
     }
 
-    [Test]
-    public async Task ListAllergens_does_not_include_other_companies_items()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        await SeedAllergenAsync(ownCompany.Id, "OurPeanuts");
-        await SeedAllergenAsync(otherCompany.Id, "TheirPeanuts");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.ProductsManage]);
-
-        var response = await client.GetAsync("/api/allergens");
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<PageDto>();
-        body!.Items.Select(x => x.Name).Should().Equal("OurPeanuts");
-    }
-
-    private async Task SeedAllergenAsync(Guid companyId, string name)
+    private async Task SeedAllergenAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Allergens.Add(Allergen.Create(name, companyId));
+        db.Allergens.Add(Allergen.Create(name));
         await db.SaveChangesAsync();
     }
 }

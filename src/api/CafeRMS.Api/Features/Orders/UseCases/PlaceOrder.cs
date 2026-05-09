@@ -1,6 +1,5 @@
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Features.Loyalty;
-using CafeRMS.Api.Features.Outlets;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Errors;
@@ -62,8 +61,9 @@ public static class PlaceOrder
         if (request.Lines.Count == 0)
             throw new DomainException("Order must have at least one line.");
 
-        var outlet = await ResolveOutletAsync(request.OutletId, db);
-        db.SetCompanyContext(outlet.CompanyId);
+        var outletExists = await db.Outlets.AnyAsync(x => x.Id == request.OutletId);
+        if (!outletExists)
+            throw new NotFoundException("Outlet not found.");
 
         await using var tx = await db.Database.BeginTransactionAsync();
 
@@ -83,7 +83,7 @@ public static class PlaceOrder
             await ApplyPromotionAsync(request.PromotionCode, subtotal, order, now, db);
 
         if (request.LoyaltyPointsUsed > 0)
-            await RedeemLoyaltyPointsAsync(userId, request.LoyaltyPointsUsed, outlet.CompanyId, order.Id, db);
+            await RedeemLoyaltyPointsAsync(userId, request.LoyaltyPointsUsed, order.Id, db);
 
         db.Orders.Add(order);
         db.OrderLines.AddRange(lines);
@@ -92,11 +92,6 @@ public static class PlaceOrder
 
         return new Result(order.Id);
     }
-
-    private static async Task<Outlet> ResolveOutletAsync(Guid outletId, AppDbContext db) =>
-        await db.Outlets.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(x => x.Id == outletId && x.DeletedAt == null)
-            ?? throw new NotFoundException("Outlet not found.");
 
     private static async Task<(List<OrderLine> Lines, decimal Subtotal)> BuildLinesAsync(
         IReadOnlyList<PlaceOrderLineRequest> requestLines,
@@ -147,7 +142,7 @@ public static class PlaceOrder
         promo.RegisterUsage();
     }
 
-    private static async Task RedeemLoyaltyPointsAsync(Guid userId, int points, Guid companyId, Guid orderId, AppDbContext db)
+    private static async Task RedeemLoyaltyPointsAsync(Guid userId, int points, Guid orderId, AppDbContext db)
     {
         var balance = await db.LoyaltyPointLogs
             .Where(x => x.UserId == userId)
@@ -155,6 +150,6 @@ public static class PlaceOrder
         if (balance < points)
             throw new DomainException($"Insufficient loyalty balance ({balance} available).");
 
-        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, -points, companyId, reason: $"Redeemed on order {orderId}"));
+        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, -points, reason: $"Redeemed on order {orderId}"));
     }
 }

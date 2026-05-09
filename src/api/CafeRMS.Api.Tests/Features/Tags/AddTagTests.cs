@@ -15,8 +15,7 @@ public sealed class AddTagTests : IDisposable
     [Test]
     public async Task AddTag_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PostAsJsonAsync("/api/tags", new { name = "Vegan", imageUrl = "https://cdn/vegan.png" });
 
@@ -26,8 +25,7 @@ public sealed class AddTagTests : IDisposable
     [Test]
     public async Task AddTag_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
         await client.PostAsJsonAsync("/api/tags", new { name = "Vegan" });
 
         var response = await client.PostAsJsonAsync("/api/tags", new { name = "Vegan" });
@@ -38,8 +36,7 @@ public sealed class AddTagTests : IDisposable
     [Test]
     public async Task AddTag_without_ProductsManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/tags", new { name = "Vegan" });
 

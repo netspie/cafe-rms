@@ -2,7 +2,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.SalesChannels;
 
-public class SalesChannel : CompanyOwnedSoftDeletableEntity
+public class SalesChannel : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -10,14 +10,13 @@ public class SalesChannel : CompanyOwnedSoftDeletableEntity
 
     private SalesChannel() { }
 
-    public static SalesChannel Create(string name, bool isTakeout, Guid companyId)
+    public static SalesChannel Create(string name, bool isTakeout)
     {
         return new SalesChannel
         {
             Id = Guid.NewGuid(),
             Name = name,
-            IsTakeout = isTakeout,
-            CompanyId = companyId
+            IsTakeout = isTakeout
         };
     }
 

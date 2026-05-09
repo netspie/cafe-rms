@@ -18,9 +18,8 @@ public sealed class UpdateAllergenTests : IDisposable
     [Test]
     public async Task UpdateAllergen_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedAllergenAsync(company.Id, "Peanuts");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var id = await SeedAllergenAsync("Peanuts");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/allergens/{id}", new { name = "Tree nuts" });
 
@@ -30,21 +29,20 @@ public sealed class UpdateAllergenTests : IDisposable
     [Test]
     public async Task UpdateAllergen_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedAllergenAsync(company.Id, "Gluten");
-        var peanutsId = await SeedAllergenAsync(company.Id, "Peanuts");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        await SeedAllergenAsync("Gluten");
+        var peanutsId = await SeedAllergenAsync("Peanuts");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.PutAsJsonAsync($"/api/allergens/{peanutsId}", new { name = "Gluten" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    private async Task<Guid> SeedAllergenAsync(Guid companyId, string name)
+    private async Task<Guid> SeedAllergenAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var allergen = Allergen.Create(name, companyId);
+        var allergen = Allergen.Create(name);
         db.Allergens.Add(allergen);
         await db.SaveChangesAsync();
         return allergen.Id;

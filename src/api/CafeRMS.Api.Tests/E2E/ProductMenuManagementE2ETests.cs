@@ -31,8 +31,7 @@ public sealed class ProductMenuManagementE2ETests : IDisposable
     [Test]
     public async Task FullFlow_staff_sets_up_complete_product_and_menu()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var staff = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions:
+        using var staff = factory.CreateClientAs(AccountType.Staff, permissions:
         [
             Permissions.TaxRatesManage,
             Permissions.PricingManage,

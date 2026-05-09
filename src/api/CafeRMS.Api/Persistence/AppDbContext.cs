@@ -1,7 +1,6 @@
 using System.Reflection;
 using CafeRMS.Api.Features.Allergens;
 using CafeRMS.Api.Features.Auth;
-using CafeRMS.Api.Features.Companies;
 using CafeRMS.Api.Features.Events;
 using CafeRMS.Api.Features.Favorites;
 using CafeRMS.Api.Features.Loyalty;
@@ -19,7 +18,6 @@ using CafeRMS.Api.Features.Tables;
 using CafeRMS.Api.Features.Tags;
 using CafeRMS.Api.Features.TaxRates;
 using CafeRMS.Api.Features.UserSettings;
-using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -27,10 +25,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor)
+public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<AppUser, AppRole, Guid>(options)
 {
-    public DbSet<Company> Companies => Set<Company>();
     public DbSet<Outlet> Outlets => Set<Outlet>();
     public DbSet<Table> Tables => Set<Table>();
     public DbSet<TaxRate> TaxRates => Set<TaxRate>();
@@ -74,45 +71,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        ApplyQueryFilters(builder);
+        ApplySoftDeleteFilters(builder);
         ApplyXminConcurrencyTokens(builder);
     }
 
-    private void ApplyQueryFilters(ModelBuilder builder)
+    private static void ApplySoftDeleteFilters(ModelBuilder builder)
     {
-        var softDeleteOnly = typeof(AppDbContext)
-            .GetMethod(nameof(ApplySoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var companyOwnedOnly = typeof(AppDbContext)
-            .GetMethod(nameof(ApplyCompanyOwnedFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var both = typeof(AppDbContext)
-            .GetMethod(nameof(ApplyCompanyOwnedAndSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var softDeleteFilter = typeof(AppDbContext)
+            .GetMethod(nameof(ApplySoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Static)!;
 
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
-            var clrType = entityType.ClrType;
-            var isSoftDeletable = typeof(ISoftDeletable).IsAssignableFrom(clrType);
-            var isCompanyOwned = typeof(ICompanyOwned).IsAssignableFrom(clrType);
+            if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+                continue;
 
-            MethodInfo? method = (isCompanyOwned, isSoftDeletable) switch
-            {
-                (true, true) => both,
-                (true, false) => companyOwnedOnly,
-                (false, true) => softDeleteOnly,
-                _ => null
-            };
-
-            method?.MakeGenericMethod(clrType).Invoke(this, [builder]);
+            softDeleteFilter.MakeGenericMethod(entityType.ClrType).Invoke(null, [builder]);
         }
     }
 
-    private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : class, ISoftDeletable =>
+    private static void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : class, ISoftDeletable =>
         builder.Entity<T>().HasQueryFilter(e => e.DeletedAt == null);
-
-    private void ApplyCompanyOwnedFilter<T>(ModelBuilder builder) where T : class, ICompanyOwned =>
-        builder.Entity<T>().HasQueryFilter(e => e.CompanyId == CurrentCompanyId);
-
-    private void ApplyCompanyOwnedAndSoftDeleteFilter<T>(ModelBuilder builder) where T : class, ICompanyOwned, ISoftDeletable =>
-        builder.Entity<T>().HasQueryFilter(e => e.CompanyId == CurrentCompanyId && e.DeletedAt == null);
 
     private static void ApplyXminConcurrencyTokens(ModelBuilder builder)
     {
@@ -127,37 +105,4 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAc
                 .ValueGeneratedOnAddOrUpdate();
         }
     }
-
-    private Guid? _companyContextOverride;
-
-    public Guid CurrentCompanyId
-    {
-        get
-        {
-            // Runtime override wins. Used by Guest-facing flows (e.g. PlaceOrder) that
-            // derive the company from request data (the target outlet) rather than from
-            // JWT claims — Guests don't carry a companyId in their token. Once the use
-            // case looks the company up, it calls SetCompanyContext(...) and every
-            // subsequent ICompanyOwned query scopes correctly via the global filter
-            // without needing IgnoreQueryFilters.
-            if (_companyContextOverride is { } overridden)
-                return overridden;
-
-            var httpContext = httpContextAccessor.HttpContext;
-            if (httpContext is null)
-                return Guid.Empty;
-
-            // SuperAdmin context-switches to a specific tenant via the X-Company-Id header.
-            // Other account types (Staff, Guest) use the companyId claim baked into their JWT.
-            var raw = httpContext.User.AccountType == AccountType.SuperAdmin
-                ? httpContext.Request.Headers[ClaimsPrincipalExtensions.CompanyIdSwitchHeader].FirstOrDefault()
-                : httpContext.User.FindFirst(ClaimsPrincipalExtensions.CompanyIdClaim)?.Value;
-
-            return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
-        }
-    }
-
-    // Set a per-request company context. AppDbContext is scoped per-request via DI, so
-    // this override is request-isolated — no concurrency risk across users.
-    public void SetCompanyContext(Guid companyId) => _companyContextOverride = companyId;
 }

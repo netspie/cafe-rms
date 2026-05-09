@@ -19,9 +19,8 @@ public sealed class UpdateTableTests : IDisposable
     [Test]
     public async Task UpdateTable_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedTableAsync(company.Id, "Table 1");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TablesManage]);
+        var id = await SeedTableAsync("Table 1");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TablesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/tables/{id}", new { name = "Window seat" });
 
@@ -31,25 +30,26 @@ public sealed class UpdateTableTests : IDisposable
     [Test]
     public async Task UpdateTable_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedTableAsync(company.Id, "Bar");
-        var t1Id = await SeedTableAsync(company.Id, "Table 1");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.TablesManage]);
+        await SeedTableAsync("Bar");
+        var t1Id = await SeedTableAsync("Table 1");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.TablesManage]);
 
         var response = await client.PutAsJsonAsync($"/api/tables/{t1Id}", new { name = "Bar" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    private async Task<Guid> SeedTableAsync(Guid companyId, string name)
+    private async Task<Guid> SeedTableAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var outletId = await db.Outlets.IgnoreQueryFilters()
-            .Where(x => x.CompanyId == companyId)
-            .Select(x => x.Id)
-            .FirstAsync();
-        var table = Table.Create(name, outletId, companyId);
+        var outletId = await db.Outlets.Select(x => x.Id).FirstOrDefaultAsync();
+        if (outletId == Guid.Empty)
+        {
+            var seeded = await factory.SeedOutletAsync();
+            outletId = seeded.Id;
+        }
+        var table = Table.Create(name, outletId);
         db.Tables.Add(table);
         await db.SaveChangesAsync();
         return table.Id;

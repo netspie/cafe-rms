@@ -74,12 +74,7 @@ var authBuilder = builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.RequireGuest, p =>
         p.RequireClaim(ClaimsPrincipalExtensions.AccountTypeClaim, nameof(AccountType.Guest)))
     .AddPolicy(Policies.RequireStaff, p =>
-        p.RequireClaim(ClaimsPrincipalExtensions.AccountTypeClaim, nameof(AccountType.Staff)))
-    .AddPolicy(Policies.RequireSuperAdmin, p =>
-        p.RequireClaim(ClaimsPrincipalExtensions.AccountTypeClaim, nameof(AccountType.SuperAdmin)))
-    .AddPolicy(Policies.RequireStaffOrSuperAdmin, p =>
-        p.RequireClaim(ClaimsPrincipalExtensions.AccountTypeClaim,
-            nameof(AccountType.Staff), nameof(AccountType.SuperAdmin)));
+        p.RequireClaim(ClaimsPrincipalExtensions.AccountTypeClaim, nameof(AccountType.Staff)));
 
 foreach (var permission in Permissions.All)
     authBuilder.AddPolicy(permission, p => p.AddRequirements(new PermissionRequirement(permission)));

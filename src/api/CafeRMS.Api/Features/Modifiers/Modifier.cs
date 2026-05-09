@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Modifiers;
 
-public class Modifier : CompanyOwnedSoftDeletableEntity
+public class Modifier : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -12,14 +12,13 @@ public class Modifier : CompanyOwnedSoftDeletableEntity
 
     private Modifier() { }
 
-    public static Modifier Create(string name, Guid modifierGroupId, Guid companyId)
+    public static Modifier Create(string name, Guid modifierGroupId)
     {
         return new Modifier
         {
             Id = Guid.NewGuid(),
             Name = name,
-            ModifierGroupId = modifierGroupId,
-            CompanyId = companyId
+            ModifierGroupId = modifierGroupId
         };
     }
 

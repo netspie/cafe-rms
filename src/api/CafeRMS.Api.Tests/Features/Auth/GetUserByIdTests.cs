@@ -17,11 +17,10 @@ public sealed class GetUserByIdTests : IDisposable
     [Test]
     public async Task GetById_happy_path_returns_user_with_roles()
     {
-        var company = await factory.SeedCompanyAsync();
-        var role = await factory.SeedRoleAsync("Cashier", company.Id);
-        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!", companyId: company.Id);
+        var role = await factory.SeedRoleAsync("Cashier");
+        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!");
         await factory.AssignRoleAsync(user.Id, role.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.UsersManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.UsersManage]);
 
         var response = await client.GetAsync($"/api/users/{user.Id}");
 
@@ -32,23 +31,9 @@ public sealed class GetUserByIdTests : IDisposable
     }
 
     [Test]
-    public async Task GetById_user_in_other_company_returns_403()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        var foreign = await factory.SeedUserAsync(AccountType.Staff, "foreign@x.local", "Pass1234!", companyId: otherCompany.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.UsersManage]);
-
-        var response = await client.GetAsync($"/api/users/{foreign.Id}");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Test]
     public async Task GetById_returns_404_for_nonexistent()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.UsersManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.UsersManage]);
 
         var response = await client.GetAsync($"/api/users/{Guid.NewGuid()}");
 
@@ -58,9 +43,8 @@ public sealed class GetUserByIdTests : IDisposable
     [Test]
     public async Task GetById_without_UsersManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!", companyId: company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        var user = await factory.SeedUserAsync(AccountType.Staff, "staff@x.local", "Pass1234!");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.GetAsync($"/api/users/{user.Id}");
 

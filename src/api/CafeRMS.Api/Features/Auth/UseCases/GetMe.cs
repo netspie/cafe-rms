@@ -27,7 +27,6 @@ public static class GetMe
         string FirstName,
         string LastName,
         AccountType AccountType,
-        Guid? CompanyId,
         Guid? OutletId,
         IReadOnlyList<string> Roles,
         IReadOnlyList<string> Permissions);
@@ -39,12 +38,9 @@ public static class GetMe
 
         var roles = await userManager.GetRolesAsync(user);
 
-        var outletId = user.CompanyId is Guid companyId
-            ? await db.Outlets.IgnoreQueryFilters()
-                .Where(x => x.CompanyId == companyId && x.DeletedAt == null)
-                .Select(x => (Guid?)x.Id)
-                .FirstOrDefaultAsync()
-            : null;
+        var outletId = await db.Outlets
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefaultAsync();
 
         var roleIds = await db.Roles
             .Where(r => roles.Contains(r.Name!))
@@ -63,7 +59,6 @@ public static class GetMe
             user.FirstName,
             user.LastName,
             user.AccountType,
-            user.CompanyId,
             outletId,
             roles.ToList(),
             permissions);

@@ -2,7 +2,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.PromotionCodes;
 
-public class PromotionCode : CompanyOwnedSoftDeletableEntity
+public class PromotionCode : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Code { get; private set; } = "";
@@ -17,7 +17,6 @@ public class PromotionCode : CompanyOwnedSoftDeletableEntity
     public static PromotionCode Create(
         string code,
         decimal discountPercentage,
-        Guid companyId,
         DateTimeOffset? validFrom = null,
         DateTimeOffset? validUntil = null,
         int? maxUses = null)
@@ -30,8 +29,7 @@ public class PromotionCode : CompanyOwnedSoftDeletableEntity
             ValidFrom = validFrom,
             ValidUntil = validUntil,
             MaxUses = maxUses,
-            UsesCount = 0,
-            CompanyId = companyId
+            UsesCount = 0
         };
     }
 

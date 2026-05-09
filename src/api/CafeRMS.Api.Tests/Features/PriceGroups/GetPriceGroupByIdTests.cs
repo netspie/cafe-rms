@@ -20,9 +20,8 @@ public sealed class GetPriceGroupByIdTests : IDisposable
     [Test]
     public async Task GetPriceGroupById_happy_path_returns_price_group()
     {
-        var company = await factory.SeedCompanyAsync();
-        var id = await SeedPriceGroupAsync(company.Id, "Standard");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        var id = await SeedPriceGroupAsync("Standard");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
 
         var response = await client.GetAsync($"/api/price-groups/{id}");
 
@@ -34,19 +33,18 @@ public sealed class GetPriceGroupByIdTests : IDisposable
     [Test]
     public async Task GetPriceGroupById_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.PricingManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.PricingManage]);
 
         var response = await client.GetAsync($"/api/price-groups/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedPriceGroupAsync(Guid companyId, string name)
+    private async Task<Guid> SeedPriceGroupAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var pg = PriceGroup.Create(name, companyId);
+        var pg = PriceGroup.Create(name);
         db.PriceGroups.Add(pg);
         await db.SaveChangesAsync();
         return pg.Id;

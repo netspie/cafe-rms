@@ -3,7 +3,7 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.Products;
 
-public class Product : CompanyOwnedSoftDeletableEntity
+public class Product : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
@@ -14,7 +14,7 @@ public class Product : CompanyOwnedSoftDeletableEntity
 
     private Product() { }
 
-    public static Product Create(string name, Guid taxRateId, Guid companyId, string? description = null, string? barcode = null)
+    public static Product Create(string name, Guid taxRateId, string? description = null, string? barcode = null)
     {
         return new Product
         {
@@ -22,8 +22,7 @@ public class Product : CompanyOwnedSoftDeletableEntity
             Name = name,
             Description = description,
             Barcode = barcode,
-            TaxRateId = taxRateId,
-            CompanyId = companyId
+            TaxRateId = taxRateId
         };
     }
 

@@ -17,7 +17,7 @@ public sealed class UpdateUserController : ControllerBase
         [FromBody] UpdateUserRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new UpdateUser.Command(db.CurrentCompanyId, id, request.FirstName, request.LastName);
+        var command = new UpdateUser.Command(id, request.FirstName, request.LastName);
         await UpdateUser.Execute(command, db);
         return NoContent();
     }
@@ -37,15 +37,15 @@ public sealed class UpdateUserValidator : AbstractValidator<UpdateUserRequest>
 
 public static class UpdateUser
 {
-    public sealed record Command(Guid CompanyId, Guid UserId, string FirstName, string LastName);
+    public sealed record Command(Guid UserId, string FirstName, string LastName);
 
     public static async Task Execute(Command command, AppDbContext db)
     {
         var user = await db.Users.FirstOrDefaultAsync(x => x.Id == command.UserId)
             ?? throw new NotFoundException("User not found.");
 
-        if (user.AccountType != AccountType.Staff || user.CompanyId != command.CompanyId)
-            throw new ForbiddenException("User is not a staff member of the current company.");
+        if (user.AccountType != AccountType.Staff)
+            throw new ForbiddenException("Only staff users can be updated via this endpoint.");
 
         user.UpdateProfile(command.FirstName, command.LastName);
         await db.SaveChangesAsync();

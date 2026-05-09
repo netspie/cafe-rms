@@ -17,7 +17,7 @@ public sealed class AddPrintoutTemplateController : ControllerBase
         [FromBody] AddPrintoutTemplateRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddPrintoutTemplate.Command(db.CurrentCompanyId, request.Name, request.TemplateFileUrl);
+        var command = new AddPrintoutTemplate.Command(request.Name, request.TemplateFileUrl);
         var result = await AddPrintoutTemplate.Execute(command, db);
         return new AddPrintoutTemplateResponse(result.Id);
     }
@@ -39,20 +39,17 @@ public sealed class AddPrintoutTemplateValidator : AbstractValidator<AddPrintout
 
 public static class AddPrintoutTemplate
 {
-    public sealed record Command(Guid CompanyId, string Name, string TemplateFileUrl);
+    public sealed record Command(string Name, string TemplateFileUrl);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a printout template.");
-
         var nameTaken = await db.PrintoutTemplates.AnyAsync(x => x.Name == command.Name);
         if (nameTaken)
             throw new ConflictException($"A printout template named '{command.Name}' already exists.");
 
-        var template = PrintoutTemplate.Create(command.Name, command.TemplateFileUrl, command.CompanyId);
+        var template = PrintoutTemplate.Create(command.Name, command.TemplateFileUrl);
         db.PrintoutTemplates.Add(template);
         await db.SaveChangesAsync();
         return new Result(template.Id);

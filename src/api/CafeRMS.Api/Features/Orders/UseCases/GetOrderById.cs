@@ -24,11 +24,17 @@ public sealed class GetMyOrderByIdController : ControllerBase
 {
     [HttpGet("/api/my/orders/{id:guid}")]
     [Authorize(Policy = Policies.RequireGuest)]
-    [ResourceOwner<Order>("id", nameof(Order.UserId))]
     public async Task<GetOrderById.Result> Handle(
         [FromRoute] Guid id,
-        [FromServices] AppDbContext db) =>
-        await GetOrderById.Execute(id, db);
+        [FromServices] AppDbContext db)
+    {
+        var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id)
+            ?? throw new NotFoundException("Order not found.");
+        if (order.UserId != User.UserId)
+            throw new NotFoundException("Order not found.");
+
+        return await GetOrderById.Execute(id, db);
+    }
 }
 
 public static class GetOrderById

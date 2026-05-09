@@ -17,9 +17,8 @@ public sealed class DeleteTagTests : IDisposable
     [Test]
     public async Task DeleteTag_happy_path_returns_204()
     {
-        var company = await factory.SeedCompanyAsync();
-        var tagId = await SeedTagAsync(company.Id, "Vegan");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        var tagId = await SeedTagAsync("Vegan");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.DeleteAsync($"/api/tags/{tagId}");
 
@@ -29,19 +28,18 @@ public sealed class DeleteTagTests : IDisposable
     [Test]
     public async Task DeleteTag_returns_404_when_missing()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.DeleteAsync($"/api/tags/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<Guid> SeedTagAsync(Guid companyId, string name)
+    private async Task<Guid> SeedTagAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var tag = Tag.Create(name, companyId);
+        var tag = Tag.Create(name);
         db.Tags.Add(tag);
         await db.SaveChangesAsync();
         return tag.Id;

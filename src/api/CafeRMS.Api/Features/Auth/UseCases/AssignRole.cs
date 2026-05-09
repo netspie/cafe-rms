@@ -17,7 +17,7 @@ public sealed class AssignRoleController : ControllerBase
         [FromRoute] Guid roleId,
         [FromServices] AppDbContext db)
     {
-        await AssignRole.Execute(new AssignRole.Command(db.CurrentCompanyId, userId, roleId), db);
+        await AssignRole.Execute(new AssignRole.Command(userId, roleId), db);
         return NoContent();
     }
 }
@@ -25,22 +25,17 @@ public sealed class AssignRoleController : ControllerBase
 
 public static class AssignRole
 {
-    public sealed record Command(Guid CompanyId, Guid UserId, Guid RoleId);
+    public sealed record Command(Guid UserId, Guid RoleId);
 
     public static async Task Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required.");
-
-        // Role must be in the current company (filter ensures this; else NotFound).
         var role = await db.Roles.FirstOrDefaultAsync(x => x.Id == command.RoleId)
-            ?? throw new NotFoundException("Role not found in the current company.");
+            ?? throw new NotFoundException("Role not found.");
 
-        // User must be a Staff user in the current company.
         var user = await db.Users.FirstOrDefaultAsync(x => x.Id == command.UserId)
             ?? throw new NotFoundException("User not found.");
-        if (user.AccountType != AccountType.Staff || user.CompanyId != command.CompanyId)
-            throw new ForbiddenException("User is not a staff member of the current company.");
+        if (user.AccountType != AccountType.Staff)
+            throw new ForbiddenException("Roles can only be assigned to staff users.");
 
         var alreadyAssigned = await db.UserRoles.AnyAsync(x => x.UserId == user.Id && x.RoleId == role.Id);
         if (alreadyAssigned)

@@ -2,20 +2,19 @@ using CafeRMS.Api.Shared.Entities;
 
 namespace CafeRMS.Api.Features.PriceGroups;
 
-public class PriceGroup : CompanyOwnedSoftDeletableEntity
+public class PriceGroup : SoftDeletableEntity
 {
     public Guid Id { get; private init; }
     public string Name { get; private set; } = "";
 
     private PriceGroup() { }
 
-    public static PriceGroup Create(string name, Guid companyId)
+    public static PriceGroup Create(string name)
     {
         return new PriceGroup
         {
             Id = Guid.NewGuid(),
-            Name = name,
-            CompanyId = companyId
+            Name = name
         };
     }
 

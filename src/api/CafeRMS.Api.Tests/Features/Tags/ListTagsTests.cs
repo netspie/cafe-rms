@@ -21,11 +21,10 @@ public sealed class ListTagsTests : IDisposable
     [Test]
     public async Task ListTags_filter_and_sort_returns_matching_items()
     {
-        var company = await factory.SeedCompanyAsync();
-        await SeedTagAsync(company.Id, "Vegan");
-        await SeedTagAsync(company.Id, "Vegetarian");
-        await SeedTagAsync(company.Id, "Spicy");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.ProductsManage]);
+        await SeedTagAsync("Vegan");
+        await SeedTagAsync("Vegetarian");
+        await SeedTagAsync("Spicy");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.ProductsManage]);
 
         var response = await client.GetAsync("/api/tags?name=veg&sort=-name");
 
@@ -35,27 +34,11 @@ public sealed class ListTagsTests : IDisposable
         body.Items.Select(x => x.Name).Should().Equal("Vegetarian", "Vegan");
     }
 
-    [Test]
-    public async Task ListTags_does_not_include_other_companies_tags()
-    {
-        var ownCompany = await factory.SeedCompanyAsync(legalName: "Own", taxId: "1");
-        var otherCompany = await factory.SeedCompanyAsync(legalName: "Other", taxId: "2");
-        await SeedTagAsync(ownCompany.Id, "OurTag");
-        await SeedTagAsync(otherCompany.Id, "TheirTag");
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: ownCompany.Id, permissions: [Permissions.ProductsManage]);
-
-        var response = await client.GetAsync("/api/tags");
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<PageDto>();
-        body!.Items.Select(x => x.Name).Should().Equal("OurTag");
-    }
-
-    private async Task SeedTagAsync(Guid companyId, string name)
+    private async Task SeedTagAsync(string name)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Tags.Add(Tag.Create(name, companyId));
+        db.Tags.Add(Tag.Create(name));
         await db.SaveChangesAsync();
     }
 }

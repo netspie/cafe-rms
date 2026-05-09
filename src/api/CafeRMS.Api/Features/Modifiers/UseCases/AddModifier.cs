@@ -17,7 +17,7 @@ public sealed class AddModifierController : ControllerBase
         [FromBody] AddModifierRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddModifier.Command(db.CurrentCompanyId, request.ModifierGroupId, request.Name);
+        var command = new AddModifier.Command(request.ModifierGroupId, request.Name);
         var result = await AddModifier.Execute(command, db);
         return new AddModifierResponse(result.Id);
     }
@@ -39,17 +39,12 @@ public sealed class AddModifierValidator : AbstractValidator<AddModifierRequest>
 
 public static class AddModifier
 {
-    public sealed record Command(Guid CompanyId, Guid ModifierGroupId, string Name);
+    public sealed record Command(Guid ModifierGroupId, string Name);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.CompanyId == Guid.Empty)
-            throw new ForbiddenException("A company context is required to create a modifier.");
-
-        // Global filter on ModifierGroup auto-scopes by current company; missing or
-        // cross-company group → 404.
         var groupExists = await db.ModifierGroups.AnyAsync(x => x.Id == command.ModifierGroupId);
         if (!groupExists)
             throw new NotFoundException("Modifier group not found.");
@@ -59,7 +54,7 @@ public static class AddModifier
         if (nameTaken)
             throw new ConflictException($"A modifier named '{command.Name}' already exists in this group.");
 
-        var modifier = Modifier.Create(command.Name, command.ModifierGroupId, command.CompanyId);
+        var modifier = Modifier.Create(command.Name, command.ModifierGroupId);
         db.Modifiers.Add(modifier);
         await db.SaveChangesAsync();
         return new Result(modifier.Id);

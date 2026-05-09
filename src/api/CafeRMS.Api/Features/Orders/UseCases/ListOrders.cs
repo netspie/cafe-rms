@@ -28,7 +28,6 @@ public sealed class ListOrdersController : ControllerBase
                 FromDate = request.FromDate,
                 ToDate = request.ToDate
             },
-            db.CurrentCompanyId,
             db);
 }
 
@@ -66,13 +65,12 @@ public static class ListOrders
         DateTimeOffset CreatedAt,
         DateTimeOffset? ClosedAt);
 
-    public static async Task<PagedResult<Item>> Execute(Query query, Guid companyId, AppDbContext db)
+    public static async Task<PagedResult<Item>> Execute(Query query, AppDbContext db)
     {
         var sortable = new SortMap<Order>()
             .Add("createdAt", x => x.CreatedAt);
 
-        // Order isn't ICompanyOwned (it's scoped via Outlet) — filter explicitly.
-        var queryable = db.Orders.Where(x => x.Outlet!.CompanyId == companyId);
+        var queryable = db.Orders.AsQueryable();
         if (query.Status is OrderStatus status)
             queryable = queryable.Where(x => x.Status == status);
         if (query.OutletId is Guid outletId)

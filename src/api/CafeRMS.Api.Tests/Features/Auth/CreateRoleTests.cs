@@ -15,8 +15,7 @@ public sealed class CreateRoleTests : IDisposable
     [Test]
     public async Task CreateRole_happy_path_returns_id()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.PostAsJsonAsync("/api/roles", new
         {
@@ -30,8 +29,7 @@ public sealed class CreateRoleTests : IDisposable
     [Test]
     public async Task CreateRole_named_Owner_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.PostAsJsonAsync("/api/roles", new { name = "Owner", permissions = Array.Empty<string>() });
 
@@ -41,9 +39,8 @@ public sealed class CreateRoleTests : IDisposable
     [Test]
     public async Task CreateRole_duplicate_name_returns_409()
     {
-        var company = await factory.SeedCompanyAsync();
-        await factory.SeedRoleAsync("Cashier", company.Id);
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: [Permissions.RolesManage]);
+        await factory.SeedRoleAsync("Cashier");
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.RolesManage]);
 
         var response = await client.PostAsJsonAsync("/api/roles", new { name = "Cashier", permissions = Array.Empty<string>() });
 
@@ -53,8 +50,7 @@ public sealed class CreateRoleTests : IDisposable
     [Test]
     public async Task CreateRole_without_RolesManage_returns_403()
     {
-        var company = await factory.SeedCompanyAsync();
-        using var client = factory.CreateClientAs(AccountType.Staff, companyId: company.Id, permissions: []);
+        using var client = factory.CreateClientAs(AccountType.Staff, permissions: []);
 
         var response = await client.PostAsJsonAsync("/api/roles", new { name = "Cashier", permissions = Array.Empty<string>() });
 

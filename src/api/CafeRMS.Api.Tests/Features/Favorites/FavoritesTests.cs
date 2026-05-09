@@ -96,14 +96,13 @@ public sealed class FavoritesTests : IDisposable
 
     private async Task<(Guid UserId, Guid ProductId)> SeedAsync()
     {
-        var company = await factory.SeedCompanyAsync();
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var taxRate = TaxRate.Create("VAT 23%", "x", 23m, company.Id);
+        var taxRate = TaxRate.Create("VAT 23%", "x", 23m);
         db.TaxRates.Add(taxRate);
-        var product = Product.Create("Espresso", taxRate.Id, company.Id);
+        var product = Product.Create("Espresso", taxRate.Id);
         db.Products.Add(product);
-        var user = AppUser.Create($"guest-{Guid.NewGuid()}@test.local", "Guest", "User", AccountType.Guest, null);
+        var user = AppUser.Create($"guest-{Guid.NewGuid()}@test.local", "Guest", "User", AccountType.Guest);
         db.Users.Add(user);
         await db.SaveChangesAsync();
         return (user.Id, product.Id);
@@ -113,7 +112,7 @@ public sealed class FavoritesTests : IDisposable
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var user = AppUser.Create($"guest-{Guid.NewGuid()}@test.local", "B", "User", AccountType.Guest, null);
+        var user = AppUser.Create($"guest-{Guid.NewGuid()}@test.local", "B", "User", AccountType.Guest);
         db.Users.Add(user);
         await db.SaveChangesAsync();
         return user.Id;

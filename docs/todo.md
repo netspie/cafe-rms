@@ -565,3 +565,94 @@ Three slices, ordered. Loyalty bugfix → Users page gets filters + clear scope 
 - [ ] **Filter inputs:** Most list endpoints already accept a `name`-prefix filter; the ones that don't get a quick add (e.g. orders by status, events by status). Render as a single `<input name="q">` plus `<button>` per page — no fancy filter chips.
 - [ ] After each batch of 4-5 pages, type-check + spot-check in the browser.
 - [ ] Pause for review between S3 batches to keep the diff readable.
+
+----
+
+## Phase 12 — Rip multi-tenancy from the API
+
+Multi-tenancy was added to support multiple cafés sharing one deployment. The thesis is single-cafe (Yumeya), so the cross-cutting `CompanyId` scope on every business entity is dead weight — strip it.
+
+**What's ripped:** `Company` entity + `companies` table entirely. `CompanyId` on every business entity, on Identity (AppUser, AppRole), and on Outlet. `Features/Companies/` deleted whole.
+**What stays:** `Outlet` (becomes a top-level entity with no Company FK — multi-outlet still meaningful, just not org-grouped).
+
+Reference: Blazor stash `stash@{0}` has a `RipMultiTenancy` migration (`src/server/CafeRMS.Server/Persistence/Migrations/20260502185259_RipMultiTenancy.cs`, 748 lines) — but it only drops `company_id` from business entities and keeps `companies` as singleton. We're going further (drop the table + the entity + Outlet's link). Use the stash as reference for the per-entity strip but not for the full schema diff; we'll regen via `dotnet ef migrations add` once the model is stripped.
+
+### S1 — Strip CompanyId from business entities + their configurations
+
+For each: drop `CompanyId` field + `Company` nav, remove from `Create(...)` factory + `Update(...)` mutators, drop FK + `(company_id, name)` composite unique index in Configuration (replace with `(name)` partial index where one existed before).
+
+- [ ] `Allergens` (Allergen + AllergenConfiguration)
+- [ ] `Events` (Event + EventConfiguration)
+- [ ] `Loyalty` (LoyaltyPointLog + LoyaltyPointLogConfiguration)
+- [ ] `ModifierGroups` (ModifierGroup + ModifierGroupConfiguration)
+- [ ] `Modifiers` (Modifier + ModifierConfiguration)
+- [ ] `PriceGroups` (PriceGroup + PriceGroupConfiguration)
+- [ ] `PrintoutTemplates` (PrintoutTemplate + PrintoutTemplateConfiguration)
+- [ ] `ProductLists` (ProductList + ProductListConfiguration)
+- [ ] `Products` (Product + ProductConfiguration)
+- [ ] `PromotionCodes` (PromotionCode + PromotionCodeConfiguration)
+- [ ] `SalesChannels` (SalesChannel + SalesChannelConfiguration)
+- [ ] `Tables` (Table + TableConfiguration)
+- [ ] `Tags` (Tag + TagConfiguration)
+- [ ] `TaxRates` (TaxRate + TaxRateConfiguration)
+- [ ] Drop `Shared/Entities/ICompanyOwned.cs`, `CompanyOwnedEntity.cs`, `CompanyOwnedSoftDeletableEntity.cs`
+- [ ] Switch base class on each entity above from `CompanyOwnedSoftDeletableEntity` / `CompanyOwnedEntity` → `SoftDeletableEntity` / `Entity`
+
+### S2 — Strip CompanyId from Identity + Outlet
+- [ ] `Auth/AppUser.cs` + `AppUserConfiguration.cs` — drop `CompanyId` field + FK + `Company` nav
+- [ ] `Auth/AppRole.cs` + `AppRoleConfiguration.cs` — drop `CompanyId` field + FK + `Company` nav; roles become global
+- [ ] `Outlets/Outlet.cs` + `OutletConfiguration.cs` — drop `CompanyId` field + FK + `Company` nav; Outlet becomes a top-level entity
+
+### S3 — Strip CompanyId from use cases
+For each: drop CompanyId from Command / Query records, drop tenant filter `.Where(x => x.CompanyId == ...)`, drop CompanyResolver / `user.CompanyId()` reads.
+
+- [ ] `Allergens/UseCases/*` (AddAllergen + every other Allergen use case that references CompanyId)
+- [ ] `Events/UseCases/*` (AddEvent, CloseEvent, plus any List/Get/Update/Delete that filters by company)
+- [ ] `Loyalty/UseCases/AddLoyaltyAdjustment.cs` + any list/get with company filter
+- [ ] `ModifierGroups/UseCases/*`
+- [ ] `Modifiers/UseCases/*`
+- [ ] `Orders/UseCases/CloseOrder.cs`, `ListOrders.cs`, `PlaceOrder.cs` + others
+- [ ] `PriceGroups/UseCases/*`
+- [ ] `PrintoutTemplates/UseCases/*`
+- [ ] `ProductLists/UseCases/*`
+- [ ] `Products/UseCases/*`
+- [ ] `PromotionCodes/UseCases/*`
+- [ ] `SalesChannels/UseCases/*`
+- [ ] `Tables/UseCases/*`
+- [ ] `Tags/UseCases/*`
+- [ ] `TaxRates/UseCases/*`
+- [ ] `Auth/UseCases/AssignRole, CreateRole, DeleteUser, GetMe, GetUserById, ListUsers, RegisterStaff, UnassignRole, UpdateUser` — drop CompanyId from claims / commands / queries
+
+### S4 — Delete Companies feature entirely
+- [ ] `rm -rf src/api/CafeRMS.Api/Features/Companies/` — entity, configuration, provisioning, all use cases (Create / Get / Update / Delete / ListPublicCompanies)
+- [ ] `rm -rf src/api/CafeRMS.Api.Tests/Features/Companies/` — corresponding test folder
+- [ ] Drop any controller(s) under `Controllers/` referencing Companies (if controllers are split out from Features/)
+- [ ] `grep -rn 'Companies\|Company\b' src/api/` — sweep for stragglers (using statements, route registrations, etc.)
+
+### S5 — Strip tenant infra
+- [ ] `Shared/ClaimsPrincipalExtensions.cs` — drop `CompanyId()` extension + `CompanyIdClaim` constant
+- [ ] `Shared/ResourceOwnerAttribute.cs` — review: was it tenant-scoped? Drop or simplify accordingly
+- [ ] `Persistence/AppDbContext.cs` — drop `DbSet<Company>`, drop any global query filter using CompanyId
+- [ ] `Features/Auth/JwtTokenService.cs` — drop CompanyId claim from the issued token
+- [ ] `Program.cs` — drop any company-resolver service registration / middleware
+- [ ] `appsettings*.json` — leave Yumeya seed config alone (it's used by the seeder for owner credentials, not for tenant resolution)
+
+### S6 — Update seeders
+- [ ] `Persistence/Seeding/YumeyaDemoSeeder.cs` — drop company creation entirely, drop `companyId:` arg from every entity factory call, drop CompanyId from owner/staff/guest user creation
+- [ ] `Persistence/Seeding/StartupSeeder.cs` — drop any tenant-bootstrap branching
+
+### S7 — Update tests (covered as part of S3+S4)
+- [ ] Drop `Features/Companies/CreateCompanyTests.cs`, `DeleteCompanyTests.cs`, `ListPublicCompaniesTests.cs` (whichever match the dropped use cases)
+- [ ] `ApiFactory.cs` — drop CompanyId from test JWT claims; drop any company-bootstrap helper
+- [ ] Tests that pass / assert CompanyId — strip the param/claim/assertion
+
+### S8 — Generate + apply migration, verify
+- [ ] `dotnet build` — green (model is now CompanyId-free)
+- [ ] `dotnet ef migrations add RipMultiTenancy --project src/api/CafeRMS.Api`
+- [ ] Eyeball the generated migration: drops `company_id` from 16 business-entity tables + from `asp_net_users` + `asp_net_roles` + `outlets`, drops the `companies` table itself, drops associated FKs + indexes
+- [ ] `dotnet ef database update`
+- [ ] `dotnet test` — green
+- [ ] Start the API, run seed, hit Scalar, smoke-test: place order → close order, register for event → close event, loyalty adjustment
+
+### Sequencing
+S1 → S2 → S3 → S4 → S5 → S6 → S7 in order, all before S8. Within S1/S3, work feature-by-feature and pause for review every 3-4 features so the diff stays readable. Don't run the migration until S8 — running it earlier would crash the running app since the C# model still expects CompanyId.

@@ -17,7 +17,7 @@ public sealed class CloseOrderController : ControllerBase
         [FromRoute] Guid id,
         [FromServices] AppDbContext db)
     {
-        await CloseOrder.Execute(id, db.CurrentCompanyId, db, DateTimeOffset.UtcNow);
+        await CloseOrder.Execute(id, db, DateTimeOffset.UtcNow);
         return NoContent();
     }
 }
@@ -25,7 +25,7 @@ public sealed class CloseOrderController : ControllerBase
 
 public static class CloseOrder
 {
-    public static async Task Execute(Guid id, Guid companyId, AppDbContext db, DateTimeOffset now)
+    public static async Task Execute(Guid id, AppDbContext db, DateTimeOffset now)
     {
         var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Order not found.");
@@ -40,7 +40,7 @@ public static class CloseOrder
         order.Close(now);
 
         // Loyalty earn: 1 point per integer unit of currency net (after discount).
-        // Walk-ins (no UserId) don't earn anything. No-op if there are no points to earn.
+        // Walk-ins (no UserId) don't earn anything.
         if (order.UserId is Guid userId)
         {
             var lineNetTotal = await db.OrderLines
@@ -52,7 +52,6 @@ public static class CloseOrder
                 db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(
                     userId,
                     earnedPoints,
-                    companyId,
                     reason: $"Earned on order {order.Id}"));
             }
         }
