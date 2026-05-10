@@ -1,0 +1,147 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+
+import { Button } from "@/components/Button";
+import { ApiError, api } from "@/lib/api";
+import type { Allergen, Favorite, ProductDetail } from "@/lib/types";
+import { useFetch } from "@/lib/useFetch";
+import { useOrderStore } from "@/stores/orderStore";
+
+export default function ProductDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [quantity, setQuantity] = useState(1);
+  const add = useOrderStore((s) => s.add);
+
+  const productQuery = useFetch(
+    () => api.get<ProductDetail>(`/api/products/${id}`),
+    [id],
+  );
+
+  const allergensQuery = useFetch(() =>
+    api.get<{ items: Allergen[] }>("/api/allergens?pageSize=100"),
+  );
+
+  const favoritesQuery = useFetch(() => api.get<Favorite[]>("/api/my/favorites"));
+
+  const isFavorited =
+    favoritesQuery.data?.some((f) => f.productId === id) ?? false;
+
+  const toggleFavorite = async () => {
+    try {
+      if (isFavorited) await api.del(`/api/my/favorites/${id}`);
+      else await api.post("/api/my/favorites", { productId: id });
+      await favoritesQuery.refetch();
+    } catch (err) {
+      if (err instanceof ApiError) Alert.alert("Favorite Failed", err.message);
+    }
+  };
+
+  if (productQuery.isPending || !productQuery.data) {
+    return (
+      <SafeAreaView className="flex-1 bg-bg">
+        <ActivityIndicator className="mt-8" />
+      </SafeAreaView>
+    );
+  }
+
+  const product = productQuery.data;
+  const standardPrice = product.prices[0]?.net ?? 0;
+  const allergens = allergensQuery.data?.items ?? [];
+  const productAllergens = allergens.filter((a) =>
+    product.allergenIds.includes(a.id),
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-bg">
+      <Stack.Screen options={{ headerShown: true, title: product.name }} />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        {product.images[0] && (
+          <Image
+            source={{ uri: product.images[0].url }}
+            className="w-full h-56 rounded-md mb-4 bg-bgSoft"
+            resizeMode="cover"
+          />
+        )}
+
+        <View className="flex-row justify-between items-start mb-3">
+          <View className="flex-1 pr-3">
+            <Text className="text-2xl font-bold text-ink">{product.name}</Text>
+            {product.description && (
+              <Text className="text-muted mt-2">{product.description}</Text>
+            )}
+          </View>
+          <Pressable onPress={toggleFavorite} className="p-2">
+            <Ionicons
+              name={isFavorited ? "heart" : "heart-outline"}
+              size={28}
+              color={isFavorited ? "#B0202E" : "#6B6B6B"}
+            />
+          </Pressable>
+        </View>
+
+        <Text className="text-xl font-bold text-accent mb-4">
+          {standardPrice.toFixed(2)} PLN
+        </Text>
+
+        {productAllergens.length > 0 && (
+          <View className="mb-4">
+            <Text className="text-sm text-muted mb-2">Allergens</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {productAllergens.map((a) => (
+                <View
+                  key={a.id}
+                  className="bg-bgSoft border border-border rounded-full px-3 py-1"
+                >
+                  <Text className="text-ink text-sm">{a.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View className="flex-row items-center gap-4 mb-4">
+          <Text className="text-ink">Quantity</Text>
+          <Pressable
+            onPress={() => setQuantity(Math.max(1, quantity - 1))}
+            className="w-9 h-9 rounded-md border border-border items-center justify-center"
+          >
+            <Text className="text-ink text-lg">−</Text>
+          </Pressable>
+          <Text className="text-ink text-lg w-6 text-center">{quantity}</Text>
+          <Pressable
+            onPress={() => setQuantity(quantity + 1)}
+            className="w-9 h-9 rounded-md border border-border items-center justify-center"
+          >
+            <Text className="text-ink text-lg">+</Text>
+          </Pressable>
+        </View>
+
+        <Button
+          label="Add to Order"
+          onPress={() => {
+            add({
+              productId: product.id,
+              productName: product.name,
+              unitPrice: standardPrice,
+              quantity,
+              priceGroupId: product.prices[0]?.priceGroupId ?? null,
+            });
+            router.back();
+          }}
+        />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
