@@ -138,7 +138,8 @@ export default function ProductDetailScreen() {
               quantity,
               priceGroupId: product.prices[0]?.priceGroupId ?? null,
             });
-            router.back();
+            if (router.canGoBack()) router.back();
+            else router.replace("/(tabs)/menu");
           }}
         />
       </ScrollView>
