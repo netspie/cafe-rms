@@ -24,16 +24,15 @@ public static class ListMyFavorites
 
     public static async Task<IReadOnlyList<Item>> Execute(Guid userId, AppDbContext db)
     {
-        // Join through Products with IgnoreQueryFilters since Guests have no company context.
-        // Soft-deleted products are filtered out explicitly.
         return await db.Favorites
             .Where(x => x.UserId == userId)
             .Join(
-                db.Products.IgnoreQueryFilters().Where(p => p.DeletedAt == null),
+                db.Products,
                 f => f.ProductId,
                 p => p.Id,
-                (f, p) => new Item(p.Id, p.Name, p.Description))
-            .OrderBy(x => x.ProductName)
+                (f, p) => p)
+            .OrderBy(p => p.Name)
+            .Select(p => new Item(p.Id, p.Name, p.Description))
             .ToListAsync();
     }
 }

@@ -56,7 +56,7 @@ public static class GetOrderById
         IReadOnlyList<LineInfo> Lines,
         DateTimeOffset CreatedAt);
 
-    public sealed record LineInfo(Guid Id, Guid ProductId, int Quantity, decimal NetPerOne, decimal VatPerOne);
+    public sealed record LineInfo(Guid Id, Guid ProductId, string ProductName, int Quantity, decimal NetPerOne, decimal VatPerOne);
 
     public static async Task<Result> Execute(Guid id, AppDbContext db)
     {
@@ -65,7 +65,11 @@ public static class GetOrderById
 
         var lines = await db.OrderLines
             .Where(x => x.OrderId == id)
-            .Select(x => new LineInfo(x.Id, x.ProductId, x.Quantity, x.NetPerOne, x.VatPerOne))
+            .Join(
+                db.Products,
+                ol => ol.ProductId,
+                p => p.Id,
+                (ol, p) => new LineInfo(ol.Id, ol.ProductId, p.Name, ol.Quantity, ol.NetPerOne, ol.VatPerOne))
             .ToListAsync();
 
         return new Result(
