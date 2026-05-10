@@ -731,3 +731,58 @@ S1 must come first. S2 second (everything else needs auth). S3 before S4 (need m
 
 ### Open question — public/anonymous browse?
 Currently only `/api/auth/login` and `/api/auth/register/guest` are `[AllowAnonymous]`. Browsing the menu requires auth. That means the app forces login before showing anything — fine for a thesis demo, less ideal UX. If "browse without login" is wanted, add `[AllowAnonymous]` (or a separate `/api/public/products`) to api as a separate slice.
+
+----
+
+## Phase 14 — University-mandatory gaps (must-have before submission)
+
+From `docs/Projekt Inżynierski - Wymagania.pdf`. These are flat fails if missing at submission. Permission groups (point 11) is already covered — `web/admin/roles/[id]` lets you check/uncheck permissions per role.
+
+### S1 — DB views, stored procedures, functions, indexing (point 8)
+Spec says "Niezbędne jest użycie widoków, procedur, funkcji, indeksowania." We have indexing already. Need at least one of each of the other three, with a real use.
+
+- [ ] **DB view** — `vw_order_summary` (or similar). Joins Orders + OrderLines + Products + Users into a flat row per order with totals, item count, customer name. Used by the staff orders list page and by the report (S2). Add via EF migration `Migration.Sql(...)`.
+- [ ] **Stored procedure** — `sp_close_open_orders_older_than(interval)` — auto-closes Open orders older than N hours. Called from a maintenance endpoint or seeded as scheduled work. Documents one stored proc.
+- [ ] **Function** — `fn_calculate_order_total(order_id uuid) returns numeric` — pure function, used by the view above.
+- [ ] **Verify indexing** — list every filterable + sortable column from list endpoints, confirm an index exists. Likely already done for most via per-feature configurations.
+- [ ] Wire the view into the api: register as keyless entity (`builder.Entity<OrderSummaryView>().HasNoKey().ToView("vw_order_summary")`) so a use case can read it with EF.
+
+### S2 — Business reports with PDF/Excel export (point 18)
+"Rozbudowane raporty biznesowe wraz z opcją eksportowania raportów do PDF, Excel itp." — minimum 2-3 reports.
+
+- [ ] Pick a PDF library: **QuestPDF** (most common in modern .NET, fluent API, MIT/community license — verify license terms for commercial use, but academic use is fine).
+- [ ] Pick an Excel library: **ClosedXML** (most common, MIT license).
+- [ ] **Report 1 — Sales summary by date range**: lines per product, totals, takeout vs dine-in split. Read from `vw_order_summary`.
+- [ ] **Report 2 — Loyalty activity**: points earned vs redeemed per user, period-bucketed. Read from `LoyaltyPointLog`.
+- [ ] **Report 3 — Event attendance** (lighter): orders per event, revenue per event.
+- [ ] Endpoints: `GET /api/reports/sales?from=&to=&format=pdf|xlsx` etc. Stream the file.
+- [ ] Web admin page `/admin/reports` — date pickers + format dropdown + Generate button.
+
+### S3 — Word template printouts (point 19)
+"Generowanie parametryzowanych wydruków na bazie szablonów wydruków np. określonych w word. W systemie powinna być możliwość zmiany szablonu wydruku przez użytkownika."
+
+- [ ] Library: **DocX** or **OpenXML SDK** for Word (.docx) templating. DocX is friendlier for simple find-and-replace placeholders.
+- [ ] **Templates table** — `print_templates(id, code, name, file_bytes, updated_at, ...)`. `code` identifies the use (e.g., `OrderReceipt`, `EventInvitation`).
+- [ ] **CRUD UI** — `/admin/print-templates` — list, upload .docx, preview placeholders, download current. Required by spec ("zmiana szablonu przez użytkownika").
+- [ ] **At least one printout endpoint** — `GET /api/orders/{id}/print` — loads the OrderReceipt template, fills placeholders (`{customer_name}`, `{order_id}`, `{lines}`, `{total}`), returns the .docx (or convert to PDF via LibreOffice headless if PDF wanted).
+- [ ] Document supported placeholders per template in the admin UI (so a non-dev user knows what's available).
+
+### S4 — UI view count audit (point 14) ✅
+Spec wants min 50 "rozbudowane profesjonalne interfejsy/widoki biznesowe." Web + mobile combined counts (point 3a defines ZSI as ≥2 of {desktop, web, mobile}).
+
+**Result: 52 views total (50 substantive).**
+- Web: 38 `page.tsx` files under `src/web/src/app/` (37 substantive — `page.tsx` at root is a redirect to `/login` or `/admin`, doesn't count as a business view).
+- Mobile: 14 screens under `src/mobile/app/` (13 substantive — `index.tsx` at root is a redirect, doesn't count).
+- Total substantive: **50**, total raw: **52**. Comfortably meets the requirement.
+
+- [x] Count current web routes — 38
+- [x] Count current mobile screens — 14
+- [x] Sum verified ≥ 50
+
+### Sequencing
+S1 → S2 (S2 reads from S1's view). S3 independent. S4 last (audit at the end).
+
+### Out of scope for thesis
+- Real-time updates (SignalR) — not required.
+- Multi-tenancy — explicitly ripped, single cafe.
+- Payment integration — out of scope per CLAUDE.md.
