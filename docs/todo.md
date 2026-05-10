@@ -656,3 +656,78 @@ For each: drop CompanyId from Command / Query records, drop tenant filter `.Wher
 
 ### Sequencing
 S1 → S2 → S3 → S4 → S5 → S6 → S7 in order, all before S8. Within S1/S3, work feature-by-feature and pause for review every 3-4 features so the diff stays readable. Don't run the migration until S8 — running it earlier would crash the running app since the C# model still expects CompanyId.
+
+----
+
+## Phase 13 — Guest mobile app (React Native + Expo)
+
+Scaffold the guest-facing mobile app at `src/mobile/`. Stack mirrors `~/git/digital-collectibles/src/digital-collectibles-app`:
+**Expo (TypeScript) + expo-router file-based routing + NativeWind + zustand + React Query + expo-secure-store.**
+
+Full guest flows: auth → browse menu → cart → place order → my orders + cancel → loyalty → favorites → events.
+
+### S1 — Project init + foundation
+- [ ] `npx create-expo-app src/mobile -t expo-template-blank-typescript` (or default with router)
+- [ ] Install deps to match digital-collectibles: `expo-router`, `nativewind`, `tailwindcss`, `tailwind-merge`, `clsx`, `zustand`, `@tanstack/react-query`, `expo-secure-store`, `expo-status-bar`, `react-native-safe-area-context`, `react-native-screens`, `react-native-gesture-handler`, `react-native-reanimated`, `@expo/vector-icons`
+- [ ] Configure NativeWind (babel.config.js + tailwind.config.js + globals.css + nativewind-env.d.ts)
+- [ ] `app/_layout.tsx` — root layout with React Query provider + status bar + safe area
+- [ ] `lib/api.ts` — fetch wrapper that injects `Authorization: Bearer <token>` from authStore, base URL from env (`EXPO_PUBLIC_API_BASE_URL`, default `http://localhost:5xxx`)
+- [ ] `lib/types.ts` — TypeScript types mirroring API response shapes (Product, Order, etc.)
+- [ ] `stores/authStore.ts` — zustand store: `{ token, user, login, logout }`. Persists token to expo-secure-store.
+- [ ] `stores/cartStore.ts` — zustand store: `{ lines, addLine, updateQty, remove, clear }`
+- [ ] Theme constants — single accent color, neutral grays. Minimal styling per the user's brief. No dark mode.
+- [ ] README with run instructions: `npm i && npm start`, plus how to point at a local API (Android emulator: `http://10.0.2.2:PORT`, iOS sim: `http://localhost:PORT`).
+
+### S2 — Auth flow
+- [ ] `app/(auth)/_layout.tsx` — auth stack
+- [ ] `app/(auth)/login.tsx` — email + password form → `POST /api/auth/login`
+- [ ] `app/(auth)/register.tsx` — email + password + first/last name → `POST /api/auth/register/guest`
+- [ ] Auth gate in `app/_layout.tsx`: if no token, redirect to `(auth)/login`; if token present, redirect to `(tabs)/menu`
+- [ ] Persist + restore token on app start
+- [ ] Logout button on profile screen clears store + secure-store
+
+### S3 — Menu browse
+- [ ] `app/(tabs)/menu/index.tsx` — `GET /api/products` paginated list. Cards with name, price, primary image. Tag filter chips (`GET /api/tags`). Search input mapped to `?name=`.
+- [ ] `app/(tabs)/menu/[id].tsx` — `GET /api/products/{id}` detail. Show description, allergens (chips), modifier groups (read-only choices), price (from default price group).
+- [ ] "Add to cart" button on detail screen (with quantity stepper + selected modifier choices placeholder — modifier values aren't priced, just informational, so cart line just stores productId + quantity).
+- [ ] Floating cart badge in tabs showing line count.
+- [ ] Favorite heart toggle on detail screen → `POST/DELETE /api/my/favorites/{productId}`. Optimistic UI.
+
+### S4 — Cart + checkout
+- [ ] `app/cart.tsx` — list of lines with name + qty + estimated subtotal (sum from product prices). Edit qty / remove. "Checkout" button.
+- [ ] `app/checkout.tsx` — outlet picker (single Yumeya outlet for now — auto-select if only one), optional table picker, optional sales channel (default first non-takeout), optional promo code field (validate via `POST /api/promotion-codes/validate`), optional loyalty redemption slider (capped at balance).
+- [ ] On submit: `POST /api/my/orders` with the assembled payload. On success → clear cart → navigate to order detail. On error → show problem detail message.
+
+### S5 — My orders
+- [ ] `app/(tabs)/orders/index.tsx` — `GET /api/my/orders` list. Status badge (Placed/Closed/Cancelled), created-at date, total. Sorted by `-createdAt`.
+- [ ] `app/(tabs)/orders/[id].tsx` — `GET /api/my/orders/{id}` detail. Lines table, status, totals, promo discount, loyalty used.
+- [ ] "Cancel order" button (only if status == Placed) → `POST /api/my/orders/{id}/cancel` with optional reason text input. Confirm dialog.
+
+### S6 — Loyalty
+- [ ] `app/(tabs)/loyalty.tsx` — `GET /api/my/loyalty/balance` shown prominently as a big number. Below: `GET /api/my/loyalty/history` paginated list with date / points (+/- color) / reason.
+
+### S7 — Favorites
+- [ ] `app/(tabs)/menu/favorites.tsx` (or as a screen accessible from menu tab) — `GET /api/my/favorites` list. Tap → product detail.
+- [ ] Favorite toggle reused from S3 detail screen.
+
+### S8 — Events
+- [ ] `app/events/index.tsx` — `GET /api/events` upcoming + past tabs. Cards with name, image, dates, status.
+- [ ] `app/events/[id].tsx` — detail with description, days, image. (No register endpoint — attendance comes from orders. Show "place an order at this event" CTA that pre-fills checkout's eventId.)
+
+### S9 — Profile + settings
+- [ ] `app/(tabs)/profile.tsx` — `GET /api/me` (need to confirm endpoint exists post-rip — it does, `GetMe`). Show name, email. Logout button.
+- [ ] `app/(tabs)/profile/settings.tsx` — `GET/PUT /api/my/settings` (UserSettings: language, notifications etc. — confirm shape from the api).
+
+### S10 — Polish + smoke test
+- [ ] Loading skeletons on every list/detail screen
+- [ ] Empty states with copy
+- [ ] Error toast helper for `ProblemDetails` responses
+- [ ] Pull-to-refresh on list screens
+- [ ] Run on iOS simulator + Android emulator end-to-end against local api
+- [ ] Add `src/mobile/CLAUDE.md` with mobile-specific conventions
+
+### Sequencing
+S1 must come first. S2 second (everything else needs auth). S3 before S4 (need menu before cart). S5/S6/S7/S8/S9 are roughly independent — pick order based on review feedback. S10 wraps up.
+
+### Open question — public/anonymous browse?
+Currently only `/api/auth/login` and `/api/auth/register/guest` are `[AllowAnonymous]`. Browsing the menu requires auth. That means the app forces login before showing anything — fine for a thesis demo, less ideal UX. If "browse without login" is wanted, add `[AllowAnonymous]` (or a separate `/api/public/products`) to api as a separate slice.
