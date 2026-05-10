@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.Allergens.UseCases;
 public sealed class GetAllergenByIdController : ControllerBase
 {
     [HttpGet("/api/allergens/{id:guid}")]
-    [Authorize(Policy = Permissions.ProductsManage)]
+    [Authorize]
     public async Task<GetAllergenById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.SalesChannels.UseCases;
 public sealed class ListSalesChannelsController : ControllerBase
 {
     [HttpGet("/api/sales-channels")]
-    [Authorize(Policy = Permissions.SalesChannelsManage)]
+    [Authorize]
     public Task<PagedResult<ListSalesChannels.Item>> Handle(
         [FromQuery] ListSalesChannelsRequest request,
         [FromServices] AppDbContext db) =>

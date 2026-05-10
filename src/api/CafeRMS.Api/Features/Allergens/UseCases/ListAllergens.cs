@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.Allergens.UseCases;
 public sealed class ListAllergensController : ControllerBase
 {
     [HttpGet("/api/allergens")]
-    [Authorize(Policy = Permissions.ProductsManage)]
+    [Authorize]
     public Task<PagedResult<ListAllergens.Item>> Handle(
         [FromQuery] ListAllergensRequest request,
         [FromServices] AppDbContext db) =>

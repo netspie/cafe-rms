@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.Tables.UseCases;
 public sealed class GetTableByIdController : ControllerBase
 {
     [HttpGet("/api/tables/{id:guid}")]
-    [Authorize(Policy = Permissions.TablesManage)]
+    [Authorize]
     public async Task<GetTableById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

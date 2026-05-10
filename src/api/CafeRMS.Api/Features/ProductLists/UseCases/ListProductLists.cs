@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.ProductLists.UseCases;
 public sealed class ListProductListsController : ControllerBase
 {
     [HttpGet("/api/product-lists")]
-    [Authorize(Policy = Permissions.MenusManage)]
+    [Authorize]
     public Task<PagedResult<ListProductLists.Item>> Handle(
         [FromQuery] ListProductListsRequest request,
         [FromServices] AppDbContext db) =>

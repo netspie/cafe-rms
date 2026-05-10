@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.Events.UseCases;
 public sealed class GetEventByIdController : ControllerBase
 {
     [HttpGet("/api/events/{id:guid}")]
-    [Authorize(Policy = Permissions.EventsManage)]
+    [Authorize]
     public async Task<GetEventById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

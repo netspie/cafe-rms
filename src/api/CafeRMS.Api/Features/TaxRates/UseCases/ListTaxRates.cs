@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.TaxRates.UseCases;
 public sealed class ListTaxRatesController : ControllerBase
 {
     [HttpGet("/api/tax-rates")]
-    [Authorize(Policy = Permissions.TaxRatesManage)]
+    [Authorize]
     public Task<PagedResult<ListTaxRates.Item>> Handle(
         [FromQuery] ListTaxRatesRequest request,
         [FromServices] AppDbContext db) =>

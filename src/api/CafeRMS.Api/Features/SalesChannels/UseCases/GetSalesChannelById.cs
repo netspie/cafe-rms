@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.SalesChannels.UseCases;
 public sealed class GetSalesChannelByIdController : ControllerBase
 {
     [HttpGet("/api/sales-channels/{id:guid}")]
-    [Authorize(Policy = Permissions.SalesChannelsManage)]
+    [Authorize]
     public async Task<GetSalesChannelById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

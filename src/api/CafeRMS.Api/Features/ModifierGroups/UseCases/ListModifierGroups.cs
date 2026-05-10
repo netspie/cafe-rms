@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.ModifierGroups.UseCases;
 public sealed class ListModifierGroupsController : ControllerBase
 {
     [HttpGet("/api/modifier-groups")]
-    [Authorize(Policy = Permissions.ModifiersManage)]
+    [Authorize]
     public Task<PagedResult<ListModifierGroups.Item>> Handle(
         [FromQuery] ListModifierGroupsRequest request,
         [FromServices] AppDbContext db) =>

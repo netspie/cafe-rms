@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.Tables.UseCases;
 public sealed class ListTablesController : ControllerBase
 {
     [HttpGet("/api/tables")]
-    [Authorize(Policy = Permissions.TablesManage)]
+    [Authorize]
     public Task<PagedResult<ListTables.Item>> Handle(
         [FromQuery] ListTablesRequest request,
         [FromServices] AppDbContext db) =>

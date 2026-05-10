@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.TaxRates.UseCases;
 public sealed class GetTaxRateByIdController : ControllerBase
 {
     [HttpGet("/api/tax-rates/{id:guid}")]
-    [Authorize(Policy = Permissions.TaxRatesManage)]
+    [Authorize]
     public async Task<GetTaxRateById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

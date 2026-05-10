@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.PriceGroups.UseCases;
 public sealed class ListPriceGroupsController : ControllerBase
 {
     [HttpGet("/api/price-groups")]
-    [Authorize(Policy = Permissions.PricingManage)]
+    [Authorize]
     public Task<PagedResult<ListPriceGroups.Item>> Handle(
         [FromQuery] ListPriceGroupsRequest request,
         [FromServices] AppDbContext db) =>

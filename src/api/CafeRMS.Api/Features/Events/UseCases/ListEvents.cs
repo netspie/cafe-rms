@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.Events.UseCases;
 public sealed class ListEventsController : ControllerBase
 {
     [HttpGet("/api/events")]
-    [Authorize(Policy = Permissions.EventsManage)]
+    [Authorize]
     public Task<PagedResult<ListEvents.Item>> Handle(
         [FromQuery] ListEventsRequest request,
         [FromServices] AppDbContext db) =>

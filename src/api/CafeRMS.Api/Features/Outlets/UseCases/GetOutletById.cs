@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.Outlets.UseCases;
 public sealed class GetOutletByIdController : ControllerBase
 {
     [HttpGet("/api/outlets/{id:guid}")]
-    [Authorize(Policy = Permissions.OutletManage)]
+    [Authorize]
     public async Task<GetOutletById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

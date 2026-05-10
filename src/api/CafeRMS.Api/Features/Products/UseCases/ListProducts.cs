@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.Products.UseCases;
 public sealed class ListProductsController : ControllerBase
 {
     [HttpGet("/api/products")]
-    [Authorize(Policy = Permissions.ProductsManage)]
+    [Authorize]
     public Task<PagedResult<ListProducts.Item>> Handle(
         [FromQuery] ListProductsRequest request,
         [FromServices] AppDbContext db) =>
@@ -22,7 +22,8 @@ public sealed class ListProductsController : ControllerBase
                 Sort = request.Sort,
                 Name = request.Name,
                 Barcode = request.Barcode,
-                TaxRateId = request.TaxRateId
+                TaxRateId = request.TaxRateId,
+                TagId = request.TagId
             },
             db);
 }
@@ -33,7 +34,8 @@ public sealed record ListProductsRequest(
     string? Sort = null,
     string? Name = null,
     string? Barcode = null,
-    Guid? TaxRateId = null);
+    Guid? TaxRateId = null,
+    Guid? TagId = null);
 
 
 public static class ListProducts
@@ -43,6 +45,7 @@ public static class ListProducts
         public string? Name { get; init; }
         public string? Barcode { get; init; }
         public Guid? TaxRateId { get; init; }
+        public Guid? TagId { get; init; }
     }
 
     public sealed record Item(Guid Id, string Name, string? Barcode, Guid TaxRateId, DateTimeOffset CreatedAt);
@@ -63,6 +66,9 @@ public static class ListProducts
             queryable = queryable.Where(x => x.Barcode == query.Barcode);
         if (query.TaxRateId is Guid taxRateId)
             queryable = queryable.Where(x => x.TaxRateId == taxRateId);
+        if (query.TagId is Guid tagId)
+            queryable = queryable.Where(x =>
+                db.ProductTags.Any(pt => pt.ProductId == x.Id && pt.TagId == tagId));
 
         return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "name")

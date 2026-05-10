@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.Tags.UseCases;
 public sealed class GetTagByIdController : ControllerBase
 {
     [HttpGet("/api/tags/{id:guid}")]
-    [Authorize(Policy = Permissions.ProductsManage)]
+    [Authorize]
     public Task<GetTagById.Response> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.PriceGroups.UseCases;
 public sealed class GetPriceGroupByIdController : ControllerBase
 {
     [HttpGet("/api/price-groups/{id:guid}")]
-    [Authorize(Policy = Permissions.PricingManage)]
+    [Authorize]
     public async Task<GetPriceGroupById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

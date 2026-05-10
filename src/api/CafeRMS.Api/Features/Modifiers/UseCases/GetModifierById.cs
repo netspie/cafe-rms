@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.Modifiers.UseCases;
 public sealed class GetModifierByIdController : ControllerBase
 {
     [HttpGet("/api/modifiers/{id:guid}")]
-    [Authorize(Policy = Permissions.ModifiersManage)]
+    [Authorize]
     public async Task<GetModifierById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

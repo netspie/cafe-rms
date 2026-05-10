@@ -11,7 +11,7 @@ namespace CafeRMS.Api.Features.ProductLists.UseCases;
 public sealed class GetProductListByIdController : ControllerBase
 {
     [HttpGet("/api/product-lists/{id:guid}")]
-    [Authorize(Policy = Permissions.MenusManage)]
+    [Authorize]
     public async Task<GetProductListById.Result> Handle(
         [FromRoute] Guid id,
         [FromServices] AppDbContext db) =>

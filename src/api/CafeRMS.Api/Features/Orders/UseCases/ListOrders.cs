@@ -61,6 +61,7 @@ public static class ListOrders
         Guid Id,
         Guid OutletId,
         Guid? UserId,
+        string? CustomerName,
         OrderStatus Status,
         DateTimeOffset CreatedAt,
         DateTimeOffset? ClosedAt);
@@ -88,7 +89,18 @@ public static class ListOrders
 
         return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "-createdAt")
-            .Select(x => new Item(x.Id, x.OutletId, x.UserId, x.Status, x.CreatedAt, x.ClosedAt))
+            .Select(x => new Item(
+                x.Id,
+                x.OutletId,
+                x.UserId,
+                x.UserId == null
+                    ? null
+                    : db.Users.Where(u => u.Id == x.UserId)
+                        .Select(u => (u.FirstName + " " + u.LastName).Trim())
+                        .FirstOrDefault(),
+                x.Status,
+                x.CreatedAt,
+                x.ClosedAt))
             .ToPagedResultAsync(query);
     }
 }

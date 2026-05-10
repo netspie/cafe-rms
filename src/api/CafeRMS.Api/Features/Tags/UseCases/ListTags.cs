@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.Tags.UseCases;
 public sealed class ListTagsController : ControllerBase
 {
     [HttpGet("/api/tags")]
-    [Authorize(Policy = Permissions.ProductsManage)]
+    [Authorize]
     public Task<PagedResult<ListTags.Item>> Handle(
         [FromQuery] ListTags.Request request,
         [FromServices] AppDbContext db) =>
