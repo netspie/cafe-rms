@@ -21,6 +21,7 @@ import {
   Banknote,
   ListOrdered,
   UserCircle2,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react"
 import { ShibaMark } from "@/components/shiba-mark"
@@ -59,6 +60,12 @@ const groups: { title: string; items: NavItem[] }[] = [
       { href: "/admin/events", label: "Events", icon: Calendar },
       { href: "/admin/tables", label: "Tables", icon: Layers },
       { href: "/admin/loyalty", label: "Loyalty", icon: Star },
+    ],
+  },
+  {
+    title: "Reports",
+    items: [
+      { href: "/admin/reports/sales", label: "Sales", icon: BarChart3 },
     ],
   },
   {
