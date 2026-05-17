@@ -13,8 +13,9 @@ public sealed class ListMyFavoritesController : ControllerBase
     [HttpGet("/api/my/favorites")]
     [Authorize(Policy = Policies.RequireGuest)]
     public Task<IReadOnlyList<ListMyFavorites.Item>> Handle(
+        [FromQuery] string? productName,
         [FromServices] AppDbContext db) =>
-        ListMyFavorites.Execute(User.UserId, db);
+        ListMyFavorites.Execute(User.UserId, productName, db);
 }
 
 
@@ -22,15 +23,20 @@ public static class ListMyFavorites
 {
     public sealed record Item(Guid ProductId, string ProductName, string? Description);
 
-    public static async Task<IReadOnlyList<Item>> Execute(Guid userId, AppDbContext db)
+    public static async Task<IReadOnlyList<Item>> Execute(Guid userId, string? productName, AppDbContext db)
     {
-        return await db.Favorites
+        var queryable = db.Favorites
             .Where(x => x.UserId == userId)
             .Join(
                 db.Products,
                 f => f.ProductId,
                 p => p.Id,
-                (f, p) => p)
+                (f, p) => p);
+
+        if (!string.IsNullOrWhiteSpace(productName))
+            queryable = queryable.Where(p => p.Name.Contains(productName));
+
+        return await queryable
             .OrderBy(p => p.Name)
             .Select(p => new Item(p.Id, p.Name, p.Description))
             .ToListAsync();

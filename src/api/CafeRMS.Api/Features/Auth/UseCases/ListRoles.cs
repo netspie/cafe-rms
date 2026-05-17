@@ -11,8 +11,10 @@ public sealed class ListRolesController : ControllerBase
 {
     [HttpGet("/api/roles")]
     [Authorize(Policy = Permissions.RolesManage)]
-    public async Task<IReadOnlyList<ListRoles.Item>> Handle([FromServices] AppDbContext db) =>
-        await ListRoles.Execute(db);
+    public async Task<IReadOnlyList<ListRoles.Item>> Handle(
+        [FromQuery] string? q,
+        [FromServices] AppDbContext db) =>
+        await ListRoles.Execute(q, db);
 }
 
 
@@ -20,9 +22,13 @@ public static class ListRoles
 {
     public sealed record Item(Guid Id, string Name, IReadOnlyList<string> Permissions);
 
-    public static async Task<IReadOnlyList<Item>> Execute(AppDbContext db)
+    public static async Task<IReadOnlyList<Item>> Execute(string? q, AppDbContext db)
     {
-        var roles = await db.Roles
+        var queryable = db.Roles.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+            queryable = queryable.Where(x => x.Name!.Contains(q));
+
+        var roles = await queryable
             .OrderBy(x => x.Name)
             .Select(x => new { x.Id, x.Name })
             .ToListAsync();

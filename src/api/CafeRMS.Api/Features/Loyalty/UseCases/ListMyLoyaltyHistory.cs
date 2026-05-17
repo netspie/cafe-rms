@@ -17,16 +17,32 @@ public sealed class ListMyLoyaltyHistoryController : ControllerBase
         [FromQuery] ListMyLoyaltyHistoryRequest request,
         [FromServices] AppDbContext db) =>
         ListMyLoyaltyHistory.Execute(User.UserId,
-            new ListMyLoyaltyHistory.Query { Page = request.Page, PageSize = request.PageSize, Sort = request.Sort },
+            new ListMyLoyaltyHistory.Query
+            {
+                Page = request.Page,
+                PageSize = request.PageSize,
+                Sort = request.Sort,
+                FromDate = request.FromDate,
+                ToDate = request.ToDate
+            },
             db);
 }
 
-public sealed record ListMyLoyaltyHistoryRequest(int Page = 1, int PageSize = 20, string? Sort = null);
+public sealed record ListMyLoyaltyHistoryRequest(
+    int Page = 1,
+    int PageSize = 20,
+    string? Sort = null,
+    DateTimeOffset? FromDate = null,
+    DateTimeOffset? ToDate = null);
 
 
 public static class ListMyLoyaltyHistory
 {
-    public sealed record Query : PagedQuery;
+    public sealed record Query : PagedQuery
+    {
+        public DateTimeOffset? FromDate { get; init; }
+        public DateTimeOffset? ToDate { get; init; }
+    }
 
     public sealed record Item(Guid Id, int Points, string? Reason, DateTimeOffset CreatedAt);
 
@@ -36,8 +52,13 @@ public static class ListMyLoyaltyHistory
             .Add("createdAt", x => x.CreatedAt)
             .Add("points", x => x.Points);
 
-        return await db.LoyaltyEntries
-            .Where(x => x.UserId == userId)
+        var queryable = db.LoyaltyEntries.Where(x => x.UserId == userId);
+        if (query.FromDate is DateTimeOffset from)
+            queryable = queryable.Where(x => x.CreatedAt >= from);
+        if (query.ToDate is DateTimeOffset to)
+            queryable = queryable.Where(x => x.CreatedAt <= to);
+
+        return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "-createdAt")
             .Select(x => new Item(x.EntryId, x.Points, x.Reason, x.CreatedAt))
             .ToPagedResultAsync(query);

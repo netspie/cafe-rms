@@ -17,17 +17,26 @@ public sealed class ListMyOrdersController : ControllerBase
         [FromQuery] ListMyOrdersRequest request,
         [FromServices] AppDbContext db) =>
         ListMyOrders.Execute(
-            new ListMyOrders.Query { Page = request.Page, PageSize = request.PageSize, Sort = request.Sort },
+            new ListMyOrders.Query
+            {
+                Page = request.Page,
+                PageSize = request.PageSize,
+                Sort = request.Sort,
+                Status = request.Status
+            },
             User.UserId,
             db);
 }
 
-public sealed record ListMyOrdersRequest(int Page = 1, int PageSize = 20, string? Sort = null);
+public sealed record ListMyOrdersRequest(int Page = 1, int PageSize = 20, string? Sort = null, OrderStatus? Status = null);
 
 
 public static class ListMyOrders
 {
-    public sealed record Query : PagedQuery;
+    public sealed record Query : PagedQuery
+    {
+        public OrderStatus? Status { get; init; }
+    }
 
     public sealed record Item(
         Guid Id,
@@ -38,11 +47,14 @@ public static class ListMyOrders
 
     public static async Task<PagedResult<Item>> Execute(Query query, Guid userId, AppDbContext db)
     {
-        var sortable = new SortMap<Order>()
-            .Add("createdAt", x => x.CreatedAt);
+        var sortable = new SortMap<Order>().Add("createdAt", x => x.CreatedAt);
 
-        return await db.Orders
-            .Where(x => x.UserId == userId)
+        var queryable = db.Orders.Where(x => x.UserId == userId);
+
+        if (query.Status is OrderStatus status)
+            queryable = queryable.Where(x => x.Status == status);
+
+        return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "-createdAt")
             .Select(x => new Item(x.Id, x.OutletId, x.Status, x.CreatedAt, x.ClosedAt))
             .ToPagedResultAsync(query);
