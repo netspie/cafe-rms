@@ -66,6 +66,7 @@ const groups: { title: string; items: NavItem[] }[] = [
     title: "Reports",
     items: [
       { href: "/admin/reports/sales", label: "Sales", icon: BarChart3 },
+      { href: "/admin/reports/events", label: "Event attendance", icon: Calendar },
     ],
   },
   {
