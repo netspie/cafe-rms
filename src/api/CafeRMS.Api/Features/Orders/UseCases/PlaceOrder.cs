@@ -150,6 +150,6 @@ public static class PlaceOrder
         if (balance < points)
             throw new DomainException($"Insufficient loyalty balance ({balance} available).");
 
-        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, -points, reason: $"Redeemed on order {orderId}"));
+        db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(userId, -points, reason: $"{LoyaltyReasons.RedeemedPrefix}{orderId}"));
     }
 }

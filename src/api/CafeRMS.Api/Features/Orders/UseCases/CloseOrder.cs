@@ -50,7 +50,7 @@ public static class CloseOrder
                 db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(
                     userId,
                     earnedPoints,
-                    reason: $"Earned on order {order.Id}"));
+                    reason: $"{LoyaltyReasons.EarnedPrefix}{order.Id}"));
             }
         }
 

@@ -54,7 +54,7 @@ public static class CloseEvent
             db.LoyaltyPointLogs.Add(LoyaltyPointLog.Create(
                 userId,
                 AttendanceBonusPoints,
-                reason: $"Attendance bonus for event {ev.Id}"));
+                reason: $"{LoyaltyReasons.AttendancePrefix}{ev.Id}"));
         }
 
         await db.SaveChangesAsync();
