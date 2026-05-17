@@ -1,6 +1,3 @@
-// Single shared form helper: label, child input, error message.
-// Errors come from the server's ProblemDetails.errors map (set by ApiError.fieldError).
-
 interface FieldProps {
   label: string
   error?: string

@@ -1,6 +1,3 @@
-// Public homepage — pure server component. Anonymous endpoint, no auth.
-// The Bearer header is omitted because there's no cookie token.
-
 import Link from "next/link"
 import { ShibaMark } from "@/components/shiba-mark"
 

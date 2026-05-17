@@ -33,12 +33,6 @@ namespace CafeRMS.Api.Persistence.Migrations
                 table: "events",
                 type: "text",
                 nullable: true);
-
-            // xmin shadow concurrency tokens are now tracked on every IAuditable entity
-            // (broadened from ISoftDeletable). Postgres provides xmin as a system column on
-            // every table — Npgsql maps to it directly, so no AddColumn DDL is needed for the
-            // 6 entities that gained tracking here (event_days, loyalty_point_logs, order_lines,
-            // product_images, product_prices, user_settings).
         }
 
         /// <inheritdoc />

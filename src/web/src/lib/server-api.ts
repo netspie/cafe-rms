@@ -1,8 +1,3 @@
-// Server-only fetch wrapper. Reads the JWT from an httpOnly cookie via
-// Next.js `cookies()` and forwards it as a Bearer token to the C# API.
-// Never imported by client code (the import-server-only marker errors at
-// build time if a client bundle pulls it in).
-
 import "server-only"
 import { cookies } from "next/headers"
 
@@ -33,8 +28,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...(init.headers as Record<string, string> | undefined),
   }
   if (token) headers.Authorization = `Bearer ${token}`
-  // SuperAdmin uses this header to context-switch to a tenant; the API
-  // ignores it for Staff / Guest accounts and falls back to the JWT claim.
   if (companyId) headers["X-Company-Id"] = companyId
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers, cache: "no-store" })

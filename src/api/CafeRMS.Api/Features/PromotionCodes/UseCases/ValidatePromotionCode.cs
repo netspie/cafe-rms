@@ -10,7 +10,7 @@ namespace CafeRMS.Api.Features.PromotionCodes.UseCases;
 public sealed class ValidatePromotionCodeController : ControllerBase
 {
     [HttpPost("/api/promotion-codes/validate")]
-    [Authorize] // any authenticated user — used by mobile app pre-checkout
+    [Authorize]
     public async Task<ValidatePromotionCode.Result> Handle(
         [FromBody] ValidatePromotionCodeRequest request,
         [FromServices] AppDbContext db) =>
@@ -30,7 +30,6 @@ public sealed class ValidatePromotionCodeValidator : AbstractValidator<ValidateP
 
 public static class ValidatePromotionCode
 {
-    // Reasons mirror the use-cases.md spec; mobile app surfaces these to the customer.
     public const string ReasonNotFound = "not-found";
     public const string ReasonNotYetActive = "not-yet-active";
     public const string ReasonExpired = "expired";

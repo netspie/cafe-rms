@@ -1,9 +1,3 @@
-// Products — edit page, single server component file.
-//
-// Six sections inlined as <section> blocks. Each section's mutating action
-// is a server action that calls the C# API and revalidatePath()'s this
-// route. Page reload re-renders fresh data from the server. No client JS.
-
 import { revalidatePath } from "next/cache"
 import { Trash2, X } from "lucide-react"
 import { Field } from "@/components/field"

@@ -1,5 +1,3 @@
-// Mirrors CafeRMS.Api.Features.Auth.Permissions — keep in sync with the C# constants.
-
 export const ALL_PERMISSIONS = [
   "OutletManage",
   "TablesManage",

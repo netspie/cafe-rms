@@ -79,10 +79,6 @@ namespace CafeRMS.Api.Persistence.Migrations
                 table: "asp_net_roles",
                 type: "uuid",
                 nullable: true);
-
-            // xmin: Postgres provides this as a system column on every table, Npgsql maps to
-            // it directly. The 2 spurious AddColumn<uint>("xmin", ...) calls EF scaffolded for
-            // asp_net_users / asp_net_roles were stripped — no DDL needed.
         }
 
         /// <inheritdoc />

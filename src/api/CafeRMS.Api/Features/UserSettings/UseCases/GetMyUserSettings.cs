@@ -27,7 +27,6 @@ public static class GetMyUserSettings
         var existing = await db.UserSettings.FirstOrDefaultAsync(x => x.UserId == userId);
         if (existing is null)
         {
-            // Auto-create with defaults so the customer always sees a valid settings object.
             existing = UserSettings.Create(userId);
             db.UserSettings.Add(existing);
             await db.SaveChangesAsync();

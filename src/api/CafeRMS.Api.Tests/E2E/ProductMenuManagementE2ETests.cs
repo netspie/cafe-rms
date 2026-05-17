@@ -4,10 +4,6 @@ using CafeRMS.Api.Features.Auth;
 
 namespace CafeRMS.Api.Tests.E2E;
 
-// Closed business process #2 — diagrams/2-activity-product-menu-management.md
-// Walks the full staff flow: TaxRate → PriceGroup → Tag → Allergen → ModifierGroup
-// → Product → set price → attach all collections → add image → ProductList → add product to list
-// → assert the catalog is fully wired up.
 [TestFixture]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public sealed class ProductMenuManagementE2ETests : IDisposable
@@ -40,14 +36,12 @@ public sealed class ProductMenuManagementE2ETests : IDisposable
             Permissions.MenusManage
         ]);
 
-        // ─── Catalog scaffolding (left column of the diagram). ───
         var taxRateId = await CreateAsync(staff, "/api/tax-rates", new { name = "VAT 23%", description = "Standard rate", rate = 23m });
         var priceGroupId = await CreateAsync(staff, "/api/price-groups", new { name = "Standard" });
         var tagId = await CreateAsync(staff, "/api/tags", new { name = "Vegan", imageUrl = (string?)null });
         var allergenId = await CreateAsync(staff, "/api/allergens", new { name = "Peanuts" });
         var modifierGroupId = await CreateAsync(staff, "/api/modifier-groups", new { name = "Milk type" });
 
-        // ─── Product creation + full configuration. ───
         var productId = await CreateAsync(staff, "/api/products", new
         {
             name = "Espresso",
@@ -56,33 +50,25 @@ public sealed class ProductMenuManagementE2ETests : IDisposable
             taxRateId
         });
 
-        // SetTaxRate is implicit (ctor) — diagram step folded into create.
-        // SetPrices.
         (await staff.PutAsJsonAsync($"/api/products/{productId}/prices/{priceGroupId}", new { net = 5.00m }))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // AssignTags.
         (await staff.PostAsync($"/api/products/{productId}/tags/{tagId}", null))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // AssignAllergens.
         (await staff.PostAsync($"/api/products/{productId}/allergens/{allergenId}", null))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // UploadImages — POST returns the image id; diagram doesn't require multiple, one is enough.
         var imgResp = await staff.PostAsJsonAsync($"/api/products/{productId}/images", new { url = "https://cdn/espresso.png" });
         imgResp.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // AssignModifiers.
         (await staff.PostAsync($"/api/products/{productId}/modifier-groups/{modifierGroupId}", null))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // ─── ProductList (right column). ───
         var listId = await CreateAsync(staff, "/api/product-lists", new { name = "Breakfast Menu" });
         (await staff.PostAsJsonAsync($"/api/product-lists/{listId}/items", new { productId }))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // ─── Assertions: the diagrammed "ProductReady → MenuReady" end-state. ───
         var productResp = await staff.GetAsync($"/api/products/{productId}");
         var product = await productResp.Content.ReadFromJsonAsync<ProductDetail>();
         product!.Name.Should().Be("Espresso");

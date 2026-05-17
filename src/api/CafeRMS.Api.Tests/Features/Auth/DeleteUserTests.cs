@@ -15,7 +15,6 @@ public sealed class DeleteUserTests : IDisposable
     public async Task DeleteUser_happy_path_returns_204()
     {
         var target = await factory.SeedUserAsync(AccountType.Staff, "target@x.local", "Pass1234!");
-        // Acting user is a separate Staff with UsersManage.
         using var client = factory.CreateClientAs(AccountType.Staff, userId: Guid.NewGuid(), permissions: [Permissions.UsersManage]);
 
         var response = await client.DeleteAsync($"/api/users/{target.Id}");

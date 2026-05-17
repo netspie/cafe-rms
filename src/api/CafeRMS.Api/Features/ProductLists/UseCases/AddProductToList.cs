@@ -46,7 +46,6 @@ public static class AddProductToList
         if (!productExists)
             throw new NotFoundException("Product not found.");
 
-        // Idempotent: already-in-list is a no-op so the mobile app can retry without error.
         var alreadyAdded = await db.ProductListItems
             .AnyAsync(x => x.ProductListId == productListId && x.ProductId == productId);
         if (alreadyAdded)

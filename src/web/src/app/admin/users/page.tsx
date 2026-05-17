@@ -1,12 +1,3 @@
-// Users — list page. Two tabs:
-//   * Staff  (default) — staff accounts for the current tenant. Inline form
-//                        registers a new staff member; subsequent role
-//                        assignment happens on the edit page.
-//   * Guest          — guest customers, system-wide. Read-only here (guests
-//                        register themselves via the public site), so the
-//                        Add form is hidden on this tab.
-// Plus a name-prefix filter and (Staff tab only) a role filter.
-
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Pencil, Plus, Trash2 } from "lucide-react"

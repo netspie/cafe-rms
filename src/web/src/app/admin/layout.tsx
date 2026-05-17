@@ -1,6 +1,3 @@
-// Admin layout — server component. If there's no auth cookie, redirect to
-// /login. No client-side guard; the cookie check runs on every request.
-
 import { redirect } from "next/navigation"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminTopbar } from "@/components/admin-topbar"

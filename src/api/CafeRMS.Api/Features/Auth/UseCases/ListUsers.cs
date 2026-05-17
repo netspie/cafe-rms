@@ -16,7 +16,6 @@ public sealed class ListUsersController : ControllerBase
         await ListUsers.Execute(request.AccountType, request.Q, request.Role, db);
 }
 
-// AccountType: "Staff" (default) or "Guest".
 public sealed record ListUsersRequest(string? AccountType = null, string? Q = null, string? Role = null);
 
 

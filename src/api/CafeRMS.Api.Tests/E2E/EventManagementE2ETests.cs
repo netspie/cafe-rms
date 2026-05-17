@@ -12,10 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeRMS.Api.Tests.E2E;
 
-// Closed business process #3 — diagrams/3-activity-event-management.md
-// Walks the full flow: staff sets up product + event-pricing → creates Event tied to a
-// dedicated ProductList + PriceGroup → adds days → publishes → guest places order with
-// EventId → staff closes the event → assert attendance bonus credited.
 [TestFixture]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public sealed class EventManagementE2ETests : IDisposable
@@ -30,7 +26,6 @@ public sealed class EventManagementE2ETests : IDisposable
     [Test]
     public async Task FullFlow_staff_creates_event_with_menu_then_guest_orders_then_close_credits_attendance()
     {
-        // ─── Setup: outlet + the catalog scaffolding the diagram references. ───
         var outlet = await factory.SeedOutletAsync();
         Guid outletId = outlet.Id;
         Guid productId, priceGroupId, productListId, userId;
@@ -60,13 +55,11 @@ public sealed class EventManagementE2ETests : IDisposable
         ]);
         using var guest = factory.CreateClientAs(AccountType.Guest, userId: userId);
 
-        // ─── Staff: create dedicated ProductList for the event. ───
         var listResp = await staff.PostAsJsonAsync("/api/product-lists", new { name = "Acoustic Night Menu" });
         productListId = (await listResp.Content.ReadFromJsonAsync<IdResp>())!.Id;
         (await staff.PostAsJsonAsync($"/api/product-lists/{productListId}/items", new { productId }))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // ─── Staff: create the Event tied to that menu + price group. ───
         var eventResp = await staff.PostAsJsonAsync("/api/events", new
         {
             name = "Acoustic Night",
@@ -77,35 +70,27 @@ public sealed class EventManagementE2ETests : IDisposable
         });
         var eventId = (await eventResp.Content.ReadFromJsonAsync<IdResp>())!.Id;
 
-        // ─── Staff: add 2 days (the diagram's "Czy więcej dni?" loop). ───
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         (await staff.PostAsJsonAsync($"/api/events/{eventId}/days", new { date = today }))
             .StatusCode.Should().Be(HttpStatusCode.OK);
         (await staff.PostAsJsonAsync($"/api/events/{eventId}/days", new { date = today.AddDays(1) }))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // ─── Staff: publish (diagrammed end-state of the staff column). ───
         (await staff.PostAsync($"/api/events/{eventId}/publish", null))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // ─── Guest: place order with EventId at the event price. ───
         var place = await guest.PostAsJsonAsync("/api/my/orders", new
         {
             outletId,
             eventId,
             loyaltyPointsUsed = 0,
-            // PriceGroupId pinned so PlaceOrder picks the cheaper event price (FIFO would
-            // also work here since we only seeded one ProductPrice row, but being explicit
-            // mirrors what the mobile app would do once it has the event context).
             lines = new[] { new { productId, quantity = 1, priceGroupId = (Guid?)priceGroupId } }
         });
         place.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // ─── Staff: close the event → triggers attendance loyalty payout. ───
         (await staff.PostAsync($"/api/events/{eventId}/close", null))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // ─── Assertion: attendance bonus credited to the guest. ───
         using var scope2 = factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var bonus = await db2.LoyaltyPointLogs.IgnoreQueryFilters()

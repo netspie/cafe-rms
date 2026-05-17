@@ -1,17 +1,3 @@
-// Tags — list page, pure server component.
-//
-// • Fetches the list server-side (no client state, no useEffect).
-// • Filter / pagination are URL params; the filter <form> just submits.
-// • Add: inline <form action={createTag}> at the top of the page.
-// • Delete: per-row <form action={deleteTag.bind(null, id)}>. Native
-//   confirm() requires a tiny client component, so we ship without — the
-//   server tells you what's deleted via the page reload. Add a confirm
-//   step in S6 if it's needed.
-//
-// The defense pitch: every interaction is a form POST that either redirects
-// or revalidates this page. No client JavaScript runs except for the global
-// theme toggle.
-
 import Link from "next/link"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { revalidatePath } from "next/cache"

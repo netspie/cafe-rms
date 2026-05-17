@@ -7,10 +7,6 @@ namespace CafeRMS.Api.Shared.Paging;
 
 public static class PagingExtensions
 {
-    // Parses a sort expression like "name,-createdAt" ('-' prefix = DESC) and applies it to the query.
-    // Grammar follows the JSON:API sort convention — https://jsonapi.org/format/#fetching-sorting.
-    // `allowedFields` is a mandatory allow-list — unknown field names are rejected so raw user input
-    // never reaches EF's OrderBy (prevents injection / unexpected full-table sorts on unindexed columns).
     public static IQueryable<T> ApplySort<T>(
         this IQueryable<T> query,
         string? sortExpression,
@@ -53,7 +49,6 @@ public static class PagingExtensions
         return new PagedResult<TResult>(items, page, pageSize, totalCount);
     }
 
-    // Clamps page >= 1, pageSize to [1..MaxPageSize], falling back to the default when unset/invalid.
     private static (int page, int pageSize) NormalizePageRequest(PagedQuery pageRequest)
     {
         var page = Math.Max(1, pageRequest.Page);
@@ -62,9 +57,6 @@ public static class PagingExtensions
         return (page, pageSize);
     }
 
-    // Dispatches to the right Queryable ordering method by name. Reflection is needed because the
-    // property type (TKey) is only known at runtime — different sort fields can have different types
-    // (string, DateTimeOffset, int, ...) and we can't express that in a single generic signature.
     private static IOrderedQueryable<T> ApplyOrdering<T>(
         IQueryable<T> sourceQuery,
         LambdaExpression propertySelector,

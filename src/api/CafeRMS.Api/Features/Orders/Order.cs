@@ -32,8 +32,6 @@ public class Order : Entity
     public bool IsClosed => ClosedAt is not null;
     public bool IsCancelled => CancelledAt is not null;
 
-    // Simple cafe lifecycle: Placed → Closed (or Cancelled). No accept / preparation /
-    // ready ping-pong — barista makes the coffee, marks it Closed, customer picks up.
     public OrderStatus Status =>
         IsCancelled ? OrderStatus.Cancelled
         : IsClosed ? OrderStatus.Closed

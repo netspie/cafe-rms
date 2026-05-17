@@ -37,7 +37,6 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions, AppDbContex
 
             claims.Add(new Claim(ClaimTypes.Role, roleName));
 
-            // Owner bypasses permission checks at the policy handler — no permission claims needed.
             if (string.Equals(roleName, SystemRoles.Owner, StringComparison.Ordinal))
                 continue;
 

@@ -13,9 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeRMS.Api.Tests.E2E;
 
-// Closed business process #1 — diagrams/1-activity-online-ordering.md
-// Walks the full flow: register → place order with promo + loyalty redemption →
-// staff accept → start preparing → mark ready → close → loyalty earned.
 [TestFixture]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public sealed class OnlineOrderingE2ETests : IDisposable
@@ -35,7 +32,6 @@ public sealed class OnlineOrderingE2ETests : IDisposable
     [Test]
     public async Task FullFlow_register_place_with_promo_and_loyalty_then_staff_lifecycle_to_close()
     {
-        // ─── Setup: outlet + staff seed of catalog + promo (the staff side of the diagram). ───
         var outlet = await factory.SeedOutletAsync();
         Guid outletId = outlet.Id;
         Guid productId;
@@ -54,7 +50,6 @@ public sealed class OnlineOrderingE2ETests : IDisposable
             await db.SaveChangesAsync();
         }
 
-        // ─── Step 1: Klient — register (acts out the "Czy zalogowany? → Rejestracja" branch). ───
         using var anon = factory.CreateAnonymousClient();
         var reg = await anon.PostAsJsonAsync("/api/auth/register/guest", new
         {
@@ -65,8 +60,6 @@ public sealed class OnlineOrderingE2ETests : IDisposable
         });
         reg.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Pull the freshly-created user id so we can issue a guest JWT for the rest of the
-        // flow + plant some loyalty points to redeem (the diagram's "wystarczający stan punktów" branch).
         Guid userId;
         using (var scope = factory.Services.CreateScope())
         {
@@ -80,7 +73,6 @@ public sealed class OnlineOrderingE2ETests : IDisposable
         using var guest = factory.CreateClientAs(AccountType.Guest, userId: userId);
         using var staff = factory.CreateClientAs(AccountType.Staff, permissions: [Permissions.OrdersManage, Permissions.OrdersView]);
 
-        // ─── Step 2: Klient — place order with promo + loyalty redemption. ───
         var place = await guest.PostAsJsonAsync("/api/my/orders", new
         {
             outletId,
@@ -91,10 +83,8 @@ public sealed class OnlineOrderingE2ETests : IDisposable
         place.StatusCode.Should().Be(HttpStatusCode.OK);
         var orderId = (await place.Content.ReadFromJsonAsync<PlaceResp>())!.OrderId;
 
-        // ─── Step 3: Pracownik — close the order (cafe-simple lifecycle: place → close). ───
         (await staff.PostAsync($"/api/orders/{orderId}/close", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // ─── Step 4: assertions on the closed-process invariants. ───
         var detailResp = await staff.GetAsync($"/api/orders/{orderId}");
         var detail = await detailResp.Content.ReadFromJsonAsync<OrderDetail>();
         detail!.Status.Should().Be("Closed");
@@ -105,13 +95,9 @@ public sealed class OnlineOrderingE2ETests : IDisposable
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            // Promo usage was incremented inside PlaceOrder.
             var promo = await db.PromotionCodes.IgnoreQueryFilters().FirstAsync(x => x.Code == "WELCOME10");
             promo.UsesCount.Should().Be(1);
 
-            // Loyalty trail: +100 seed, -30 redemption (PlaceOrder), +N earn (CloseOrder).
-            // Net should still be positive — earn formula is floor(net total - discount), with
-            // discount applied against subtotal that includes VAT.
             var entries = await db.LoyaltyPointLogs.IgnoreQueryFilters()
                 .Where(x => x.UserId == userId)
                 .OrderBy(x => x.CreatedAt)

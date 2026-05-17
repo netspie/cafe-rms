@@ -1,9 +1,3 @@
-// Clickable column header. Toggles between `<field>` (asc) and `-<field>` (desc)
-// in the URL ?sort param when clicked, and shows an arrow next to the active
-// column. Preserves any other filter params the page wants to keep around (q,
-// group, etc.) — page should NOT pass `page` since changing the sort resets
-// pagination to 1.
-
 import Link from "next/link"
 import { ArrowDown, ArrowUp } from "lucide-react"
 

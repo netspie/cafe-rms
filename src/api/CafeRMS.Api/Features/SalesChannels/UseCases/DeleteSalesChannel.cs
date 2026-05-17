@@ -29,8 +29,6 @@ public static class DeleteSalesChannel
         var channel = await db.SalesChannels.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Sales channel not found.");
 
-        // Phase 2 join-table cleanup: drop the SalesChannel ↔ PriceGroup links — they
-        // have no meaning once the channel is gone.
         var links = await db.SalesChannelPriceGroups.Where(x => x.SalesChannelId == id).ToListAsync();
         db.SalesChannelPriceGroups.RemoveRange(links);
 

@@ -27,8 +27,6 @@ export default async function RolesListPage({ searchParams }: { searchParams: Pr
   const sort = sp.sort ?? "name"
   const roles = await api.get<RoleItem[]>("/api/roles")
 
-  // /api/roles returns a flat list (small, no paging) — client/server sort is
-  // fine. Mirror the same direction-toggle as the SortableTh elsewhere.
   const sortedRoles = sortRoles(roles, sort)
   const preserve: Record<string, string> = {}
 

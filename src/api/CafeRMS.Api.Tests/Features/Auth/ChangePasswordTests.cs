@@ -28,11 +28,9 @@ public sealed class ChangePasswordTests : IDisposable
 
         using var anon = factory.CreateAnonymousClient();
 
-        // Old password no longer works.
         var oldLogin = await anon.PostAsJsonAsync("/api/auth/login", new { email = "pwchange@test.local", password = "OldPass1!" });
         oldLogin.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        // New password does.
         var newLogin = await anon.PostAsJsonAsync("/api/auth/login", new { email = "pwchange@test.local", password = "NewPass1!" });
         newLogin.StatusCode.Should().Be(HttpStatusCode.OK);
     }

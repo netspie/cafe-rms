@@ -31,7 +31,6 @@ public static class DeleteRole
         if (string.Equals(role.Name, SystemRoles.Owner, StringComparison.Ordinal))
             throw new ForbiddenException("The Owner role is system-managed and cannot be deleted.");
 
-        // SoftDeletableSaveChangesInterceptor converts Remove → soft-delete.
         db.Roles.Remove(role);
         await db.SaveChangesAsync();
     }

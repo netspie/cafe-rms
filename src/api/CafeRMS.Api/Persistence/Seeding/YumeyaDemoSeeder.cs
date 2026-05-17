@@ -22,8 +22,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Persistence.Seeding;
 
-// Whole-cafe demo seed for Yumeya, the single themed Japanese café.
-// Idempotent: bails out if the outlet is already there.
 public class YumeyaDemoSeeder(
     AppDbContext db,
     UserManager<AppUser> userManager,
@@ -78,7 +76,6 @@ public class YumeyaDemoSeeder(
 
     private async Task<(Guid OwnerUserId, Guid OutletId)> ProvisionAsync(string ownerPassword)
     {
-        // Owner role must exist before we assign the owner user to it.
         var ownerRole = await roleManager.FindByNameAsync(SystemRoles.Owner);
         if (ownerRole is null)
         {
@@ -107,8 +104,6 @@ public class YumeyaDemoSeeder(
 
         return (owner.Id, outlet.Id);
     }
-
-    // === Reference data ===
 
     public sealed record TaxRateRefs(TaxRate EatIn, TaxRate Takeaway, TaxRate Goods);
 
@@ -211,8 +206,6 @@ public class YumeyaDemoSeeder(
         return new ModifierGroupRefs(size, milk, sweetness, temperature, extraShot, whippedCream, extraSweet);
     }
 
-    // === Pricing ===
-
     public sealed record PriceGroupRefs(PriceGroup Standard, PriceGroup Loyalty, PriceGroup HappyHour);
 
     private async Task<PriceGroupRefs> SeedPriceGroupsAsync()
@@ -244,8 +237,6 @@ public class YumeyaDemoSeeder(
         return new SalesChannelRefs(dineIn, takeout);
     }
 
-    // === Outlet floor plan ===
-
     public sealed record TableRefs(
         Table Bar1, Table Bar2, Table Bar3,
         Table Window1, Table Window2,
@@ -266,8 +257,6 @@ public class YumeyaDemoSeeder(
         await db.SaveChangesAsync();
         return new TableRefs(bar1, bar2, bar3, window1, window2, tatami, patio1, patio2);
     }
-
-    // === Products ===
 
     public sealed record ProductRefs(
         Product MatchaLatte, Product HojichaLatte, Product KuroGomaLatte, Product SakuraLatte,
@@ -462,8 +451,6 @@ public class YumeyaDemoSeeder(
     private static decimal Discount(decimal net, decimal percentage) =>
         Math.Round(net * (1m - percentage), 2);
 
-    // === Staff ===
-
     public sealed record StaffRefs(Guid ManagerUserId, Guid Barista1UserId, Guid Barista2UserId, Guid KitchenUserId);
 
     private async Task<StaffRefs> SeedStaffAsync(string staffPassword)
@@ -528,8 +515,6 @@ public class YumeyaDemoSeeder(
         return user;
     }
 
-    // === Customers ===
-
     public sealed record CustomerRefs(AppUser Sakura, AppUser Yuki, AppUser Hana);
 
     private async Task<CustomerRefs> SeedCustomersAsync(string password)
@@ -549,8 +534,6 @@ public class YumeyaDemoSeeder(
         return user;
     }
 
-    // === Loyalty ===
-
     private async Task SeedLoyaltyAsync(CustomerRefs customers)
     {
         db.LoyaltyPointLogs.AddRange(
@@ -564,8 +547,6 @@ public class YumeyaDemoSeeder(
 
         await db.SaveChangesAsync();
     }
-
-    // === Events ===
 
     private async Task SeedEventsAsync()
     {
@@ -601,8 +582,6 @@ public class YumeyaDemoSeeder(
         await db.SaveChangesAsync();
     }
 
-    // === Promotion codes ===
-
     public sealed record PromotionRefs(PromotionCode Welcome10, PromotionCode Sakura2026, PromotionCode Hanami);
 
     private async Task<PromotionRefs> SeedPromotionCodesAsync()
@@ -617,8 +596,6 @@ public class YumeyaDemoSeeder(
         await db.SaveChangesAsync();
         return new PromotionRefs(welcome10, sakura2026, hanami);
     }
-
-    // === Sample orders ===
 
     private async Task SeedSampleOrdersAsync(
         Guid outletId,
@@ -675,16 +652,12 @@ public class YumeyaDemoSeeder(
         db.OrderLines.Add(OrderLine.Create(orderId, product.Id, quantity, netPerOne, vatPerOne));
     }
 
-    // === Printout templates ===
-
     private async Task SeedPrintoutTemplatesAsync()
     {
         db.PrintoutTemplates.Add(
             PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/Resources/Templates/potwierdzenie-wydarzenia.docx"));
         await db.SaveChangesAsync();
     }
-
-    // === Backdate audit timestamps for sortable variety ===
 
     private async Task BackdateAuditsForVarietyAsync(Guid[] creatorUserIds)
     {

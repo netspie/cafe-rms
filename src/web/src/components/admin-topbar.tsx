@@ -1,15 +1,3 @@
-// Topbar — server component. Fetches /api/me to know whether to show the
-// SuperAdmin company switcher. For SuperAdmins also fetches /api/companies
-// (gated server-side by RequireSuperAdmin policy) and renders a <select>
-// whose form action writes the picked id to the company cookie.
-//
-// Both /api/me and /api/companies are caught — if the token expired or the
-// API is down, the topbar still renders without the switcher rather than
-// blowing up the whole admin layout.
-//
-// Sign-out is a tiny <form> whose action is a server function: clears both
-// cookies (token + company) and redirects to /login.
-
 import { LogOut } from "lucide-react"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
@@ -59,9 +47,6 @@ export async function AdminTopbar() {
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Company</span>
           <select
             name="companyId"
-            // key changes when the cookie changes — React reuses the DOM
-            // <select> across server-action re-renders, which means
-            // defaultValue alone wouldn't update the visible choice.
             key={selectedCompanyId ?? "none"}
             defaultValue={selectedCompanyId ?? ""}
             className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"

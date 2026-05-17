@@ -185,8 +185,6 @@ public sealed class PromotionCodesTests : IDisposable
         var promo = PromotionCode.Create(code, discountPercentage, validFrom, validUntil, maxUses);
         if (usesCount > 0)
         {
-            // UsesCount is private set via Update only updating settable fields; for tests
-            // we set it directly through the EF property bag.
             db.Entry(promo).Property("UsesCount").CurrentValue = usesCount;
         }
         db.PromotionCodes.Add(promo);

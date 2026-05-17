@@ -59,7 +59,7 @@ public sealed class RegisterGuestTests : IDisposable
         var response = await client.PostAsJsonAsync("/api/auth/register/guest", new
         {
             email = "weak@test.local",
-            password = "abc12345",   // 8 chars but no uppercase — fails Identity complexity
+            password = "abc12345",
             firstName = "Weak",
             lastName = "Pass"
         });

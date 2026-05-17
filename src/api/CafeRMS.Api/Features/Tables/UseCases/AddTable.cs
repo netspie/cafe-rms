@@ -44,7 +44,6 @@ public static class AddTable
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        // Single-cafe model: there's exactly one Outlet — pick the first.
         var outletId = await db.Outlets
             .Select(x => (Guid?)x.Id)
             .FirstOrDefaultAsync()

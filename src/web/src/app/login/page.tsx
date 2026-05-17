@@ -1,9 +1,3 @@
-// Login page — server shell + inline server action. The form itself lives in
-// login-form.tsx because we need useActionState to surface errors inline. On
-// bad credentials the action returns {error}; on success it sets the cookie
-// and redirects to /admin (the redirect throws a special signal that Next
-// catches — that's not the same as a "real" error, so no dev overlay pops).
-
 import { redirect } from "next/navigation"
 import { ShibaMark } from "@/components/shiba-mark"
 import { setToken } from "@/lib/auth-cookie"

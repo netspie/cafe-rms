@@ -35,7 +35,6 @@ public static class UnassignRole
             .FirstOrDefaultAsync(x => x.UserId == command.UserId && x.RoleId == command.RoleId)
             ?? throw new NotFoundException("This user does not have that role.");
 
-        // Owner orphan-prevention: cannot remove the last Owner.
         if (string.Equals(role.Name, SystemRoles.Owner, StringComparison.Ordinal))
         {
             var ownerCount = await db.UserRoles.CountAsync(x => x.RoleId == role.Id);

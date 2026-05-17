@@ -4,10 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CafeRMS.Api.Tests.Shared;
 
-// Helpers for asserting the ProblemDetails-shaped error body the API emits via
-// AddProblemDetails() + GlobalExceptionHandler. Pull-as-needed: tests that only
-// check the status code keep using `response.StatusCode.Should().Be(...)`.
-// Reach for these when the test cares about the Detail / Title / extension fields.
 public static class ProblemDetailsAssertions
 {
     public static async Task<ProblemDetails> ShouldBeProblemDetailsAsync(

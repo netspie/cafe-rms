@@ -1,12 +1,3 @@
-// Client wrapper for the login form. Exists only so we can call useActionState
-// — the rest of the page stays server-rendered. The server action is passed
-// in as a prop from page.tsx; we just plumb pending state + error rendering.
-//
-// Why this split: a thrown server action triggers Next.js's dev error overlay
-// (which is great for unexpected crashes but obnoxious on a wrong-password
-// 401). Returning {error} from the action and rendering it inline keeps the
-// failure path quiet.
-
 "use client"
 
 import { useActionState } from "react"

@@ -39,8 +39,6 @@ public static class CloseOrder
 
         order.Close(now);
 
-        // Loyalty earn: 1 point per integer unit of currency net (after discount).
-        // Walk-ins (no UserId) don't earn anything.
         if (order.UserId is Guid userId)
         {
             var lineNetTotal = await db.OrderLines

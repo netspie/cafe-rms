@@ -29,10 +29,6 @@ public static class DeleteProduct
         var product = await db.Products.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Product not found.");
 
-        // Phase 2 join-table cleanup: a product on the way out drops every join /
-        // child relationship in the same unit of work. Sub-entities (Image, Price)
-        // and join rows (Tag, Allergen, ModifierGroup, ProductListItem) all lose
-        // meaning once the parent product is gone.
         var tags = await db.ProductTags.Where(x => x.ProductId == id).ToListAsync();
         db.ProductTags.RemoveRange(tags);
 

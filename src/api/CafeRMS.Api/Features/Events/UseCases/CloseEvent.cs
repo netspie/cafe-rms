@@ -25,9 +25,6 @@ public sealed class CloseEventController : ControllerBase
 
 public static class CloseEvent
 {
-    // Flat 50-pt loyalty bonus per distinct attendee (= any user who placed an order
-    // with Order.EventId == event.Id). No EventRegistration entity by design — attendance
-    // is derived from the order trail.
     public const int AttendanceBonusPoints = 50;
 
     public static async Task Execute(Guid id, AppDbContext db, DateTimeOffset now)

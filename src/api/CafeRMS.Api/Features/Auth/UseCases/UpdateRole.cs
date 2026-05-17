@@ -59,7 +59,6 @@ public static class UpdateRole
         role.Name = command.Name;
         role.NormalizedName = normalized;
 
-        // Replace claims wholesale.
         var existingClaims = await db.RoleClaims
             .Where(x => x.RoleId == role.Id && x.ClaimType == ClaimsPrincipalExtensions.PermissionClaim)
             .ToListAsync();

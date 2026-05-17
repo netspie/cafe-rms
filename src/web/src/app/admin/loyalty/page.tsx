@@ -30,9 +30,6 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
   const preserve: Record<string, string> = {}
   if (userId) preserve.user = userId
 
-  // Loyalty members are guest customers (Sakura/Yuki/Hana in the demo seed).
-  // Guests live outside the tenant scope, so we ask /api/users for the
-  // Guest account type instead of the default Staff list.
   const [entries, users] = await Promise.all([
     api.get<PagedResult<LoyaltyEntry>>(`/api/loyalty/entries?${search}`),
     api.get<UserRow[]>("/api/users?accountType=Guest"),

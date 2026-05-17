@@ -77,9 +77,6 @@ public static class RegisterStaff
         RoleManager<AppRole> roleManager,
         AppDbContext db)
     {
-        // Owner role is assigned only via POST /api/users/{userId}/roles/{roleId}
-        // (gated by Permissions.RolesManage). Block it here so a UsersManage holder
-        // can't promote themselves or anyone else to Owner via the registration endpoint.
         if (command.Roles.Any(r => string.Equals(r, SystemRoles.Owner, StringComparison.OrdinalIgnoreCase)))
             throw new ForbiddenException("The Owner role cannot be assigned through registration.");
 

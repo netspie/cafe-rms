@@ -1,8 +1,3 @@
-// Tags — edit page, pure server component. Fetches the tag, renders the
-// form, posts back through a server action that revalidates and redirects
-// to the list. Server validates everything; on failure the action throws
-// and Next's error boundary renders.
-
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"

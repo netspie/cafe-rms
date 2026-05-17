@@ -35,7 +35,6 @@ public sealed class SetProductPriceValidator : AbstractValidator<SetProductPrice
 }
 
 
-// Upsert: a (Product, PriceGroup) pair has at most one Net price. Re-PUTting overwrites.
 public static class SetProductPrice
 {
     public static async Task Execute(Guid productId, Guid priceGroupId, decimal net, AppDbContext db)
