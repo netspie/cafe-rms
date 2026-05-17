@@ -1,9 +1,9 @@
 namespace CafeRMS.Api.Persistence.Seeding;
 
-public class StartupSeeder(YumeyaDemoSeeder yumeyaDemoSeeder)
+public class StartupSeeder(MameDemoSeeder mameDemoSeeder)
 {
     public async Task SeedAsync()
     {
-        await yumeyaDemoSeeder.SeedAsync();
+        await mameDemoSeeder.SeedAsync();
     }
 }

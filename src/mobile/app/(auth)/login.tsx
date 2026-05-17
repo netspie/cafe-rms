@@ -10,7 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("sakura@example.jp");
-  const [password, setPassword] = useState("Yumeya123!");
+  const [password, setPassword] = useState("Password123!");
   const [isPending, setIsPending] = useState(false);
   const setToken = useAuthStore((s) => s.setToken);
 
