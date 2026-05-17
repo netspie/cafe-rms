@@ -22,15 +22,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeRMS.Api.Persistence.Seeding;
 
-public class MameDemoSeeder(
+public class ShibaDemoSeeder(
     AppDbContext db,
     UserManager<AppUser> userManager,
     RoleManager<AppRole> roleManager,
     IConfiguration config,
-    ILogger<MameDemoSeeder> logger)
+    ILogger<ShibaDemoSeeder> logger)
 {
-    private const string OwnerEmail = "dariusz@mame.pl";
-    private const string OutletDisplayName = "Mame Shiba Cafe Warszawa";
+    private const string OwnerEmail = "dariusz@shiba.pl";
+    private const string OutletDisplayName = "Shiba Cafe Warszawa";
     private const string OutletAddress = "ul. Marszałkowska 100, 00-001 Warszawa";
 
     public async Task SeedAsync()
@@ -38,7 +38,7 @@ public class MameDemoSeeder(
         var ownerPassword = config["Seed:OwnerPassword"];
         if (string.IsNullOrWhiteSpace(ownerPassword))
         {
-            logger.LogWarning("Seed:OwnerPassword not set; skipping Mame demo seed.");
+            logger.LogWarning("Seed:OwnerPassword not set; skipping Shiba demo seed.");
             return;
         }
 
@@ -69,7 +69,7 @@ public class MameDemoSeeder(
         await BackdateAuditsForVarietyAsync([ownerUserId, staff.ManagerUserId, staff.BaristaUserId]);
 
         logger.LogInformation(
-            "Seeded Mame demo (OutletId={OutletId}, OwnerUserId={OwnerUserId})",
+            "Seeded Shiba demo (OutletId={OutletId}, OwnerUserId={OwnerUserId})",
             outletId, ownerUserId);
     }
 
@@ -264,7 +264,7 @@ public class MameDemoSeeder(
             [allergens.Soy],
             []);
 
-        AddProduct("Kubek emaliowany Mame", taxRates.Goods.Id, 65.00m, priceGroups, [], [], []);
+        AddProduct("Kubek emaliowany Shiba", taxRates.Goods.Id, 65.00m, priceGroups, [], [], []);
 
         await db.SaveChangesAsync();
 
@@ -321,8 +321,8 @@ public class MameDemoSeeder(
             Permissions.LoyaltyManage, Permissions.ProductsManage
         ]);
 
-        var manager = await CreateStaffAsync("kierownik@mame.pl", "Maja", "Kowalska", staffPassword, managerRole.Id);
-        var barista = await CreateStaffAsync("barista@mame.pl", "Anna", "Nowak", staffPassword, baristaRole.Id);
+        var manager = await CreateStaffAsync("kierownik@shiba.pl", "Maja", "Kowalska", staffPassword, managerRole.Id);
+        var barista = await CreateStaffAsync("barista@shiba.pl", "Anna", "Nowak", staffPassword, baristaRole.Id);
 
         return new StaffRefs(manager.Id, barista.Id);
     }

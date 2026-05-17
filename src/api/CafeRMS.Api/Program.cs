@@ -29,7 +29,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditableSaveChangesInterceptor>();
 builder.Services.AddScoped<SoftDeletableSaveChangesInterceptor>();
 builder.Services.AddScoped<StartupSeeder>();
-builder.Services.AddScoped<MameDemoSeeder>();
+builder.Services.AddScoped<ShibaDemoSeeder>();
 builder.Services.AddScoped<JwtTokenService>();
 
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
