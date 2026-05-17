@@ -46,8 +46,7 @@ public static class AddProductToList
         if (!productExists)
             throw new NotFoundException("Product not found.");
 
-        var alreadyAdded = await db.ProductListItems
-            .AnyAsync(x => x.ProductListId == productListId && x.ProductId == productId);
+        var alreadyAdded = await db.ProductListItems.AnyAsync(x => x.ProductListId == productListId && x.ProductId == productId);
         if (alreadyAdded)
             return;
 

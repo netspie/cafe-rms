@@ -31,8 +31,7 @@ public static class UnassignRole
         var role = await db.Roles.FirstOrDefaultAsync(x => x.Id == command.RoleId)
             ?? throw new NotFoundException("Role not found.");
 
-        var assignment = await db.UserRoles
-            .FirstOrDefaultAsync(x => x.UserId == command.UserId && x.RoleId == command.RoleId)
+        var assignment = await db.UserRoles.FirstOrDefaultAsync(x => x.UserId == command.UserId && x.RoleId == command.RoleId)
             ?? throw new NotFoundException("This user does not have that role.");
 
         if (string.Equals(role.Name, SystemRoles.Owner, StringComparison.Ordinal))

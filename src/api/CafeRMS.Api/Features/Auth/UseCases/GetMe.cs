@@ -38,9 +38,7 @@ public static class GetMe
 
         var roles = await userManager.GetRolesAsync(user);
 
-        var outletId = await db.Outlets
-            .Select(x => (Guid?)x.Id)
-            .FirstOrDefaultAsync();
+        var outletId = await db.Outlets.Select(x => (Guid?)x.Id).FirstOrDefaultAsync();
 
         var roleIds = await db.Roles
             .Where(r => roles.Contains(r.Name!))

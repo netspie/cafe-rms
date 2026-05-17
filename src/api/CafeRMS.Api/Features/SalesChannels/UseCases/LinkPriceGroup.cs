@@ -35,8 +35,7 @@ public static class LinkPriceGroup
         if (!priceGroupExists)
             throw new NotFoundException("Price group not found.");
 
-        var alreadyLinked = await db.SalesChannelPriceGroups
-            .AnyAsync(x => x.SalesChannelId == salesChannelId && x.PriceGroupId == priceGroupId);
+        var alreadyLinked = await db.SalesChannelPriceGroups.AnyAsync(x => x.SalesChannelId == salesChannelId && x.PriceGroupId == priceGroupId);
         if (alreadyLinked)
             return;
 

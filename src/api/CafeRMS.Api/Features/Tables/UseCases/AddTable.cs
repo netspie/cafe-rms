@@ -44,9 +44,7 @@ public static class AddTable
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        var outletId = await db.Outlets
-            .Select(x => (Guid?)x.Id)
-            .FirstOrDefaultAsync()
+        var outletId = await db.Outlets.Select(x => (Guid?)x.Id).FirstOrDefaultAsync()
             ?? throw new NotFoundException("Outlet not found.");
 
         var nameTaken = await db.Tables.AnyAsync(x => x.Name == command.Name);
