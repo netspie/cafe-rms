@@ -35,7 +35,6 @@ public sealed class GetSalesPerPeriodValidator : AbstractValidator<GetSalesPerPe
     }
 }
 
-
 public static class GetSalesPerPeriod
 {
     public sealed record Query(DateOnly From, DateOnly To, string Granularity);
@@ -53,24 +52,52 @@ public static class GetSalesPerPeriod
 
     public static async Task<Result> Execute(Query query, AppDbContext db)
     {
-        var buckets = await db.Database
-            .SqlQuery<BucketRow>(
-                $"SELECT period, revenue, orders_count, items_sold FROM fn_sales_per_period({query.From}, {query.To}, {query.Granularity})")
+        var fromUtc = new DateTimeOffset(query.From.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var toExclusiveUtc = new DateTimeOffset(query.To.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+        var lines = await db.Orders
+            .Where(o => o.ClosedAt != null
+                && o.CancelledAt == null
+                && o.ClosedAt >= fromUtc
+                && o.ClosedAt < toExclusiveUtc)
+            .Join(db.OrderLines, o => o.Id, ol => ol.OrderId, (o, ol) => new
+            {
+                OrderId = o.Id,
+                ClosedAt = o.ClosedAt!.Value,
+                ol.Quantity,
+                ol.NetPerOne,
+                ol.VatPerOne
+            })
             .ToListAsync();
 
-        var mapped = buckets
-            .Select(x => new Bucket(x.Period, x.Revenue, x.OrdersCount, x.ItemsSold))
+        var buckets = lines
+            .GroupBy(x => BucketStart(x.ClosedAt, query.Granularity))
+            .OrderBy(g => g.Key)
+            .Select(g => new Bucket(
+                DateOnly.FromDateTime(g.Key),
+                g.Sum(x => (x.NetPerOne + x.VatPerOne) * x.Quantity),
+                g.Select(x => x.OrderId).Distinct().Count(),
+                g.Sum(x => x.Quantity)))
             .ToList();
 
         return new Result(
             query.From,
             query.To,
             query.Granularity,
-            mapped,
-            mapped.Sum(x => x.Revenue),
-            mapped.Sum(x => x.OrdersCount),
-            mapped.Sum(x => x.ItemsSold));
+            buckets,
+            buckets.Sum(x => x.Revenue),
+            buckets.Sum(x => x.OrdersCount),
+            buckets.Sum(x => x.ItemsSold));
     }
 
-    private sealed record BucketRow(DateOnly Period, decimal Revenue, int OrdersCount, int ItemsSold);
+    private static DateTime BucketStart(DateTimeOffset closedAt, string granularity)
+    {
+        var date = closedAt.UtcDateTime.Date;
+        return granularity switch
+        {
+            "month" => new DateTime(date.Year, date.Month, 1),
+            "quarter" => new DateTime(date.Year, ((date.Month - 1) / 3) * 3 + 1, 1),
+            _ => date
+        };
+    }
 }

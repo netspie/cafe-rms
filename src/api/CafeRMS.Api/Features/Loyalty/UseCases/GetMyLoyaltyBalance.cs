@@ -24,9 +24,9 @@ public static class GetMyLoyaltyBalance
 
     public static async Task<Result> Execute(Guid userId, AppDbContext db)
     {
-        var balance = await db.LoyaltyPointLogs
-            .Where(x => x.UserId == userId)
-            .SumAsync(x => (int?)x.Points) ?? 0;
+        var balance = await db.Database
+            .SqlQuery<int>($"SELECT func_loyalty_balance({userId}) AS \"Value\"")
+            .SingleAsync();
         return new Result(balance);
     }
 }

@@ -49,8 +49,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PromotionCode> PromotionCodes => Set<PromotionCode>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
-    public DbSet<OrderLineSummary> OrderLineSummaries => Set<OrderLineSummary>();
     public DbSet<LoyaltyPointLog> LoyaltyPointLogs => Set<LoyaltyPointLog>();
+    public DbSet<LoyaltyEntryView> LoyaltyEntries => Set<LoyaltyEntryView>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventDay> EventDays => Set<EventDay>();

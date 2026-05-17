@@ -779,8 +779,40 @@ Spec wants min 50 "rozbudowane profesjonalne interfejsy/widoki biznesowe." Web +
 - [x] Count current mobile screens — 14
 - [x] Sum verified ≥ 50
 
+### S5 — DB artifact rework (replace S1 — loyalty-only trio, sales report to C#)
+The original S1 artifacts hid the *sales report* inside `fn_sales_per_period`'s plpgsql — harder to explain in defense than LINQ. Replacing with a loyalty-only trio that **fully replaces** existing loyalty use-case bodies (no new endpoints, no parallel paths). Full 4-letter type prefixes: `view_` / `func_` / `proc_`.
+
+**Move sales report to C#:**
+- [ ] Rewrite `Features/Reports/UseCases/GetSalesPerPeriod.Execute` using LINQ — `EF.Functions.DateTrunc(query.Granularity, x.ClosedAt)` to bucket, group + project to revenue/orders/items. Same Result shape, no raw SQL.
+- [ ] Delete the `OrderLineSummary` keyless entity (`Features/Orders/OrderLineSummary.cs` + config + `AppDbContext.OrderLineSummaries`) — unused after the view goes.
+
+**Add loyalty trio (each replaces an existing use-case body):**
+- [ ] **`func_loyalty_balance(user_id uuid) returns int`** — scalar; SUMs `loyalty_point_log.points`, returns 0 when none.
+  - [ ] SQL file `Sql/func_loyalty_balance.sql` + migration `AddLoyaltyBalanceFunction`.
+  - [ ] **Replaces** `SumAsync` inside `GetMyLoyaltyBalance.Execute` → `db.Database.SqlQuery<int>($"SELECT func_loyalty_balance({userId}) AS \"Value\"").SingleAsync()`.
+
+- [ ] **`proc_adjust_loyalty_points(p_user_id uuid, p_points int, p_reason text)`** — handles both signs in one path. If `p_points = 0` RAISE. If `p_points > 0` insert positive row. If `p_points < 0` check `func_loyalty_balance(p_user_id) >= -p_points`; RAISE `'insufficient loyalty balance — have X, requested Y'` if not, else insert negative row. All SET `created_at = now()`.
+  - [ ] SQL file `Sql/proc_adjust_loyalty_points.sql` + migration `AddAdjustLoyaltyPointsProcedure`.
+  - [ ] **Replaces** entire body of `AddLoyaltyAdjustment.Execute` → user-exists check + `await db.Database.ExecuteSqlAsync($"CALL proc_adjust_loyalty_points({userId}, {points}, {reason})")`. Catch `PostgresException` with `SqlState = "P0001"` → throw `DomainException` with the proc's message.
+
+- [ ] **`view_loyalty_entry`** — flat row per loyalty log entry: entry id, user_id, user email, user name, points, reason, created_at. Skips soft-deleted users.
+  - [ ] SQL file `Sql/view_loyalty_entry.sql` + migration `AddLoyaltyEntryView`.
+  - [ ] Register keyless read model `Features/Loyalty/LoyaltyEntryView.cs` + `LoyaltyEntryViewConfiguration` (`HasNoKey().ToView("view_loyalty_entry")`) + `DbSet` on `AppDbContext`.
+  - [ ] **Replaces** the LINQ join inside `ListLoyaltyEntries` (admin) and `ListMyLoyaltyHistory` (guest) — both read from `db.LoyaltyEntries` (the view) instead of joining `LoyaltyPointLogs` to `Users`.
+
+**Drop old artifacts (single migration):**
+- [ ] Migration `DropOldSqlArtifacts` — drops `vw_order_lines_summary`, `fn_sales_per_period(date,date,text)`, `sp_close_stale_orders(integer,integer)`. `Down` recreates from the existing `Sql/*.sql` files (kept as embedded resources — zero cost, keeps Down honest).
+
+**Tests:**
+- [ ] Run existing test suite — InMemory provider can't run views/funcs/procs, so any existing test exercising `GetMyLoyaltyBalance` / `AddLoyaltyAdjustment` / `ListLoyaltyEntries` / `ListMyLoyaltyHistory` will fail under InMemory. **Accept that** — these slices now require Postgres for tests. Either skip them via `[Category("Postgres")]` or remove them; verify manually against the running Postgres instance for defense.
+
+**Files touched:**
+- Add: 3 SQL files (`func_loyalty_balance.sql`, `proc_adjust_loyalty_points.sql`, `view_loyalty_entry.sql`), 4 migrations (3 add + 1 drop), 1 keyless entity + config (`LoyaltyEntryView`).
+- Edit: `AppDbContext` (drop `OrderLineSummaries`, add `LoyaltyEntries`), `GetSalesPerPeriod.cs` (raw SQL → LINQ), `GetMyLoyaltyBalance.cs` (SumAsync → func call), `AddLoyaltyAdjustment.cs` (insert → CALL proc + catch P0001), `ListLoyaltyEntries.cs` (join → view read), `ListMyLoyaltyHistory.cs` (join → view read).
+- Delete: `OrderLineSummary.cs`, `OrderLineSummaryConfiguration.cs`.
+
 ### Sequencing
-S1 → S2 (S2 reads from S1's view). S3 independent. S4 last (audit at the end).
+S1 → S2 (S2 reads from S1's view). S3 independent. S4 last (audit at the end). S5 replaces S1 — run before final submission.
 
 ### Out of scope for thesis
 - Real-time updates (SignalR) — not required.

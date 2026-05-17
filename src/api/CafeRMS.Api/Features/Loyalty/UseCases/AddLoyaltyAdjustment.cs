@@ -1,5 +1,6 @@
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
+using CafeRMS.Api.Shared;
 using CafeRMS.Api.Shared.Errors;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,7 @@ public sealed class AddLoyaltyAdjustmentController : ControllerBase
         [FromBody] AddLoyaltyAdjustmentRequest request,
         [FromServices] AppDbContext db)
     {
-        var command = new AddLoyaltyAdjustment.Command(request.UserId, request.Points, request.Reason);
+        var command = new AddLoyaltyAdjustment.Command(request.UserId, request.Points, request.Reason, User.UserId);
         var result = await AddLoyaltyAdjustment.Execute(command, db);
         return new AddLoyaltyAdjustmentResponse(result.Id);
     }
@@ -31,6 +32,7 @@ public sealed class AddLoyaltyAdjustmentValidator : AbstractValidator<AddLoyalty
     public AddLoyaltyAdjustmentValidator()
     {
         RuleFor(x => x.UserId).NotEqual(Guid.Empty);
+        RuleFor(x => x.Points).NotEqual(0);
         RuleFor(x => x.Reason).NotEmpty().MaximumLength(500);
     }
 }
@@ -38,22 +40,29 @@ public sealed class AddLoyaltyAdjustmentValidator : AbstractValidator<AddLoyalty
 
 public static class AddLoyaltyAdjustment
 {
-    public sealed record Command(Guid UserId, int Points, string Reason);
+    public sealed record Command(Guid UserId, int Points, string Reason, Guid ActorUserId);
 
     public sealed record Result(Guid Id);
 
     public static async Task<Result> Execute(Command command, AppDbContext db)
     {
-        if (command.Points == 0)
-            throw new DomainException("Points must be non-zero.");
-
         var userExists = await db.Users.AnyAsync(x => x.Id == command.UserId);
         if (!userExists)
             throw new NotFoundException("User not found.");
 
-        var entry = LoyaltyPointLog.Create(command.UserId, command.Points, command.Reason);
-        db.LoyaltyPointLogs.Add(entry);
-        await db.SaveChangesAsync();
-        return new Result(entry.Id);
+        if (command.Points < 0)
+        {
+            var balance = await db.Database
+                .SqlQuery<int>($"SELECT func_loyalty_balance({command.UserId}) AS \"Value\"")
+                .SingleAsync();
+            if (balance < -command.Points)
+                throw new DomainException($"Insufficient loyalty balance ({balance} available).");
+        }
+
+        var id = Guid.NewGuid();
+        await db.Database.ExecuteSqlAsync(
+            $"CALL proc_adjust_loyalty_points({id}, {command.UserId}, {command.Points}, {command.Reason}, {command.ActorUserId})");
+
+        return new Result(id);
     }
 }

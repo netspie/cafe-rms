@@ -3,6 +3,7 @@ using System;
 using CafeRMS.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CafeRMS.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517182832_AddLoyaltyEntryView")]
+    partial class AddLoyaltyEntryView
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -774,6 +777,82 @@ namespace CafeRMS.Api.Persistence.Migrations
                         .HasDatabaseName("ix_order_lines_product_id");
 
                     b.ToTable("order_lines", (string)null);
+                });
+
+            modelBuilder.Entity("CafeRMS.Api.Features.Orders.OrderLineSummary", b =>
+                {
+                    b.Property<string>("CustomerEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("customer_email");
+
+                    b.Property<string>("CustomerName")
+                        .HasColumnType("text")
+                        .HasColumnName("customer_name");
+
+                    b.Property<Guid>("LineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("line_id");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("line_total");
+
+                    b.Property<decimal>("NetPerOne")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("net_per_one");
+
+                    b.Property<DateTimeOffset?>("OrderCancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("order_cancelled_at");
+
+                    b.Property<DateTimeOffset?>("OrderClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("order_closed_at");
+
+                    b.Property<DateTimeOffset>("OrderCreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("order_created_at");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("OrderStatus")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("order_status");
+
+                    b.Property<Guid>("OutletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("outlet_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("product_name");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<decimal>("VatPerOne")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("vat_per_one");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_order_lines_summary", (string)null);
                 });
 
             modelBuilder.Entity("CafeRMS.Api.Features.Outlets.Outlet", b =>

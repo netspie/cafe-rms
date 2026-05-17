@@ -32,13 +32,14 @@ public static class ListMyLoyaltyHistory
 
     public static async Task<PagedResult<Item>> Execute(Guid userId, Query query, AppDbContext db)
     {
-        var sortable = new SortMap<LoyaltyPointLog>()
-            .Add("createdAt", x => x.CreatedAt);
+        var sortable = new SortMap<LoyaltyEntryView>()
+            .Add("createdAt", x => x.CreatedAt)
+            .Add("points", x => x.Points);
 
-        return await db.LoyaltyPointLogs.IgnoreQueryFilters()
+        return await db.LoyaltyEntries
             .Where(x => x.UserId == userId)
             .ApplySort(query.Sort, sortable, defaultSortExpression: "-createdAt")
-            .Select(x => new Item(x.Id, x.Points, x.Reason, x.CreatedAt))
+            .Select(x => new Item(x.EntryId, x.Points, x.Reason, x.CreatedAt))
             .ToPagedResultAsync(query);
     }
 }
