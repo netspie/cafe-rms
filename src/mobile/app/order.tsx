@@ -1,11 +1,11 @@
 import { Stack, useRouter } from "expo-router";
 import {
   Pressable,
-  SafeAreaView,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { useOrderStore } from "@/stores/orderStore";

@@ -1,11 +1,11 @@
 import { Link } from "expo-router";
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { api } from "@/lib/api";

@@ -2,11 +2,11 @@ import { Link } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "@/lib/api";
 import type { EventItem, PagedResult } from "@/lib/types";

@@ -1,10 +1,10 @@
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "@/lib/api";
 import type { LoyaltyPointLog, PagedResult } from "@/lib/types";

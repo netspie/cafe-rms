@@ -4,12 +4,12 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "@/lib/api";
 import type { PagedResult, ProductItem, Tag } from "@/lib/types";
