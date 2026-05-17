@@ -29,27 +29,56 @@ Vertical Slices + CQRS. Each use case is a single file containing route registra
 
 ## Getting Started
 
-### Prerequisites
+You can run the API in two ways: **Docker Compose** (zero local setup beyond Docker) or **local .NET + Postgres**.
+
+### Run with Docker Compose (recommended)
+
+Brings up Postgres + API with one command. Migrations are applied and demo data is seeded on first start. The compose file lives in `src/api/` — run commands from there:
+
+```bash
+cd src/api
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| API | http://localhost:5179 |
+| API docs (Scalar) | http://localhost:5179/scalar |
+| Postgres | localhost:5434 (`postgres` / `postgres`, db `cafe_rms`) |
+
+Useful commands (all from `src/api/`):
+
+```bash
+docker compose up -d --build           # detached
+docker compose logs -f api             # tail API logs
+docker compose down                    # stop, keep data
+docker compose down -v                 # stop AND wipe Postgres volume (full reset)
+docker compose up --build api          # rebuild only the API after code changes
+```
+
+### Run locally (without Docker)
+
+#### Prerequisites
 
 - .NET 10 SDK
-- PostgreSQL
+- PostgreSQL on `localhost:5434` (db `cafe_rms`, user `postgres`, password `postgres` — or override `ConnectionStrings:Default` in `appsettings.Development.json`)
 
-### Run
+#### Run
 
 ```bash
 # Apply migrations
-dotnet ef database update --project src/CafeRMS.Api
+dotnet ef database update --project src/api/CafeRMS.Api
 
 # Run the API
-dotnet run --project src/CafeRMS.Api
+dotnet run --project src/api/CafeRMS.Api
 ```
 
 API docs available at `/scalar` in development.
 
-### Test
+#### Test
 
 ```bash
-dotnet test
+dotnet test src/api/CafeRMS.Api.Tests
 ```
 
 ## Project Structure
