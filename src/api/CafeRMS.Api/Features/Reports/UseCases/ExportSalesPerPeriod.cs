@@ -14,10 +14,10 @@ public sealed class ExportSalesPerPeriodPdfController : ControllerBase
         [FromQuery] GetSalesPerPeriodRequest request,
         [FromServices] AppDbContext db)
     {
-        var data = await GetSalesPerPeriod.Execute(
-            new GetSalesPerPeriod.Query(request.From, request.To, request.Granularity), db);
+        var data = await GetSalesPerPeriod.Execute(new GetSalesPerPeriod.Query(request.From, request.To, request.Granularity), db);
         var bytes = SalesReportPdf.Render(data);
         var filename = $"sales_{request.From:yyyyMMdd}_{request.To:yyyyMMdd}_{request.Granularity}.pdf";
+
         return File(bytes, "application/pdf", filename);
     }
 }
@@ -31,10 +31,10 @@ public sealed class ExportSalesPerPeriodExcelController : ControllerBase
         [FromQuery] GetSalesPerPeriodRequest request,
         [FromServices] AppDbContext db)
     {
-        var data = await GetSalesPerPeriod.Execute(
-            new GetSalesPerPeriod.Query(request.From, request.To, request.Granularity), db);
+        var data = await GetSalesPerPeriod.Execute(new GetSalesPerPeriod.Query(request.From, request.To, request.Granularity), db);
         var bytes = SalesReportExcel.Render(data);
         var filename = $"sales_{request.From:yyyyMMdd}_{request.To:yyyyMMdd}_{request.Granularity}.xlsx";
+
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename);
     }
 }
