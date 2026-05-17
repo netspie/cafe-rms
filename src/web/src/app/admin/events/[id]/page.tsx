@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache"
-import { Trash2 } from "lucide-react"
+import { Download, Trash2 } from "lucide-react"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
 
@@ -98,6 +98,12 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/admin/events/${id}/confirmation`}
+            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-accent"
+          >
+            <Download className="h-4 w-4" />Pobierz potwierdzenie
+          </a>
           {isDraft && (
             <form action={publish}>
               <button type="submit" disabled={!isPublishable} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">Publish</button>

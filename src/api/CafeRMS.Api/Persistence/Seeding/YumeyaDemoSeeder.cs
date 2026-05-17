@@ -225,25 +225,23 @@ public class YumeyaDemoSeeder(
         return new PriceGroupRefs(standard, loyalty, happyHour);
     }
 
-    public sealed record SalesChannelRefs(SalesChannel Pos, SalesChannel Online, SalesChannel Mobile);
+    public sealed record SalesChannelRefs(SalesChannel DineIn, SalesChannel Takeout);
 
     private async Task<SalesChannelRefs> SeedSalesChannelsAsync(PriceGroupRefs priceGroups)
     {
-        var pos = SalesChannel.Create("Lokal (POS)", isTakeout: false);
-        var online = SalesChannel.Create("Online", isTakeout: true);
-        var mobile = SalesChannel.Create("Aplikacja mobilna", isTakeout: true);
-        db.SalesChannels.AddRange(pos, online, mobile);
+        var dineIn = SalesChannel.Create("Na miejscu", isTakeout: false);
+        var takeout = SalesChannel.Create("Na wynos", isTakeout: true);
+        db.SalesChannels.AddRange(dineIn, takeout);
         await db.SaveChangesAsync();
 
         db.SalesChannelPriceGroups.AddRange(
-            SalesChannelPriceGroup.Create(pos.Id, priceGroups.Standard.Id),
-            SalesChannelPriceGroup.Create(pos.Id, priceGroups.HappyHour.Id),
-            SalesChannelPriceGroup.Create(online.Id, priceGroups.Standard.Id),
-            SalesChannelPriceGroup.Create(mobile.Id, priceGroups.Standard.Id),
-            SalesChannelPriceGroup.Create(mobile.Id, priceGroups.Loyalty.Id));
+            SalesChannelPriceGroup.Create(dineIn.Id, priceGroups.Standard.Id),
+            SalesChannelPriceGroup.Create(dineIn.Id, priceGroups.HappyHour.Id),
+            SalesChannelPriceGroup.Create(takeout.Id, priceGroups.Standard.Id),
+            SalesChannelPriceGroup.Create(takeout.Id, priceGroups.Loyalty.Id));
 
         await db.SaveChangesAsync();
-        return new SalesChannelRefs(pos, online, mobile);
+        return new SalesChannelRefs(dineIn, takeout);
     }
 
     // === Outlet floor plan ===
@@ -632,33 +630,33 @@ public class YumeyaDemoSeeder(
     {
         var now = DateTimeOffset.UtcNow;
 
-        var dineIn = Order.Create(outletId, tableId: tables.Bar1.Id, salesChannelId: salesChannels.Pos.Id, userId: customers.Sakura.Id);
+        var dineIn = Order.Create(outletId, tableId: tables.Bar1.Id, salesChannelId: salesChannels.DineIn.Id, userId: customers.Sakura.Id);
         db.Orders.Add(dineIn);
         await db.SaveChangesAsync();
         AddOrderLine(dineIn.Id, products.Cappuccino, 2, 14.00m, 0.08m);
         AddOrderLine(dineIn.Id, products.IchigoShortcake, 1, 22.00m, 0.08m);
         dineIn.Close(now);
 
-        var takeaway = Order.Create(outletId, salesChannelId: salesChannels.Online.Id, userId: customers.Yuki.Id);
+        var takeaway = Order.Create(outletId, salesChannelId: salesChannels.Takeout.Id, userId: customers.Yuki.Id);
         db.Orders.Add(takeaway);
         await db.SaveChangesAsync();
         AddOrderLine(takeaway.Id, products.YuzuLemoniada, 1, 16.00m, 0.05m);
         AddOrderLine(takeaway.Id, products.OnigiriSalmon, 2, 12.00m, 0.05m);
         takeaway.Close(now.AddHours(-1));
 
-        var pickup = Order.Create(outletId, salesChannelId: salesChannels.Mobile.Id, userId: customers.Hana.Id);
+        var pickup = Order.Create(outletId, salesChannelId: salesChannels.Takeout.Id, userId: customers.Hana.Id);
         db.Orders.Add(pickup);
         await db.SaveChangesAsync();
         AddOrderLine(pickup.Id, products.MatchaLatte, 1, 18.00m, 0.05m);
         AddOrderLine(pickup.Id, products.Dorayaki, 1, 10.00m, 0.05m);
 
-        var cancelled = Order.Create(outletId, tableId: tables.Window2.Id, salesChannelId: salesChannels.Pos.Id);
+        var cancelled = Order.Create(outletId, tableId: tables.Window2.Id, salesChannelId: salesChannels.DineIn.Id);
         db.Orders.Add(cancelled);
         await db.SaveChangesAsync();
         AddOrderLine(cancelled.Id, products.Espresso, 1, 9.00m, 0.08m);
         cancelled.Cancel(now.AddHours(-3), "Klient nie wrócił po napój.");
 
-        var promoOrder = Order.Create(outletId, tableId: tables.Tatami.Id, salesChannelId: salesChannels.Pos.Id,
+        var promoOrder = Order.Create(outletId, tableId: tables.Tatami.Id, salesChannelId: salesChannels.DineIn.Id,
             userId: customers.Sakura.Id, loyaltyPointsUsed: 50);
         db.Orders.Add(promoOrder);
         await db.SaveChangesAsync();
@@ -681,10 +679,8 @@ public class YumeyaDemoSeeder(
 
     private async Task SeedPrintoutTemplatesAsync()
     {
-        db.PrintoutTemplates.AddRange(
-            PrintoutTemplate.Create("Paragon", "/templates/paragon.docx"),
-            PrintoutTemplate.Create("Bonik dla kuchni", "/templates/bonik-kuchnia.docx"),
-            PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/templates/potwierdzenie-wydarzenia.docx"));
+        db.PrintoutTemplates.Add(
+            PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/Resources/Templates/potwierdzenie-wydarzenia.docx"));
         await db.SaveChangesAsync();
     }
 
