@@ -1,4 +1,3 @@
 <Solution>
   <Project Path="CafeRMS.Api/CafeRMS.Api.csproj" />
-  <Project Path="CafeRMS.Api.Tests/CafeRMS.Api.Tests.csproj" />
 </Solution>
