@@ -14,5 +14,10 @@ public class OutletConfiguration : IEntityTypeConfiguration<Outlet>
         builder.Property(x => x.TimeZone).IsRequired().HasMaxLength(100);
         builder.Property(x => x.Currency).HasConversion<string>().HasMaxLength(5);
         builder.Property(x => x.LogoUrl).HasMaxLength(500);
+        builder.Property(x => x.LegalName).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.TaxId).IsRequired().HasMaxLength(50);
+        builder.Property(x => x.InvoicingAddress).IsRequired().HasMaxLength(500);
+        builder.Property(x => x.BillingEmail).IsRequired().HasMaxLength(256);
+        builder.Property(x => x.BillingPhone).IsRequired().HasMaxLength(50);
     }
 }

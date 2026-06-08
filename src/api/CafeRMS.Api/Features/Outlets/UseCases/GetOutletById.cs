@@ -29,6 +29,11 @@ public static class GetOutletById
         string TimeZone,
         string Currency,
         string? LogoUrl,
+        string LegalName,
+        string TaxId,
+        string InvoicingAddress,
+        string BillingEmail,
+        string BillingPhone,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt);
 
@@ -38,7 +43,9 @@ public static class GetOutletById
             .Where(x => x.Id == id)
             .Select(x => new Result(
                 x.Id, x.DisplayName, x.StreetAddress, x.Phone, x.TimeZone,
-                x.Currency.ToString(), x.LogoUrl, x.CreatedAt, x.UpdatedAt))
+                x.Currency.ToString(), x.LogoUrl,
+                x.LegalName, x.TaxId, x.InvoicingAddress, x.BillingEmail, x.BillingPhone,
+                x.CreatedAt, x.UpdatedAt))
             .FirstOrDefaultAsync()
             ?? throw new NotFoundException("Outlet not found.");
 

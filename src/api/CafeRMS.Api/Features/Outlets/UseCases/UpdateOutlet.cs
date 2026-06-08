@@ -25,6 +25,11 @@ public sealed class UpdateOutletController : ControllerBase
             request.Phone,
             request.TimeZone,
             request.Currency,
+            request.LegalName,
+            request.TaxId,
+            request.InvoicingAddress,
+            request.BillingEmail,
+            request.BillingPhone,
             request.LogoUrl);
         await UpdateOutlet.Execute(command, db);
         return NoContent();
@@ -37,6 +42,11 @@ public sealed record UpdateOutletRequest(
     string Phone,
     string TimeZone,
     Currency Currency,
+    string LegalName,
+    string TaxId,
+    string InvoicingAddress,
+    string BillingEmail,
+    string BillingPhone,
     string? LogoUrl);
 
 public sealed class UpdateOutletValidator : AbstractValidator<UpdateOutletRequest>
@@ -48,6 +58,11 @@ public sealed class UpdateOutletValidator : AbstractValidator<UpdateOutletReques
         RuleFor(x => x.Phone).NotEmpty().MaximumLength(50);
         RuleFor(x => x.TimeZone).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LogoUrl).MaximumLength(500);
+        RuleFor(x => x.LegalName).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.TaxId).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.InvoicingAddress).NotEmpty().MaximumLength(500);
+        RuleFor(x => x.BillingEmail).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.BillingPhone).NotEmpty().MaximumLength(50);
     }
 }
 
@@ -61,6 +76,11 @@ public static class UpdateOutlet
         string Phone,
         string TimeZone,
         Currency Currency,
+        string LegalName,
+        string TaxId,
+        string InvoicingAddress,
+        string BillingEmail,
+        string BillingPhone,
         string? LogoUrl);
 
     public static async Task Execute(Command command, AppDbContext db)
@@ -68,7 +88,18 @@ public static class UpdateOutlet
         var outlet = await db.Outlets.FirstOrDefaultAsync(x => x.Id == command.Id)
             ?? throw new NotFoundException("Outlet not found.");
 
-        outlet.Update(command.DisplayName, command.StreetAddress, command.Phone, command.TimeZone, command.Currency, command.LogoUrl);
+        outlet.Update(
+            command.DisplayName,
+            command.StreetAddress,
+            command.Phone,
+            command.TimeZone,
+            command.Currency,
+            command.LegalName,
+            command.TaxId,
+            command.InvoicingAddress,
+            command.BillingEmail,
+            command.BillingPhone,
+            command.LogoUrl);
         await db.SaveChangesAsync();
     }
 }

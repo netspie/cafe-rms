@@ -2,16 +2,7 @@ import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
 
-interface MeResult { companyId: string | null; outletId: string | null }
-interface CompanyDetail {
-  id: string
-  legalName: string
-  taxId: string
-  invoicingAddress: string
-  billingEmail: string
-  billingPhone: string
-  isPublic: boolean
-}
+interface MeResult { outletId: string | null }
 interface OutletDetail {
   id: string
   displayName: string
@@ -20,35 +11,24 @@ interface OutletDetail {
   timeZone: string
   currency: string
   logoUrl: string | null
+  legalName: string
+  taxId: string
+  invoicingAddress: string
+  billingEmail: string
+  billingPhone: string
 }
 
 const CURRENCIES = ["PLN", "EUR", "USD", "GBP", "CZK"]
+const inputClass = "h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
 
 export default async function SettingsPage() {
   const me = await api.get<MeResult>("/api/me")
-  if (!me.companyId) return <p className="text-sm text-muted-foreground">No company is associated with your account.</p>
+  if (!me.outletId) return <p className="text-sm text-muted-foreground">No outlet is configured yet.</p>
 
-  const [company, outlet] = await Promise.all([
-    api.get<CompanyDetail>(`/api/companies/${me.companyId}`),
-    me.outletId ? api.get<OutletDetail>(`/api/outlets/${me.outletId}`) : Promise.resolve(null),
-  ])
-
-  async function updateCompany(formData: FormData) {
-    "use server"
-    await api.put(`/api/companies/${company.id}`, {
-      legalName: formData.get("legalName") as string,
-      taxId: formData.get("taxId") as string,
-      invoicingAddress: formData.get("invoicingAddress") as string,
-      billingEmail: formData.get("billingEmail") as string,
-      billingPhone: formData.get("billingPhone") as string,
-      isPublic: formData.get("isPublic") === "on",
-    })
-    revalidatePath("/admin/settings")
-  }
+  const outlet = await api.get<OutletDetail>(`/api/outlets/${me.outletId}`)
 
   async function updateOutlet(formData: FormData) {
     "use server"
-    if (!outlet) return
     await api.put(`/api/outlets/${outlet.id}`, {
       displayName: formData.get("displayName") as string,
       streetAddress: formData.get("streetAddress") as string,
@@ -56,6 +36,11 @@ export default async function SettingsPage() {
       timeZone: formData.get("timeZone") as string,
       currency: formData.get("currency") as string,
       logoUrl: (formData.get("logoUrl") as string) || null,
+      legalName: formData.get("legalName") as string,
+      taxId: formData.get("taxId") as string,
+      invoicingAddress: formData.get("invoicingAddress") as string,
+      billingEmail: formData.get("billingEmail") as string,
+      billingPhone: formData.get("billingPhone") as string,
     })
     revalidatePath("/admin/settings")
   }
@@ -66,66 +51,62 @@ export default async function SettingsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <form action={updateOutlet} className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border bg-card p-4">
-          <h2 className="mb-4 text-base font-semibold">Company</h2>
-          <form action={updateCompany} className="space-y-4">
+          <h2 className="mb-4 text-base font-semibold">Outlet</h2>
+          <div className="space-y-4">
+            <Field label="Display name">
+              <input name="displayName" defaultValue={outlet.displayName} required className={inputClass} />
+            </Field>
+            <Field label="Street address">
+              <input name="streetAddress" defaultValue={outlet.streetAddress} required className={inputClass} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Phone">
+                <input name="phone" defaultValue={outlet.phone} required className={inputClass} />
+              </Field>
+              <Field label="Time zone">
+                <input name="timeZone" defaultValue={outlet.timeZone} required className={inputClass} />
+              </Field>
+            </div>
+            <Field label="Currency">
+              <select name="currency" defaultValue={outlet.currency} required className={`${inputClass} max-w-xs`}>
+                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="Logo URL">
+              <input name="logoUrl" defaultValue={outlet.logoUrl ?? ""} className={inputClass} />
+            </Field>
+          </div>
+        </section>
+
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="mb-4 text-base font-semibold">Legal & billing</h2>
+          <div className="space-y-4">
             <Field label="Legal name">
-              <input name="legalName" defaultValue={company.legalName} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+              <input name="legalName" defaultValue={outlet.legalName} required className={inputClass} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tax ID">
-                <input name="taxId" defaultValue={company.taxId} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                <input name="taxId" defaultValue={outlet.taxId} required className={inputClass} />
               </Field>
               <Field label="Billing phone">
-                <input name="billingPhone" defaultValue={company.billingPhone} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                <input name="billingPhone" defaultValue={outlet.billingPhone} required className={inputClass} />
               </Field>
             </div>
             <Field label="Billing email">
-              <input name="billingEmail" type="email" defaultValue={company.billingEmail} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+              <input name="billingEmail" type="email" defaultValue={outlet.billingEmail} required className={inputClass} />
             </Field>
             <Field label="Invoicing address">
-              <input name="invoicingAddress" defaultValue={company.invoicingAddress} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
+              <input name="invoicingAddress" defaultValue={outlet.invoicingAddress} required className={inputClass} />
             </Field>
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" name="isPublic" defaultChecked={company.isPublic} className="h-4 w-4" />
-              <span>Listed publicly in the CafeRMS public directory</span>
-            </label>
-            <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save company</button>
-          </form>
+          </div>
         </section>
 
-        {outlet && (
-          <section className="rounded-lg border bg-card p-4">
-            <h2 className="mb-4 text-base font-semibold">Outlet</h2>
-            <form action={updateOutlet} className="space-y-4">
-              <Field label="Display name">
-                <input name="displayName" defaultValue={outlet.displayName} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-              </Field>
-              <Field label="Street address">
-                <input name="streetAddress" defaultValue={outlet.streetAddress} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Phone">
-                  <input name="phone" defaultValue={outlet.phone} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-                </Field>
-                <Field label="Time zone">
-                  <input name="timeZone" defaultValue={outlet.timeZone} required className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-                </Field>
-              </div>
-              <Field label="Currency">
-                <select name="currency" defaultValue={outlet.currency} required className="h-9 max-w-xs rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
-                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </Field>
-              <Field label="Logo URL">
-                <input name="logoUrl" defaultValue={outlet.logoUrl ?? ""} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-              </Field>
-              <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save outlet</button>
-            </form>
-          </section>
-        )}
-      </div>
+        <div className="lg:col-span-2">
+          <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Save settings</button>
+        </div>
+      </form>
     </div>
   )
 }

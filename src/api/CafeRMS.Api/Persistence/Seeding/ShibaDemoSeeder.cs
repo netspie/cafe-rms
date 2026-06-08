@@ -46,7 +46,7 @@ public class ShibaDemoSeeder(
         if (isAlreadySeeded)
             return;
 
-        var (ownerUserId, outletId) = await ProvisionAsync(ownerPassword);
+        var (ownerUserId, outletId) = await SeedOwnerAndOutletAsync(ownerPassword);
 
         var taxRates = await SeedTaxRatesAsync();
         var tags = await SeedTagsAsync();
@@ -73,7 +73,7 @@ public class ShibaDemoSeeder(
             outletId, ownerUserId);
     }
 
-    private async Task<(Guid OwnerUserId, Guid OutletId)> ProvisionAsync(string ownerPassword)
+    private async Task<(Guid OwnerUserId, Guid OutletId)> SeedOwnerAndOutletAsync(string ownerPassword)
     {
         var ownerRole = await roleManager.FindByNameAsync(SystemRoles.Owner);
         if (ownerRole is null)
@@ -97,7 +97,12 @@ public class ShibaDemoSeeder(
             OutletAddress,
             "+48221234567",
             "Europe/Warsaw",
-            Currency.PLN);
+            Currency.PLN,
+            legalName: "Shiba Cafe Sp. z o.o.",
+            taxId: "5252781234",
+            invoicingAddress: OutletAddress,
+            billingEmail: "ksiegowosc@shiba.pl",
+            billingPhone: "+48221234567");
         db.Outlets.Add(outlet);
         await db.SaveChangesAsync();
 
