@@ -67,7 +67,6 @@ export async function AdminTopbar() {
           <span className="font-medium">
             {me.firstName || me.lastName ? `${me.firstName} ${me.lastName}`.trim() : me.email}
           </span>
-          <span className="text-muted-foreground">·</span>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">
             {me.accountType === "SuperAdmin"
               ? "SuperAdmin"

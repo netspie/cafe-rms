@@ -21,13 +21,13 @@ public sealed class GetPrintoutTemplateByIdController : ControllerBase
 
 public static class GetPrintoutTemplateById
 {
-    public sealed record Result(Guid Id, string Name, string TemplateFileUrl, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+    public sealed record Result(Guid Id, string Name, string FileName, string ContentType, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 
     public static async Task<Result> Execute(Guid id, AppDbContext db)
     {
         var template = await db.PrintoutTemplates
             .Where(x => x.Id == id)
-            .Select(x => new Result(x.Id, x.Name, x.TemplateFileUrl, x.CreatedAt, x.UpdatedAt))
+            .Select(x => new Result(x.Id, x.Name, x.FileName, x.ContentType, x.CreatedAt, x.UpdatedAt))
             .FirstOrDefaultAsync()
             ?? throw new NotFoundException("Printout template not found.");
 

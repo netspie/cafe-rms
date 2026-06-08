@@ -70,8 +70,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Placed {new Date(order.createdAt).toLocaleString()}
-            {order.closedAt && ` · Closed ${new Date(order.closedAt).toLocaleString()}`}
-            {order.cancelledAt && ` · Cancelled ${new Date(order.cancelledAt).toLocaleString()}`}
+            {order.closedAt && `, Closed ${new Date(order.closedAt).toLocaleString()}`}
+            {order.cancelledAt && `, Cancelled ${new Date(order.cancelledAt).toLocaleString()}`}
           </p>
         </div>
         {isPlaced && (

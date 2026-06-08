@@ -35,7 +35,7 @@ public static class ListPrintoutTemplates
         public string? Name { get; init; }
     }
 
-    public sealed record Item(Guid Id, string Name, string TemplateFileUrl, DateTimeOffset CreatedAt);
+    public sealed record Item(Guid Id, string Name, string FileName, DateTimeOffset CreatedAt);
 
     public static async Task<PagedResult<Item>> Execute(Query query, AppDbContext db)
     {
@@ -52,7 +52,7 @@ public static class ListPrintoutTemplates
 
         return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "name")
-            .Select(x => new Item(x.Id, x.Name, x.TemplateFileUrl, x.CreatedAt))
+            .Select(x => new Item(x.Id, x.Name, x.FileName, x.CreatedAt))
             .ToPagedResultAsync(query);
     }
 }

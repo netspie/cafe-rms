@@ -48,22 +48,12 @@ public static class GenerateEventConfirmation
         var template = await db.PrintoutTemplates.FirstOrDefaultAsync(x => x.Name == TemplateName)
             ?? throw new NotFoundException($"Printout template '{TemplateName}' not found.");
 
-        var templatePath = ResolveTemplatePath(template.TemplateFileUrl);
         var replacements = BuildReplacements(ev, days);
-        var bytes = MergeDocx(templatePath, replacements);
+        var bytes = MergeDocx(template.FileContent, replacements);
 
         var safeName = SanitizeFileName(ev.Name);
         var fileName = $"potwierdzenie-{safeName}.docx";
         return new Result(bytes, fileName);
-    }
-
-    private static string ResolveTemplatePath(string templateFileUrl)
-    {
-        var fileName = Path.GetFileName(templateFileUrl);
-        var path = Path.Combine(AppContext.BaseDirectory, "Resources", "Templates", fileName);
-        if (!File.Exists(path))
-            throw new InvalidOperationException($"Template file not found on disk: {path}");
-        return path;
     }
 
     private static Dictionary<string, string> BuildReplacements(Event ev, IReadOnlyList<DateOnly> days)
@@ -94,9 +84,8 @@ public static class GenerateEventConfirmation
         _                     => status.ToString()
     };
 
-    private static byte[] MergeDocx(string templatePath, IReadOnlyDictionary<string, string> replacements)
+    private static byte[] MergeDocx(byte[] templateBytes, IReadOnlyDictionary<string, string> replacements)
     {
-        var templateBytes = File.ReadAllBytes(templatePath);
         using var outStream = new MemoryStream();
         outStream.Write(templateBytes, 0, templateBytes.Length);
         outStream.Position = 0;

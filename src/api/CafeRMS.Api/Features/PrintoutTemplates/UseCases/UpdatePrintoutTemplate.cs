@@ -1,7 +1,6 @@
 using CafeRMS.Api.Features.Auth;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared.Errors;
-using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,33 +14,32 @@ public sealed class UpdatePrintoutTemplateController : ControllerBase
     [Authorize(Policy = Permissions.PrintoutTemplatesManage)]
     public async Task<IActionResult> Handle(
         [FromRoute] Guid id,
-        [FromBody] UpdatePrintoutTemplateRequest request,
+        [FromForm] string name,
+        IFormFile? file,
         [FromServices] AppDbContext db)
     {
-        var command = new UpdatePrintoutTemplate.Command(id, request.Name, request.TemplateFileUrl);
+        // file is optional on update — null means keep the existing document, change the name only
+        var hasNewFile = file is { Length: > 0 };
+        var fileName = hasNewFile ? file!.FileName : null;
+        var contentType = hasNewFile ? file!.ContentType : null;
+        var fileContent = hasNewFile ? await PrintoutFile.ReadAsync(file) : null;
+
+        var command = new UpdatePrintoutTemplate.Command(id, name, fileName, contentType, fileContent);
         await UpdatePrintoutTemplate.Execute(command, db);
         return NoContent();
-    }
-}
-
-public sealed record UpdatePrintoutTemplateRequest(string Name, string TemplateFileUrl);
-
-public sealed class UpdatePrintoutTemplateValidator : AbstractValidator<UpdatePrintoutTemplateRequest>
-{
-    public UpdatePrintoutTemplateValidator()
-    {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.TemplateFileUrl).NotEmpty().MaximumLength(500);
     }
 }
 
 
 public static class UpdatePrintoutTemplate
 {
-    public sealed record Command(Guid Id, string Name, string TemplateFileUrl);
+    public sealed record Command(Guid Id, string Name, string? FileName, string? ContentType, byte[]? FileContent);
 
     public static async Task Execute(Command command, AppDbContext db)
     {
+        if (string.IsNullOrWhiteSpace(command.Name))
+            throw new DomainException("Name is required.");
+
         var template = await db.PrintoutTemplates.FirstOrDefaultAsync(x => x.Id == command.Id)
             ?? throw new NotFoundException("Printout template not found.");
 
@@ -49,7 +47,11 @@ public static class UpdatePrintoutTemplate
         if (nameTaken)
             throw new ConflictException($"A printout template named '{command.Name}' already exists.");
 
-        template.Update(command.Name, command.TemplateFileUrl);
+        template.Update(
+            command.Name,
+            command.FileName ?? template.FileName,
+            command.ContentType ?? template.ContentType,
+            command.FileContent ?? template.FileContent);
         await db.SaveChangesAsync();
     }
 }

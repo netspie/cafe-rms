@@ -489,8 +489,14 @@ public class ShibaDemoSeeder(
 
     private async Task SeedPrintoutTemplatesAsync()
     {
+        var path = Path.Combine(AppContext.BaseDirectory, "Resources", "Templates", "potwierdzenie-wydarzenia.docx");
+        var bytes = await File.ReadAllBytesAsync(path);
         db.PrintoutTemplates.Add(
-            PrintoutTemplate.Create("Potwierdzenie wydarzenia", "/Resources/Templates/potwierdzenie-wydarzenia.docx"));
+            PrintoutTemplate.Create(
+                "Potwierdzenie wydarzenia",
+                "potwierdzenie-wydarzenia.docx",
+                PrintoutFile.DocxContentType,
+                bytes));
         await db.SaveChangesAsync();
     }
 
