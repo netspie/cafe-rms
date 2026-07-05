@@ -94,6 +94,12 @@ export default function CheckoutScreen() {
     }
   };
 
+  const selectedChannel = channelsQuery.data?.items.find(
+    (sc) => sc.id === salesChannelId,
+  );
+  const requiresTable = selectedChannel ? !selectedChannel.isTakeout : false;
+  const isMissingTable = requiresTable && tableId === null;
+
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: "Checkout" }} />
@@ -113,13 +119,17 @@ export default function CheckoutScreen() {
         </View>
 
         <View>
-          <Text className="text-sm text-muted mb-2">Table (Optional)</Text>
+          <Text className="text-sm text-muted mb-2">
+            {requiresTable ? "Table" : "Table (Optional)"}
+          </Text>
           <View className="gap-2">
-            <Selectable
-              label="No Table"
-              selected={tableId === null}
-              onPress={() => setTableId(null)}
-            />
+            {!requiresTable && (
+              <Selectable
+                label="No Table"
+                selected={tableId === null}
+                onPress={() => setTableId(null)}
+              />
+            )}
             {tablesQuery.data?.items.map((t) => (
               <Selectable
                 key={t.id}
@@ -129,6 +139,11 @@ export default function CheckoutScreen() {
               />
             ))}
           </View>
+          {isMissingTable && (
+            <Text className="text-sm text-danger mt-2">
+              Dine-in orders need a table.
+            </Text>
+          )}
         </View>
 
         <View>
@@ -190,7 +205,7 @@ export default function CheckoutScreen() {
           label="Place Order"
           onPress={placeOrder}
           loading={isPlacingOrder}
-          disabled={lines.length === 0 || !meQuery.data?.outletId}
+          disabled={lines.length === 0 || !meQuery.data?.outletId || isMissingTable}
         />
       </ScrollView>
     </SafeAreaView>

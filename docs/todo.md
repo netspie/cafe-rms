@@ -32,7 +32,7 @@ Noticed while reviewing Phase A. One rule still open (dine-in table); the bug fi
 - [x] Loyalty "negative total" bug — **decided: 1 pt = 1 PLN**, and points may cover **at most half** the order. `PlaceOrder` rejects `LoyaltyPointsUsed > floor(subtotal · 0.5)` (`MaxLoyaltyShareOfSubtotal`); `ListOrders` total keeps `− LoyaltyPointsUsed` (now valid & bounded ≥ half price). Seeded promo order lowered 50 → 20 pts to satisfy the cap. *(done — commit `488bb96`)*
 
 **Order rules — server-side in `PlaceOrder`**
-- [ ] Dine-in requires a table; takeaway may be tableless. Reject dine-in (`SalesChannel.IsTakeout == false`) with no `TableId`; takeaway keeps the table optional.
+- [x] Dine-in requires a table; takeaway may be tableless. `PlaceOrder` loads the sales channel and rejects a dine-in (`IsTakeout == false`) order with no `TableId` ("Dine-in orders require a table."); takeaway keeps the table optional. Mobile checkout mirrors it — for a dine-in channel it hides "No Table", shows a hint, and disables Place Order until a table is picked. *(implemented, unverified/uncommitted)*
 
 **Already shipped (for record)** — commit `ca3417f`
 - [x] Demo seed accounts hardcoded (`Demo1234`; admin/manager/barista/user1/user2 `@shiba.pl`) + web & mobile login prefill.

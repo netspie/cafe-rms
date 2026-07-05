@@ -71,7 +71,7 @@
 
 <h3>Order rules — server-side in <code>PlaceOrder</code></h3>
 <ul class="tasks">
-  <li>Dine-in requires a table; takeaway may be tableless. Reject dine-in (<code>SalesChannel.IsTakeout == false</code>) with no <code>TableId</code>; takeaway keeps the table optional.</li>
+  <li class="done">Dine-in requires a table; takeaway may be tableless. <code>PlaceOrder</code> loads the sales channel and rejects a dine-in (<code>IsTakeout == false</code>) order with no <code>TableId</code>; takeaway keeps the table optional. Mobile checkout mirrors it — hides "No Table" for a dine-in channel, shows a hint, and disables Place Order until a table is picked. <em>(implemented, unverified/uncommitted)</em></li>
 </ul>
 
 <h3>Already shipped (for record) — commit <code>ca3417f</code></h3>

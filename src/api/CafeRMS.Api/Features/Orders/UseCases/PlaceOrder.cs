@@ -72,6 +72,14 @@ public static class PlaceOrder
                 throw new NotFoundException("Table not found.");
         }
 
+        if (request.SalesChannelId is Guid salesChannelId)
+        {
+            var salesChannel = await db.SalesChannels.FirstOrDefaultAsync(x => x.Id == salesChannelId)
+                ?? throw new NotFoundException("Sales channel not found.");
+            if (!salesChannel.IsTakeout && request.TableId is null)
+                throw new DomainException("Dine-in orders require a table.");
+        }
+
         await using var tx = await db.Database.BeginTransactionAsync();
 
         var order = Order.Create(
