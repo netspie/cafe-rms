@@ -60,29 +60,18 @@
   <li class="done">Tables detail (<code>app/admin/tables/[id]/page.tsx</code>) — shows the table's open orders (count + combined total + links).</li>
 </ul>
 
-<h2>Phase A½ — Order-flow fixes, rules &amp; in-house mode</h2>
-<p>Noticed while reviewing Phase A. One item still needs a decision before coding.</p>
+<h2>Phase A½ — Order-flow fixes &amp; rules</h2>
+<p>Noticed while reviewing Phase A. One rule still open (dine-in table); the bug fixes are done.</p>
 
 <h3>Bug fixes</h3>
 <ul class="tasks">
-  <li class="done">Mobile order detail goes stale — polls <code>/api/my/orders/{id}</code> every ~7s while status is <code>Placed</code>, refetches only when the status changes, so a waiter-closed/cancelled order updates the UI (hides the Cancel button). <em>(implemented, unverified/uncommitted)</em></li>
-  <li class="done">Loyalty "negative total" bug — decided: <strong>1 pt = 1 PLN</strong>, points may cover <strong>at most half</strong> the order. <code>PlaceOrder</code> rejects <code>LoyaltyPointsUsed &gt; floor(subtotal · 0.5)</code>; the <code>ListOrders</code> total keeps <code>− LoyaltyPointsUsed</code> (now valid &amp; never below half price). Seeded promo order lowered 50 → 20 pts. <em>(implemented, unverified/uncommitted)</em></li>
+  <li class="done"><strong>Mobile order auto-refresh</strong> — order detail polls <code>/api/my/orders/{id}</code> every ~7s while status is <code>Placed</code>, refetches only when the status changes, so a waiter-closed/cancelled order updates the UI (hides the Cancel button). <em>(done — commit <code>488bb96</code>)</em></li>
+  <li class="done">Loyalty "negative total" bug — decided: <strong>1 pt = 1 PLN</strong>, points may cover <strong>at most half</strong> the order. <code>PlaceOrder</code> rejects <code>LoyaltyPointsUsed &gt; floor(subtotal · 0.5)</code>; the <code>ListOrders</code> total keeps <code>− LoyaltyPointsUsed</code> (now valid &amp; never below half price). Seeded promo order lowered 50 → 20 pts. <em>(done — commit <code>488bb96</code>)</em></li>
 </ul>
 
 <h3>Order rules — server-side in <code>PlaceOrder</code></h3>
 <ul class="tasks">
   <li>Dine-in requires a table; takeaway may be tableless. Reject dine-in (<code>SalesChannel.IsTakeout == false</code>) with no <code>TableId</code>; takeaway keeps the table optional.</li>
-</ul>
-
-<h3>In-house tablet / kiosk mode — mobile</h3>
-<ul class="tasks">
-  <li>Locked-table mode via mobile config (e.g. <code>EXPO_PUBLIC_LOCKED_TABLE_ID</code>): when set, hide the checkout table picker and always send that table; when unset, current free pick. No backend/schema change — per-device concern. <strong>Open:</strong> when locked, force dine-in only, or still allow takeaway?</li>
-  <li><em>(Future, not now)</em> QR-per-table to pre-fill the table id and remove the mis-selection risk.</li>
-</ul>
-
-<h3>Payments — parked, supervisor call</h3>
-<ul class="tasks">
-  <li>At most a mock payment screen (fake "paid", no gateway/fiscal/Stripe). Real payments stay out of scope. Awaiting supervisor.</li>
 </ul>
 
 <h3>Already shipped (for record) — commit <code>ca3417f</code></h3>
