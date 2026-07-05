@@ -9,10 +9,13 @@ type OrderStatus = "Placed" | "Closed" | "Cancelled"
 interface OrderItem {
   id: string
   outletId: string
+  tableId: string | null
+  tableName: string | null
   userId: string | null
   status: OrderStatus
   createdAt: string
   closedAt: string | null
+  total: number
 }
 
 const PAGE_SIZE = 20
@@ -57,14 +60,16 @@ export default async function OrdersListPage({ searchParams }: { searchParams: P
               <th className="px-3 py-2 font-medium">Status</th>
               <th className="px-3 py-2 font-medium">Order ID</th>
               <th className="px-3 py-2 font-medium">Customer</th>
+              <th className="px-3 py-2 font-medium">Table</th>
               <SortableTh label="Created" field="createdAt" currentSort={sort} preserve={preserve} />
               <th className="px-3 py-2 font-medium">Closed</th>
+              <th className="px-3 py-2 text-right font-medium">Total</th>
               <th className="w-20 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {data.items.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-12">
+              <tr><td colSpan={8} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
                   <p>No orders match this filter.</p>
@@ -76,8 +81,10 @@ export default async function OrdersListPage({ searchParams }: { searchParams: P
                 <td className="px-3 py-2"><span className={"inline-flex rounded-full px-2.5 py-0.5 text-xs " + statusClass(o.status)}>{o.status}</span></td>
                 <td className="px-3 py-2 font-mono text-xs">{o.id.slice(0, 8)}…</td>
                 <td className="px-3 py-2 text-muted-foreground">{o.userId ? `${o.userId.slice(0, 8)}…` : "Walk-in"}</td>
+                <td className="px-3 py-2">{o.tableName ?? <span className="text-muted-foreground">—</span>}</td>
                 <td className="px-3 py-2 text-muted-foreground">{new Date(o.createdAt).toLocaleString()}</td>
                 <td className="px-3 py-2 text-muted-foreground">{o.closedAt ? new Date(o.closedAt).toLocaleString() : "—"}</td>
+                <td className="px-3 py-2 text-right font-mono">{o.total.toFixed(2)}</td>
                 <td className="px-3 py-2">
                   <Link href={`/admin/orders/${o.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent" aria-label="View order"><Eye className="h-4 w-4" /></Link>
                 </td>

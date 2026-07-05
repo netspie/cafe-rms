@@ -43,6 +43,7 @@ public static class GetOrderById
         Guid Id,
         Guid OutletId,
         Guid? TableId,
+        string? TableName,
         Guid? SalesChannelId,
         Guid? UserId,
         Guid? EventId,
@@ -63,6 +64,10 @@ public static class GetOrderById
         var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("Order not found.");
 
+        var tableName = order.TableId == null
+            ? null
+            : await db.Tables.Where(t => t.Id == order.TableId).Select(t => t.Name).FirstOrDefaultAsync();
+
         var lines = await db.OrderLines
             .Where(x => x.OrderId == id)
             .Join(
@@ -73,7 +78,7 @@ public static class GetOrderById
             .ToListAsync();
 
         return new Result(
-            order.Id, order.OutletId, order.TableId, order.SalesChannelId, order.UserId, order.EventId,
+            order.Id, order.OutletId, order.TableId, tableName, order.SalesChannelId, order.UserId, order.EventId,
             order.PromotionCodeId, order.Discount, order.LoyaltyPointsUsed,
             order.Status, order.ClosedAt, order.CancelledAt, order.CancellationReason,
             lines, order.CreatedAt);

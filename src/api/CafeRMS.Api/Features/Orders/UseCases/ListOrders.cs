@@ -21,6 +21,7 @@ public sealed class ListOrdersController : ControllerBase
                 PageSize = request.PageSize,
                 Sort = request.Sort,
                 Status = request.Status,
+                TableId = request.TableId,
                 OutletId = request.OutletId,
                 UserId = request.UserId,
                 SalesChannelId = request.SalesChannelId,
@@ -36,6 +37,7 @@ public sealed record ListOrdersRequest(
     int PageSize = 20,
     string? Sort = null,
     OrderStatus? Status = null,
+    Guid? TableId = null,
     Guid? OutletId = null,
     Guid? UserId = null,
     Guid? SalesChannelId = null,
@@ -49,6 +51,7 @@ public static class ListOrders
     public sealed record Query : PagedQuery
     {
         public OrderStatus? Status { get; init; }
+        public Guid? TableId { get; init; }
         public Guid? OutletId { get; init; }
         public Guid? UserId { get; init; }
         public Guid? SalesChannelId { get; init; }
@@ -60,11 +63,14 @@ public static class ListOrders
     public sealed record Item(
         Guid Id,
         Guid OutletId,
+        Guid? TableId,
+        string? TableName,
         Guid? UserId,
         string? CustomerName,
         OrderStatus Status,
         DateTimeOffset CreatedAt,
-        DateTimeOffset? ClosedAt);
+        DateTimeOffset? ClosedAt,
+        decimal Total);
 
     public static async Task<PagedResult<Item>> Execute(Query query, AppDbContext db)
     {
@@ -74,6 +80,8 @@ public static class ListOrders
         var queryable = db.Orders.AsQueryable();
         if (query.Status is OrderStatus status)
             queryable = queryable.Where(x => x.Status == status);
+        if (query.TableId is Guid tableId)
+            queryable = queryable.Where(x => x.TableId == tableId);
         if (query.OutletId is Guid outletId)
             queryable = queryable.Where(x => x.OutletId == outletId);
         if (query.UserId is Guid userId)
@@ -92,6 +100,10 @@ public static class ListOrders
             .Select(x => new Item(
                 x.Id,
                 x.OutletId,
+                x.TableId,
+                x.TableId == null
+                    ? null
+                    : db.Tables.Where(t => t.Id == x.TableId).Select(t => t.Name).FirstOrDefault(),
                 x.UserId,
                 x.UserId == null
                     ? null
@@ -100,7 +112,10 @@ public static class ListOrders
                         .FirstOrDefault(),
                 x.Status,
                 x.CreatedAt,
-                x.ClosedAt))
+                x.ClosedAt,
+                (db.OrderLines.Where(ol => ol.OrderId == x.Id)
+                    .Sum(ol => (decimal?)((ol.NetPerOne + ol.VatPerOne) * ol.Quantity)) ?? 0m)
+                    - x.Discount - x.LoyaltyPointsUsed))
             .ToPagedResultAsync(query);
     }
 }

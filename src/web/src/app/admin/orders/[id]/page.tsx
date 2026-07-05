@@ -13,6 +13,8 @@ interface OrderLine {
 
 interface OrderDetail {
   id: string
+  tableId: string | null
+  tableName: string | null
   status: OrderStatus
   closedAt: string | null
   cancelledAt: string | null
@@ -66,6 +68,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div>
           <div className="flex items-center gap-3">
             <span className={"inline-flex rounded-full px-2.5 py-0.5 text-sm " + statusClass(order.status)}>{order.status}</span>
+            {order.tableName && <span className="inline-flex rounded-full bg-secondary px-2.5 py-0.5 text-sm text-secondary-foreground">Table {order.tableName}</span>}
             <span className="font-mono text-xs text-muted-foreground">{order.id}</span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">

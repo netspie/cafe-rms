@@ -65,6 +65,13 @@ public static class PlaceOrder
         if (!outletExists)
             throw new NotFoundException("Outlet not found.");
 
+        if (request.TableId is Guid tableId)
+        {
+            var tableInOutlet = await db.Tables.AnyAsync(x => x.Id == tableId && x.OutletId == request.OutletId);
+            if (!tableInOutlet)
+                throw new NotFoundException("Table not found.");
+        }
+
         await using var tx = await db.Database.BeginTransactionAsync();
 
         var order = Order.Create(

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CafeRMS — Feature plan: waiter ops + reporting</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 820px; margin: 0 auto; padding: 40px 24px 80px;
+    line-height: 1.6; color: #1c1c1e; background: #fafafa;
+  }
+  h1 { font-size: 1.9rem; border-bottom: 3px solid #d9772d; padding-bottom: .4em; }
+  h2 { font-size: 1.35rem; margin-top: 2.2em; border-bottom: 1px solid #e2e2e2; padding-bottom: .25em; }
+  h3 { font-size: 1.05rem; margin-top: 1.6em; color: #d9772d; text-transform: uppercase; letter-spacing: .04em; }
+  code { background: #efe9e2; padding: .12em .4em; border-radius: 4px; font-size: .88em; }
+  ul.decisions { list-style: none; padding-left: 0; }
+  ul.decisions > li { background: #fff; border: 1px solid #e6e0d6; border-left: 4px solid #d9772d; border-radius: 6px; padding: 12px 16px; margin: 10px 0; }
+  ul.tasks { list-style: none; padding-left: 4px; }
+  ul.tasks li { margin: .35em 0; }
+  ul.tasks li::before { content: "☐"; color: #d9772d; font-weight: bold; margin-right: .55em; }
+  ul.tasks li.done::before { content: "☑"; color: #3a9d5a; }
+  ul.tasks li.done { color: #6b6b6b; }
+  .meta { color: #6b6b6b; font-size: .92rem; }
+  .order { background: #fff; border: 1px solid #e6e0d6; border-radius: 6px; padding: 12px 16px; }
+  hr { border: none; border-top: 1px solid #e2e2e2; margin: 2.4em 0; }
+  strong { color: #1c1c1e; }
+</style>
+</head>
+<body>
+
+<h1>CafeRMS — Feature plan: waiter ops &amp; reporting</h1>
+
+<p class="meta">Three features for the next iteration. Decisions locked with the user:</p>
+
+<ul class="decisions">
+  <li><strong>Live order notifications:</strong> polling (no SignalR/SSE). Simplest to build and defend; ~5–10s latency is fine for a cafe.</li>
+  <li><strong>Order model:</strong> orders stay immutable (promo/loyalty/VAT snapshot at placement). A table can hold <strong>multiple open orders</strong>; no "add items to an open order" endpoint. The waiter view groups a table's orders and shows a combined total.</li>
+  <li><strong>Reports:</strong> a single new <strong>sales-per-product</strong> report with an optional <code>eventId</code> filter. No event = store-wide "what sells"; with an event = "which products sold at this event" (the event-success check). No change to the existing event-attendance report.</li>
+</ul>
+
+<p class="order"><strong>Build order:</strong> Phase A (tables on orders) first, because the notification toast and the waiter view both depend on the table being visible. Then B (notifications), then C (report).</p>
+
+<hr>
+
+<h2>Phase A — Tables on orders (staff visibility)</h2>
+<p>Data side already works: mobile checkout picks a table and <code>POST /api/my/orders</code> persists <code>Order.TableId</code>. The gap is that staff can't see it.</p>
+
+<h3>API</h3>
+<ul class="tasks">
+  <li class="done">Surface the table on order DTOs — added <code>TableId</code> + <code>TableName</code> (+ per-order <code>Total</code>) to <code>ListOrders.Item</code>; added <code>TableName</code> to <code>GetOrderById.Result</code>. Also added a <code>tableId</code> filter to <code>/api/orders</code>.</li>
+  <li class="done">Validate <code>TableId</code> in <code>PlaceOrder</code> — rejects when the table doesn't exist or isn't in the order's outlet.</li>
+</ul>
+
+<h3>Web</h3>
+<ul class="tasks">
+  <li class="done">Orders list (<code>app/admin/orders/page.tsx</code>) — added "Table" + "Total" columns.</li>
+  <li class="done">Order detail (<code>app/admin/orders/[id]/page.tsx</code>) — shows a "Table X" chip.</li>
+  <li class="done">Tables detail (<code>app/admin/tables/[id]/page.tsx</code>) — shows the table's open orders (count + combined total + links).</li>
+</ul>
+
+<h2>Phase B — Live new-order notifications (polling)</h2>
+<p>No API changes — reuses <code>GET /api/orders?status=Placed&amp;sort=-createdAt</code>.</p>
+
+<h3>Web</h3>
+<ul class="tasks">
+  <li>Token-proxy poll route — <code>app/admin/live-orders/poll/route.ts</code> reads the httpOnly cookie and proxies the placed-orders query (same cookie→Bearer pattern as the report export routes).</li>
+  <li>Watcher client component — polls every ~7s, tracks last-seen order id/<code>createdAt</code> in <code>localStorage</code> (so a refresh doesn't re-toast old orders), and on a new order pops a <code>sonner</code> toast ("New order — Table 5") + <code>router.refresh()</code>.</li>
+  <li>Mount the watcher in the admin shell so it fires on any admin page; optional dedicated "Live orders" page + nav item under <strong>Operations</strong>.</li>
+</ul>
+
+<h2>Phase C — Sales-per-product report (+ per-event breakdown)</h2>
+<p>Clone the existing reports trio (<code>Features/Reports</code>, QuestPDF + ClosedXML, static <code>Render</code> classes).</p>
+
+<h3>API</h3>
+<ul class="tasks">
+  <li><code>GetSalesPerProduct</code> use case — <code>GET /api/reports/products?from&amp;to&amp;eventId?</code>, gated <code>ReportsView</code>. Group <code>OrderLines</code> by <code>ProductId</code>, join <code>Products</code> for the name; per product: quantity sold, net/VAT/gross revenue (<code>(NetPerOne + VatPerOne) * Quantity</code>). Filter <code>ClosedAt != null &amp;&amp; CancelledAt == null</code>; <code>eventId</code> filters <code>Order.EventId</code>. FluentValidation on the date range.</li>
+  <li><code>ExportSalesPerProduct</code> — <code>export.pdf</code> (QuestPDF, clone <code>SalesReportPdf</code>) + <code>export.xlsx</code> (ClosedXML, clone <code>SalesReportExcel</code>).</li>
+</ul>
+
+<h3>Web</h3>
+<ul class="tasks">
+  <li><code>app/admin/reports/products/page.tsx</code> — date range + optional event picker, stat cards, breakdown table, optional recharts bar chart.</li>
+  <li><code>export-pdf/route.ts</code> + <code>export-xlsx/route.ts</code> — clone the events-report route handlers (swap upstream path + default filename).</li>
+  <li>Reports nav item; link from the event detail page → products report pre-filtered by that event ("products sold at this event").</li>
+</ul>
+
+<hr>
+
+<h2>Discipline</h2>
+<ul class="tasks">
+  <li>One phase at a time; pause for go/no-go between phases.</li>
+  <li>Build green before commit; verify commit before push. No build+commit+push in one shell call.</li>
+  <li>Commit only on explicit command.</li>
+</ul>
+
+</body>
+</html>
