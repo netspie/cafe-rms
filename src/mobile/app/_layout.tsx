@@ -19,17 +19,20 @@ export default function RootLayout() {
     hydrate();
   }, [hydrate]);
 
+  const inAuth = segments[0] === "(auth)";
+
   useEffect(() => {
     if (!hydrated) return;
-    const inAuth = segments[0] === "(auth)";
     if (!token && !inAuth) router.replace("/(auth)/login");
     if (token && inAuth) router.replace("/(tabs)/menu");
-  }, [hydrated, token, segments, router]);
+  }, [hydrated, token, inAuth, router]);
+
+  const authSettled = hydrated && (token ? true : inAuth);
 
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }} />
+        {authSettled && <Stack screenOptions={{ headerShown: false }} />}
         <StatusBar style="dark" />
       </GestureHandlerRootView>
     </SafeAreaProvider>

@@ -26,27 +26,34 @@ public class ShibaDemoSeeder(
     AppDbContext db,
     UserManager<AppUser> userManager,
     RoleManager<AppRole> roleManager,
-    IConfiguration config,
     ILogger<ShibaDemoSeeder> logger)
 {
-    private const string OwnerEmail = "dariusz@shiba.pl";
+    // ── Demo login accounts ────────────────────────────────────────────────
+    // Every account below logs in with the same password: Demo1234
+    //   admin@shiba.pl     Owner     — Dariusz Luśnia
+    //   manager@shiba.pl   Manager   — Maja Kowalska
+    //   barista@shiba.pl   Barista   — Anna Nowak
+    //   user1@shiba.pl     Customer  — Sakura Yamamoto
+    //   user2@shiba.pl     Customer  — Yuki Watanabe
+    // ────────────────────────────────────────────────────────────────────────
+    private const string DemoPassword = "Demo1234";
+
+    private const string OwnerEmail = "admin@shiba.pl";
+    private const string ManagerEmail = "manager@shiba.pl";
+    private const string BaristaEmail = "barista@shiba.pl";
+    private const string Customer1Email = "user1@shiba.pl";
+    private const string Customer2Email = "user2@shiba.pl";
+
     private const string OutletDisplayName = "Shiba Cafe Warszawa";
     private const string OutletAddress = "ul. Marszałkowska 100, 00-001 Warszawa";
 
     public async Task SeedAsync()
     {
-        var ownerPassword = config["Seed:OwnerPassword"];
-        if (string.IsNullOrWhiteSpace(ownerPassword))
-        {
-            logger.LogWarning("Seed:OwnerPassword not set; skipping Shiba demo seed.");
-            return;
-        }
-
         var isAlreadySeeded = await db.Outlets.AnyAsync(x => x.DisplayName == OutletDisplayName);
         if (isAlreadySeeded)
             return;
 
-        var (ownerUserId, outletId) = await SeedOwnerAndOutletAsync(ownerPassword);
+        var (ownerUserId, outletId) = await SeedOwnerAndOutletAsync(DemoPassword);
 
         var taxRates = await SeedTaxRatesAsync();
         var tags = await SeedTagsAsync();
@@ -56,8 +63,8 @@ public class ShibaDemoSeeder(
         var salesChannels = await SeedSalesChannelsAsync(priceGroups);
         var tables = await SeedTablesAsync(outletId);
         var products = await SeedProductsAsync(taxRates, tags, allergens, modifierGroups, priceGroups);
-        var staff = await SeedStaffAsync(ownerPassword);
-        var customers = await SeedCustomersAsync(ownerPassword);
+        var staff = await SeedStaffAsync(DemoPassword);
+        var customers = await SeedCustomersAsync(DemoPassword);
         await SeedLoyaltyAsync(customers);
         await SeedEventsAsync();
         var promotions = await SeedPromotionCodesAsync();
@@ -326,8 +333,8 @@ public class ShibaDemoSeeder(
             Permissions.LoyaltyManage, Permissions.ProductsManage
         ]);
 
-        var manager = await CreateStaffAsync("kierownik@shiba.pl", "Maja", "Kowalska", staffPassword, managerRole.Id);
-        var barista = await CreateStaffAsync("barista@shiba.pl", "Anna", "Nowak", staffPassword, baristaRole.Id);
+        var manager = await CreateStaffAsync(ManagerEmail, "Maja", "Kowalska", staffPassword, managerRole.Id);
+        var barista = await CreateStaffAsync(BaristaEmail, "Anna", "Nowak", staffPassword, baristaRole.Id);
 
         return new StaffRefs(manager.Id, barista.Id);
     }
@@ -367,8 +374,8 @@ public class ShibaDemoSeeder(
 
     private async Task<CustomerRefs> SeedCustomersAsync(string password)
     {
-        var sakura = await CreateGuestAsync("sakura@example.jp", "Sakura", "Yamamoto", password);
-        var yuki = await CreateGuestAsync("yuki@example.jp", "Yuki", "Watanabe", password);
+        var sakura = await CreateGuestAsync(Customer1Email, "Sakura", "Yamamoto", password);
+        var yuki = await CreateGuestAsync(Customer2Email, "Yuki", "Watanabe", password);
         return new CustomerRefs(sakura, yuki);
     }
 

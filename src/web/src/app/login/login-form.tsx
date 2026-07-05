@@ -23,6 +23,7 @@ export function LoginForm({ action }: Props) {
           name="email"
           type="email"
           autoComplete="email"
+          defaultValue="admin@shiba.pl"
           required
           className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />
@@ -32,6 +33,7 @@ export function LoginForm({ action }: Props) {
           name="password"
           type="password"
           autoComplete="current-password"
+          defaultValue="Demo1234"
           required
           className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
         />

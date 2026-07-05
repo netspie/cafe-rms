@@ -33,11 +33,10 @@ You can run the API in two ways: **Docker Compose** (zero local setup beyond Doc
 
 ### Run with Docker Compose (recommended)
 
-Brings up Postgres + API with one command. Migrations are applied and demo data is seeded on first start. The compose file lives in `src/api/` — run commands from there:
+Brings up Postgres + API with one command. Migrations are applied and demo data is seeded on first start. The compose file lives in `src/api/`; run from the repo root with `-f`:
 
 ```bash
-cd src/api
-docker compose up --build
+docker compose -f src/api/docker-compose.yml up --build -d
 ```
 
 | Service | URL |
@@ -46,14 +45,14 @@ docker compose up --build
 | API docs (Scalar) | http://localhost:5179/scalar |
 | Postgres | localhost:5434 (`postgres` / `postgres`, db `cafe_rms`) |
 
-Useful commands (all from `src/api/`):
+Useful commands (all from the repo root):
 
 ```bash
-docker compose up -d --build           # detached
-docker compose logs -f api             # tail API logs
-docker compose down                    # stop, keep data
-docker compose down -v                 # stop AND wipe Postgres volume (full reset)
-docker compose up --build api          # rebuild only the API after code changes
+docker compose -f src/api/docker-compose.yml up -d --build    # detached
+docker compose -f src/api/docker-compose.yml logs -f api      # tail API logs
+docker compose -f src/api/docker-compose.yml down             # stop, keep data
+docker compose -f src/api/docker-compose.yml down -v          # stop AND wipe Postgres volume (full reset)
+docker compose -f src/api/docker-compose.yml up --build api   # rebuild only the API after code changes
 ```
 
 ### Run locally (without Docker)

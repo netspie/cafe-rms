@@ -9,8 +9,8 @@ import type { LoginResponse } from "@/lib/types";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("sakura@example.jp");
-  const [password, setPassword] = useState("Password123!");
+  const [email, setEmail] = useState("user1@shiba.pl");
+  const [password, setPassword] = useState("Demo1234");
   const [isPending, setIsPending] = useState(false);
   const setToken = useAuthStore((s) => s.setToken);
 
