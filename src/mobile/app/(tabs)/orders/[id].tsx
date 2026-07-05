@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,19 @@ export default function OrderDetailScreen() {
     () => api.get<OrderDetail>(`/api/my/orders/${id}`),
     [id],
   );
+
+  const status = query.data?.status;
+  useEffect(() => {
+    if (status !== "Placed") return;
+    const interval = setInterval(async () => {
+      try {
+        const latest = await api.get<OrderDetail>(`/api/my/orders/${id}`);
+        if (latest.status !== status) await query.refetch();
+      } catch {}
+    }, 7000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, id]);
 
   const cancel = async () => {
     setIsCancelling(true);

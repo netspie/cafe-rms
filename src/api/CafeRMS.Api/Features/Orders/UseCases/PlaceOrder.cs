@@ -79,12 +79,11 @@ public static class PlaceOrder
             request.TableId,
             request.SalesChannelId,
             userId,
-            request.EventId,
-            promotionCodeId: null,
-            discount: 0m,
-            loyaltyPointsUsed: request.LoyaltyPointsUsed);
+            request.EventId);
 
         var (lines, subtotal) = await BuildLinesAsync(request.Lines, order.Id, db);
+
+        order.RedeemLoyaltyPoints(request.LoyaltyPointsUsed, subtotal);
 
         if (!string.IsNullOrWhiteSpace(request.PromotionCode))
             await ApplyPromotionAsync(request.PromotionCode, subtotal, order, now, db);

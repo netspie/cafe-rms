@@ -476,11 +476,12 @@ public class ShibaDemoSeeder(
         cancelled.Cancel(now.AddHours(-3), "Klient nie wrócił po napój.");
 
         var promoOrder = Order.Create(outletId, tableId: tables.Tatami.Id, salesChannelId: salesChannels.DineIn.Id,
-            userId: customers.Sakura.Id, loyaltyPointsUsed: 50);
+            userId: customers.Sakura.Id);
         db.Orders.Add(promoOrder);
         await db.SaveChangesAsync();
         AddOrderLine(promoOrder.Id, products.HojichaLatte, 1, 18.00m, 0.08m);
         AddOrderLine(promoOrder.Id, products.Cheesecake, 1, 22.00m, 0.08m);
+        promoOrder.RedeemLoyaltyPoints(20, subtotal: 43.20m);
         promoOrder.AssignPromotion(promotions.Welcome10.Id, discount: 4.32m);
         promotions.Welcome10.RegisterUsage();
         promoOrder.Close(now.AddMinutes(-30));

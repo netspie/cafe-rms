@@ -5,11 +5,14 @@ using CafeRMS.Api.Features.PromotionCodes;
 using CafeRMS.Api.Features.SalesChannels;
 using CafeRMS.Api.Features.Tables;
 using CafeRMS.Api.Shared.Entities;
+using CafeRMS.Api.Shared.Errors;
 
 namespace CafeRMS.Api.Features.Orders;
 
 public class Order : Entity
 {
+    private const decimal MaxLoyaltyShareOfSubtotal = 0.5m;
+
     public Guid Id { get; private init; }
     public Guid OutletId { get; private init; }
     public Outlet? Outlet { get; private init; }
@@ -46,8 +49,7 @@ public class Order : Entity
         Guid? userId = null,
         Guid? eventId = null,
         Guid? promotionCodeId = null,
-        decimal discount = 0,
-        int loyaltyPointsUsed = 0)
+        decimal discount = 0)
     {
         return new Order
         {
@@ -58,8 +60,7 @@ public class Order : Entity
             UserId = userId,
             EventId = eventId,
             PromotionCodeId = promotionCodeId,
-            Discount = discount,
-            LoyaltyPointsUsed = loyaltyPointsUsed
+            Discount = discount
         };
     }
 
@@ -75,5 +76,14 @@ public class Order : Entity
     {
         PromotionCodeId = promotionCodeId;
         Discount = discount;
+    }
+
+    public void RedeemLoyaltyPoints(int points, decimal subtotal)
+    {
+        var maxRedeemablePoints = Math.Floor(subtotal * MaxLoyaltyShareOfSubtotal);
+        if (points > maxRedeemablePoints)
+            throw new DomainException($"Loyalty points can cover at most half the order ({maxRedeemablePoints} pts).");
+
+        LoyaltyPointsUsed = points;
     }
 }

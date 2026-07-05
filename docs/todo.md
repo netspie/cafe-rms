@@ -23,6 +23,28 @@ Data side already works: mobile checkout picks a table and `POST /api/my/orders`
 - [x] Order detail (`app/admin/orders/[id]/page.tsx`) — shows a "Table X" chip.
 - [x] Tables detail (`app/admin/tables/[id]/page.tsx`) — shows the table's open orders (count + combined total + links).
 
+## Phase A½ — Order-flow fixes, rules & in-house mode
+
+Noticed while reviewing Phase A. Two items need a decision before coding.
+
+**Bug fixes**
+- [x] Mobile order detail goes stale — poll `/api/my/orders/{id}` every ~7s while status is `Placed`, refetch only when the status changes, so a waiter-closed/cancelled order updates the UI (hides the Cancel button). *(implemented, unverified/uncommitted)*
+- [x] Loyalty "negative total" bug — **decided: 1 pt = 1 PLN**, and points may cover **at most half** the order. `PlaceOrder` rejects `LoyaltyPointsUsed > floor(subtotal · 0.5)` (`MaxLoyaltyShareOfSubtotal`); `ListOrders` total keeps `− LoyaltyPointsUsed` (now valid & bounded ≥ half price). Seeded promo order lowered 50 → 20 pts to satisfy the cap. *(implemented, unverified/uncommitted)*
+
+**Order rules — server-side in `PlaceOrder`**
+- [ ] Dine-in requires a table; takeaway may be tableless. Reject dine-in (`SalesChannel.IsTakeout == false`) with no `TableId`; takeaway keeps the table optional.
+
+**In-house tablet / kiosk mode — mobile**
+- [ ] Locked-table mode via mobile config (e.g. `EXPO_PUBLIC_LOCKED_TABLE_ID`): when set, hide the checkout table picker and always send that table; when unset, current free pick. No backend/schema change — it's a per-device concern. **Open:** when locked, force dine-in only, or still allow takeaway?
+- [ ] *(Future, not now)* QR-per-table to pre-fill the table id and remove the mis-selection risk.
+
+**Payments — parked, supervisor call**
+- [ ] At most a mock payment screen (fake "paid", no gateway/fiscal/Stripe). Real payments stay out of scope. Awaiting supervisor.
+
+**Already shipped (for record)** — commit `ca3417f`
+- [x] Demo seed accounts hardcoded (`Demo1234`; admin/manager/barista/user1/user2 `@shiba.pl`) + web & mobile login prefill.
+- [x] Mobile startup 401s fixed — gate route render until auth settles.
+
 ## Phase B — Live new-order notifications (polling)
 
 No API changes — reuses `GET /api/orders?status=Placed&sort=-createdAt`.
