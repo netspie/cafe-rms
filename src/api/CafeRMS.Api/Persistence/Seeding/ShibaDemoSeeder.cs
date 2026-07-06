@@ -63,12 +63,13 @@ public class ShibaDemoSeeder(
         var salesChannels = await SeedSalesChannelsAsync(priceGroups);
         var tables = await SeedTablesAsync(outletId);
         var products = await SeedProductsAsync(taxRates, tags, allergens, modifierGroups, priceGroups);
+        var productLists = await SeedProductListsAsync(products);
         var staff = await SeedStaffAsync(DemoPassword);
         var customers = await SeedCustomersAsync(DemoPassword);
         await SeedLoyaltyAsync(customers);
-        await SeedEventsAsync();
+        var events = await SeedEventsAsync(productLists, priceGroups);
         var promotions = await SeedPromotionCodesAsync();
-        await SeedSampleOrdersAsync(outletId, products, customers, tables, salesChannels, promotions);
+        await SeedSampleOrdersAsync(outletId, products, customers, tables, salesChannels, promotions, events);
         await SeedPrintoutTemplatesAsync();
 
         await db.SaveChangesAsync();
@@ -312,6 +313,30 @@ public class ShibaDemoSeeder(
     private static decimal Discount(decimal net, decimal percentage) =>
         Math.Round(net * (1m - percentage), 2);
 
+    public sealed record ProductListRefs(ProductList MeetupMenu, ProductList WorkshopMenu);
+
+    private async Task<ProductListRefs> SeedProductListsAsync(ProductRefs products)
+    {
+        var meetupMenu = ProductList.Create("Menu Shiba Meet-up");
+        var workshopMenu = ProductList.Create("Menu Paw Painting");
+        db.ProductLists.AddRange(meetupMenu, workshopMenu);
+        await db.SaveChangesAsync();
+
+        db.ProductListItems.AddRange(
+            ProductListItem.Create(meetupMenu.Id, products.MatchaLatte.Id),
+            ProductListItem.Create(meetupMenu.Id, products.HojichaLatte.Id),
+            ProductListItem.Create(meetupMenu.Id, products.Cappuccino.Id),
+            ProductListItem.Create(meetupMenu.Id, products.ShibaCookie.Id),
+
+            ProductListItem.Create(workshopMenu.Id, products.YuzuLemoniada.Id),
+            ProductListItem.Create(workshopMenu.Id, products.MochiDonut.Id),
+            ProductListItem.Create(workshopMenu.Id, products.Cheesecake.Id),
+            ProductListItem.Create(workshopMenu.Id, products.OnigiriSalmon.Id));
+
+        await db.SaveChangesAsync();
+        return new ProductListRefs(meetupMenu, workshopMenu);
+    }
+
     public sealed record StaffRefs(Guid ManagerUserId, Guid BaristaUserId);
 
     private async Task<StaffRefs> SeedStaffAsync(string staffPassword)
@@ -401,14 +426,18 @@ public class ShibaDemoSeeder(
         await db.SaveChangesAsync();
     }
 
-    private async Task SeedEventsAsync()
+    public sealed record EventRefs(Event ShibaMeetup, Event PawPainting, Event CoffeeDayToday);
+
+    private async Task<EventRefs> SeedEventsAsync(ProductListRefs productLists, PriceGroupRefs priceGroups)
     {
         var now = DateTimeOffset.UtcNow;
 
         var shibaMeetup = Event.Create(
             "Shiba Meet-up",
             description: "Niedzielne popołudnie z miłośnikami Shib — kawa, herbata i mnóstwo puszystych ogonków.",
-            imageUrl: null);
+            imageUrl: null,
+            productListId: productLists.MeetupMenu.Id,
+            priceGroupId: priceGroups.Standard.Id);
         db.Events.Add(shibaMeetup);
         await db.SaveChangesAsync();
         db.EventDays.Add(EventDay.Create(shibaMeetup.Id, DateOnly.FromDateTime(now.AddDays(-10).Date)));
@@ -418,13 +447,27 @@ public class ShibaDemoSeeder(
         var pawPainting = Event.Create(
             "Paw Painting Workshop",
             description: "Warsztaty malowania pamiątkowych odcisków łap Twojego pupila.",
-            imageUrl: null);
+            imageUrl: null,
+            productListId: productLists.WorkshopMenu.Id,
+            priceGroupId: priceGroups.Standard.Id);
         db.Events.Add(pawPainting);
         await db.SaveChangesAsync();
         db.EventDays.Add(EventDay.Create(pawPainting.Id, new DateOnly(2026, 6, 14)));
         pawPainting.Publish(now.AddDays(-2));
 
+        var coffeeDay = Event.Create(
+            "Shiba Coffee Day",
+            description: "Cały dzień ze specialty — tylko dziś, menu wydarzenia i ceny lojalnościowe.",
+            imageUrl: null,
+            productListId: productLists.MeetupMenu.Id,
+            priceGroupId: priceGroups.Loyalty.Id);
+        db.Events.Add(coffeeDay);
         await db.SaveChangesAsync();
+        db.EventDays.Add(EventDay.Create(coffeeDay.Id, DateOnly.FromDateTime(now.Date)));
+        coffeeDay.Publish(now.AddDays(-1));
+
+        await db.SaveChangesAsync();
+        return new EventRefs(shibaMeetup, pawPainting, coffeeDay);
     }
 
     public sealed record PromotionRefs(PromotionCode Welcome10, PromotionCode Shiba15);
@@ -445,7 +488,8 @@ public class ShibaDemoSeeder(
         CustomerRefs customers,
         TableRefs tables,
         SalesChannelRefs salesChannels,
-        PromotionRefs promotions)
+        PromotionRefs promotions,
+        EventRefs events)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -487,6 +531,66 @@ public class ShibaDemoSeeder(
         promoOrder.Close(now.AddMinutes(-30));
 
         await db.SaveChangesAsync();
+
+        var eatIn = salesChannels.DineIn.Id;
+        var takeout = salesChannels.Takeout.Id;
+
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Bar.Id, customers.Sakura.Id, events.ShibaMeetup.Id,
+            now.AddDays(-10).AddHours(2),
+            (products.MatchaLatte, 2, 18.00m, 0.08m), (products.ShibaCookie, 2, 12.00m, 0.08m));
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Window.Id, customers.Yuki.Id, events.ShibaMeetup.Id,
+            now.AddDays(-10).AddHours(3),
+            (products.Cappuccino, 3, 14.00m, 0.08m), (products.HojichaLatte, 1, 18.00m, 0.08m));
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Tatami.Id, null, events.ShibaMeetup.Id,
+            now.AddDays(-10).AddHours(4),
+            (products.HojichaLatte, 2, 18.00m, 0.08m), (products.ShibaCookie, 1, 12.00m, 0.08m));
+
+        var pawDay = new DateTimeOffset(2026, 6, 14, 12, 0, 0, TimeSpan.Zero);
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Bar.Id, customers.Sakura.Id, events.PawPainting.Id,
+            pawDay.AddHours(1),
+            (products.YuzuLemoniada, 2, 16.00m, 0.08m), (products.Cheesecake, 2, 22.00m, 0.08m));
+        await SeedClosedOrderAsync(outletId, takeout, null, customers.Yuki.Id, events.PawPainting.Id,
+            pawDay.AddHours(2),
+            (products.MochiDonut, 3, 14.00m, 0.05m), (products.OnigiriSalmon, 2, 12.00m, 0.05m));
+
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Bar.Id, customers.Sakura.Id, events.CoffeeDayToday.Id,
+            now.AddHours(-4),
+            (products.MatchaLatte, 1, 18.00m, 0.08m), (products.Cappuccino, 2, 14.00m, 0.08m));
+        await SeedClosedOrderAsync(outletId, takeout, null, customers.Yuki.Id, events.CoffeeDayToday.Id,
+            now.AddHours(-2),
+            (products.HojichaLatte, 2, 18.00m, 0.05m), (products.ShibaCookie, 2, 12.00m, 0.05m));
+
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Window.Id, customers.Yuki.Id, null,
+            now.AddDays(-5).AddHours(1),
+            (products.Cappuccino, 1, 14.00m, 0.08m), (products.MochiDonut, 2, 14.00m, 0.08m));
+        await SeedClosedOrderAsync(outletId, takeout, null, customers.Sakura.Id, null,
+            now.AddDays(-3).AddHours(2),
+            (products.YuzuLemoniada, 2, 16.00m, 0.05m), (products.OnigiriSalmon, 1, 12.00m, 0.05m));
+        await SeedClosedOrderAsync(outletId, eatIn, tables.Tatami.Id, null, null,
+            now.AddDays(-1).AddHours(5),
+            (products.Cheesecake, 1, 22.00m, 0.08m), (products.MatchaLatte, 2, 18.00m, 0.08m));
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<Order> SeedClosedOrderAsync(
+        Guid outletId,
+        Guid salesChannelId,
+        Guid? tableId,
+        Guid? userId,
+        Guid? eventId,
+        DateTimeOffset closedAt,
+        params (Product Product, int Quantity, decimal Net, decimal VatRate)[] lines)
+    {
+        var order = Order.Create(outletId, tableId: tableId, salesChannelId: salesChannelId, userId: userId, eventId: eventId);
+        db.Orders.Add(order);
+        await db.SaveChangesAsync();
+
+        foreach (var line in lines)
+            AddOrderLine(order.Id, line.Product, line.Quantity, line.Net, line.VatRate);
+
+        order.Close(closedAt);
+        return order;
     }
 
     private void AddOrderLine(Guid orderId, Product product, int quantity, decimal netPerOne, decimal vatRate)

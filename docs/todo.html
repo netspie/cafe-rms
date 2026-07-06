@@ -22,6 +22,8 @@
   ul.tasks li::before { content: "☐"; color: #d9772d; font-weight: bold; margin-right: .55em; }
   ul.tasks li.done::before { content: "☑"; color: #3a9d5a; }
   ul.tasks li.done { color: #6b6b6b; }
+  ul.notes { list-style: disc; padding-left: 1.4em; color: #555; }
+  ul.notes li { margin: .3em 0; }
   .meta { color: #6b6b6b; font-size: .92rem; }
   .order { background: #fff; border: 1px solid #e6e0d6; border-radius: 6px; padding: 12px 16px; }
   hr { border: none; border-top: 1px solid #e2e2e2; margin: 2.4em 0; }
@@ -95,15 +97,51 @@
 
 <h3>API</h3>
 <ul class="tasks">
-  <li><code>GetSalesPerProduct</code> use case — <code>GET /api/reports/products?from&amp;to&amp;eventId?</code>, gated <code>ReportsView</code>. Group <code>OrderLines</code> by <code>ProductId</code>, join <code>Products</code> for the name; per product: quantity sold, net/VAT/gross revenue (<code>(NetPerOne + VatPerOne) * Quantity</code>). Filter <code>ClosedAt != null &amp;&amp; CancelledAt == null</code>; <code>eventId</code> filters <code>Order.EventId</code>. FluentValidation on the date range.</li>
-  <li><code>ExportSalesPerProduct</code> — <code>export.pdf</code> (QuestPDF, clone <code>SalesReportPdf</code>) + <code>export.xlsx</code> (ClosedXML, clone <code>SalesReportExcel</code>).</li>
+  <li class="done"><code>GetSalesPerProduct</code> use case — <code>GET /api/reports/products?from&amp;to&amp;eventId?</code>, gated <code>ReportsView</code>. Groups closed/non-cancelled order lines by product; per product: qty, net/VAT/gross (<code>(NetPerOne + VatPerOne) * Quantity</code>), ordered by gross desc. <code>eventId</code> filters <code>Order.EventId</code>. FluentValidation on the date range.</li>
+  <li class="done"><code>ExportSalesPerProduct</code> — <code>export.pdf</code> (<code>SalesPerProductPdf</code>) + <code>export.xlsx</code> (<code>SalesPerProductExcel</code>).</li>
 </ul>
 
 <h3>Web</h3>
 <ul class="tasks">
-  <li><code>app/admin/reports/products/page.tsx</code> — date range + optional event picker, stat cards, breakdown table, optional recharts bar chart.</li>
-  <li><code>export-pdf/route.ts</code> + <code>export-xlsx/route.ts</code> — clone the events-report route handlers (swap upstream path + default filename).</li>
-  <li>Reports nav item; link from the event detail page → products report pre-filtered by that event ("products sold at this event").</li>
+  <li class="done"><code>app/admin/reports/products/page.tsx</code> — date range + optional event picker, stat cards (gross/items/products), recharts bar chart (gross per product), breakdown table.</li>
+  <li class="done"><code>export-pdf/route.ts</code> + <code>export-xlsx/route.ts</code> — cloned the report route handlers.</li>
+  <li class="done">Reports nav item ("Sales per product"); event detail page links to the report pre-filtered by that event ("Products sold").</li>
+</ul>
+
+<h2>Phase D — Event menus (event-day ordering on mobile)</h2>
+<p><strong>Goal:</strong> on an event day, the mobile app can switch its menu to the event's <strong>product list</strong> (and its <strong>price group</strong>), and orders placed that way stay tagged with the event. Today an event is only a tag on the order — the <code>productListId</code> / <code>priceGroupId</code> already assignable on an event in admin are <strong>never consumed at order time</strong>.</p>
+
+<h3>Context — why it doesn't work yet</h3>
+<ul class="notes">
+  <li><code>ProductList</code> + <code>ProductListItem</code> and event <code>productListId</code> / <code>priceGroupId</code> all exist, and admin can assign them — the <em>definition</em> side is done.</li>
+  <li>Nothing reads the assignment: <code>/api/products</code> has no product-list filter, mobile always fetches the general menu, and the event price group is never applied.</li>
+</ul>
+
+<h3>Seed data <em>(do first — also unblocks the Phase C reports/charts)</em></h3>
+<ul class="tasks">
+  <li class="done">Seed two product lists as event menus ("Menu Shiba Meet-up", "Menu Paw Painting"), each a subset of existing products, via <code>ProductList</code> + <code>ProductListItem</code>.</li>
+  <li class="done">Assign each list + a price group to the seeded events, and add a "Shiba Coffee Day" event with a day == <strong>today</strong> (published) so the event-day switch is testable.</li>
+  <li class="done">Seed 10 more closed orders across dates (event-tagged + general) via a <code>SeedClosedOrderAsync</code> helper — 15 orders total; reports now show 44 items / 738.90 gross. <em>(implemented, uncommitted)</em></li>
+</ul>
+
+<h3>API</h3>
+<ul class="tasks">
+  <li>Add a <code>productListId</code> filter to <code>GET /api/products</code> (join <code>ProductListItem</code>, return only products in that list).</li>
+  <li>Add <code>GET /api/events/active-today</code> — published events whose <code>EventDays</code> include today, returning <code>name</code>, <code>productListId</code>, <code>priceGroupId</code>.</li>
+  <li>Verify <code>/api/products</code> returns per-price-group <code>prices</code> so the client can pick the event's price group (likely no change).</li>
+</ul>
+
+<h3>Mobile</h3>
+<ul class="tasks">
+  <li>Detect the active event today on the menu and show a banner + toggle: <strong>General menu ⇄ &lt;event&gt; menu</strong>.</li>
+  <li>Fetch the event's product list in event-menu mode, price each line from the event's price group, and stamp <code>eventId</code> on cart lines.</li>
+  <li>Verify <code>eventId</code> flows through checkout from the event-menu path (checkout already carries it).</li>
+</ul>
+
+<h3>Out of scope (for now)</h3>
+<ul class="notes">
+  <li>Preventing event-menu items and general items from mixing in one order.</li>
+  <li>Auto-locking the menu to the event (the toggle stays manual).</li>
 </ul>
 
 <hr>

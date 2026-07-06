@@ -21,6 +21,7 @@ import {
   ListOrdered,
   UserCircle2,
   BarChart3,
+  Package,
   type LucideIcon,
 } from "lucide-react"
 import { ShibaMark } from "@/components/shiba-mark"
@@ -65,6 +66,7 @@ const groups: { title: string; items: NavItem[] }[] = [
     title: "Reports",
     items: [
       { href: "/admin/reports/sales", label: "Sales", icon: BarChart3 },
+      { href: "/admin/reports/products", label: "Sales per product", icon: Package },
       { href: "/admin/reports/events", label: "Event attendance", icon: Calendar },
     ],
   },

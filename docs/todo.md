@@ -53,13 +53,41 @@ No API changes — reuses `GET /api/orders?status=Placed&sort=-createdAt`.
 Clone the existing reports trio (`Features/Reports`, QuestPDF + ClosedXML, static `Render` classes).
 
 **API**
-- [ ] `GetSalesPerProduct` use case — `GET /api/reports/products?from&to&eventId?`, gated `ReportsView`. Group `OrderLines` by `ProductId`, join `Products` for the name; per product: quantity sold, net/VAT/gross revenue (`(NetPerOne + VatPerOne) * Quantity`, matching the other reports). Filter `ClosedAt != null && CancelledAt == null`; `eventId` filters `Order.EventId`. FluentValidation on the date range.
-- [ ] `ExportSalesPerProduct` — `export.pdf` (QuestPDF, clone `SalesReportPdf`) + `export.xlsx` (ClosedXML, clone `SalesReportExcel`).
+- [x] `GetSalesPerProduct` use case — `GET /api/reports/products?from&to&eventId?`, gated `ReportsView`. Groups closed/non-cancelled order lines by product; per product: qty, net/VAT/gross (`(NetPerOne + VatPerOne) * Quantity`), ordered by gross desc. `eventId` filters `Order.EventId`. FluentValidation on the date range.
+- [x] `ExportSalesPerProduct` — `export.pdf` (`SalesPerProductPdf`) + `export.xlsx` (`SalesPerProductExcel`).
 
 **Web**
-- [ ] `app/admin/reports/products/page.tsx` — date range + optional event picker, stat cards, breakdown table, optional recharts bar chart.
-- [ ] `export-pdf/route.ts` + `export-xlsx/route.ts` — clone the events-report route handlers (swap upstream path + default filename).
-- [ ] Reports nav item; link from the event detail page → products report pre-filtered by that event ("products sold at this event").
+- [x] `app/admin/reports/products/page.tsx` — date range + optional event picker, stat cards (gross/items/products), recharts bar chart (gross per product), breakdown table.
+- [x] `export-pdf/route.ts` + `export-xlsx/route.ts` — cloned the report route handlers.
+- [x] Reports nav item ("Sales per product"); event detail page links to the report pre-filtered by that event ("Products sold").
+- *(all implemented, unverified/uncommitted)*
+
+## Phase D — Event menus (event-day ordering on mobile)
+
+**Goal:** on an event day, the mobile app can switch its menu to the event's **product list** (and its **price group**), and orders placed that way stay tagged with the event. Today an event is only a tag on the order — the `productListId` / `priceGroupId` already assignable on an event in admin are **never consumed at order time**. This phase wires that consumption end-to-end.
+
+**Context — why it doesn't work yet** *(not objectives)*
+- `ProductList` + `ProductListItem` (a menu = a subset of products) and event `productListId` / `priceGroupId` all exist, and admin can assign them — the *definition* side is done.
+- Nothing reads the assignment: `/api/products` has no product-list filter, mobile always fetches the general menu, and the event price group is never applied.
+
+**Seed data** *(do first — also unblocks the Phase C reports/charts)*
+- [x] Seed two product lists as event menus ("Menu Shiba Meet-up", "Menu Paw Painting"), each a subset of existing products, via `ProductList` + `ProductListItem`.
+- [x] Assign each list + a price group to the seeded events, and add a "Shiba Coffee Day" event with a day == **today** (published) so the event-day switch is testable.
+- [x] Seed 10 more closed orders across dates (event-tagged + general) via a `SeedClosedOrderAsync` helper — 15 orders total; reports now show 44 items / 738.90 gross. *(implemented, uncommitted)*
+
+**API**
+- [ ] Add a `productListId` filter to `GET /api/products` (join `ProductListItem`, return only products in that list).
+- [ ] Add `GET /api/events/active-today` — published events whose `EventDays` include today, returning `name`, `productListId`, `priceGroupId`.
+- [ ] Verify `/api/products` returns per-price-group `prices` so the client can pick the event's price group (likely no change).
+
+**Mobile**
+- [ ] Detect the active event today on the menu and show a banner + toggle: **General menu ⇄ &lt;event&gt; menu**.
+- [ ] Fetch the event's product list in event-menu mode, price each line from the event's price group, and stamp `eventId` on cart lines.
+- [ ] Verify `eventId` flows through checkout from the event-menu path (checkout already carries it).
+
+**Out of scope (for now)** *(not objectives)*
+- Preventing event-menu items and general items from mixing in one order.
+- Auto-locking the menu to the event (the toggle stays manual).
 
 ---
 

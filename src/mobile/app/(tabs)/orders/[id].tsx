@@ -55,9 +55,10 @@ export default function OrderDetailScreen() {
 
   if (query.isPending || !query.data) {
     return (
-      <SafeAreaView className="flex-1 bg-bg">
+      <View className="flex-1 bg-bg">
+        <Stack.Screen options={{ headerShown: true, title: "Order Detail" }} />
         <ActivityIndicator className="mt-8" />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -68,9 +69,9 @@ export default function OrderDetailScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-bg">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: "Order Detail" }} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }}>
         <View className="flex-row justify-between items-center">
           <Text className="text-xl font-bold text-ink">
             Order {order.id.slice(0, 8)}

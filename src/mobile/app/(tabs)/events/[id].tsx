@@ -21,18 +21,19 @@ export default function EventDetailScreen() {
 
   if (query.isPending || !query.data) {
     return (
-      <SafeAreaView className="flex-1 bg-bg">
+      <View className="flex-1 bg-bg">
+        <Stack.Screen options={{ headerShown: true, title: "" }} />
         <ActivityIndicator className="mt-8" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   const event = query.data;
 
   return (
-    <SafeAreaView className="flex-1 bg-bg">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: event.name }} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }}>
         {event.imageUrl && (
           <Image
             source={{ uri: event.imageUrl }}
