@@ -50,9 +50,10 @@ export default function ProductDetailScreen() {
 
   if (productQuery.isPending || !productQuery.data) {
     return (
-      <SafeAreaView className="flex-1 bg-bg">
+      <View className="flex-1 bg-bg">
+        <Stack.Screen options={{ headerShown: true, title: "" }} />
         <ActivityIndicator className="mt-8" />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -64,7 +65,7 @@ export default function ProductDetailScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-bg">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: product.name }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         {product.images[0] && (

@@ -32,7 +32,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {authSettled && <Stack screenOptions={{ headerShown: false }} />}
+        {authSettled && (
+          <Stack
+            screenOptions={{ headerShown: false, headerBackButtonDisplayMode: "minimal" }}
+          />
+        )}
         <StatusBar style="dark" />
       </GestureHandlerRootView>
     </SafeAreaProvider>

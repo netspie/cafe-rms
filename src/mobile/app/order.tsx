@@ -5,20 +5,21 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { useOrderStore } from "@/stores/orderStore";
 
 export default function OrderScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const lines = useOrderStore((s) => s.lines);
   const setQuantity = useOrderStore((s) => s.setQuantity);
   const remove = useOrderStore((s) => s.remove);
   const totalNet = useOrderStore((s) => s.totalNet());
 
   return (
-    <SafeAreaView className="flex-1 bg-bg">
+    <View className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: "Order" }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 200, gap: 8 }}>
         {lines.length === 0 ? (
@@ -56,7 +57,10 @@ export default function OrderScreen() {
       </ScrollView>
 
       {lines.length > 0 && (
-        <View className="absolute bottom-0 left-0 right-0 p-4 bg-bg border-t border-border gap-3">
+        <View
+          className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-bg border-t border-border gap-3"
+          style={{ paddingBottom: insets.bottom + 16 }}
+        >
           <View className="flex-row justify-between">
             <Text className="text-muted">Subtotal (Net)</Text>
             <Text className="text-ink font-semibold">
@@ -66,6 +70,6 @@ export default function OrderScreen() {
           <Button label="Checkout" onPress={() => router.push("/checkout")} />
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

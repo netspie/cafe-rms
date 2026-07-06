@@ -106,9 +106,9 @@ export default function CheckoutScreen() {
   const loyaltyExceeded = pointsEntered > maxRedeemablePoints;
 
   return (
-    <SafeAreaView className="flex-1 bg-bg">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: "Checkout" }} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }}>
         <View>
           <Text className="text-sm text-muted mb-2">Sales Channel</Text>
           <View className="gap-2">
