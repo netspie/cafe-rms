@@ -100,6 +100,11 @@ export default function CheckoutScreen() {
   const requiresTable = selectedChannel ? !selectedChannel.isTakeout : false;
   const isMissingTable = requiresTable && tableId === null;
 
+  const loyaltyBalance = balanceQuery.data?.balance ?? 0;
+  const maxRedeemablePoints = Math.min(loyaltyBalance, Math.floor(totalNet * 0.5));
+  const pointsEntered = parseInt(loyaltyPointsUsed, 10) || 0;
+  const loyaltyExceeded = pointsEntered > maxRedeemablePoints;
+
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <Stack.Screen options={{ headerShown: true, title: "Checkout" }} />
@@ -190,6 +195,14 @@ export default function CheckoutScreen() {
             keyboardType="number-pad"
             className="border border-border rounded-md px-3 py-2 text-ink"
           />
+          <Text className="text-xs text-muted mt-1">
+            Up to {maxRedeemablePoints} pts — points can cover at most half the order.
+          </Text>
+          {loyaltyExceeded && (
+            <Text className="text-sm text-danger mt-1">
+              Too many points — max {maxRedeemablePoints} for this order.
+            </Text>
+          )}
         </View>
 
         <View className="border-t border-border pt-4 gap-2">
@@ -205,7 +218,12 @@ export default function CheckoutScreen() {
           label="Place Order"
           onPress={placeOrder}
           loading={isPlacingOrder}
-          disabled={lines.length === 0 || !meQuery.data?.outletId || isMissingTable}
+          disabled={
+            lines.length === 0 ||
+            !meQuery.data?.outletId ||
+            isMissingTable ||
+            loyaltyExceeded
+          }
         />
       </ScrollView>
     </SafeAreaView>
