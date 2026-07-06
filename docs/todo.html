@@ -108,13 +108,13 @@
   <li class="done">Reports nav item ("Sales per product"); event detail page links to the report pre-filtered by that event ("Products sold").</li>
 </ul>
 
-<h2>Phase D — Event menus (event-day ordering on mobile)</h2>
-<p><strong>Goal:</strong> on an event day, the mobile app can switch its menu to the event's <strong>product list</strong> (and its <strong>price group</strong>), and orders placed that way stay tagged with the event. Today an event is only a tag on the order — the <code>productListId</code> / <code>priceGroupId</code> already assignable on an event in admin are <strong>never consumed at order time</strong>.</p>
+<h2>Phase D — Event menus (event-day pricing on mobile)</h2>
+<p><strong>Goal:</strong> one menu, always. Prices are <strong>stored and shown gross (brutto, VAT-in)</strong>. On an <strong>event day</strong>, event products are <strong>marked</strong> and shown at the <strong>event's price group</strong> price; everything else at the default group. Each product appears once (no mode switch). Orders with event products are <strong>tagged with the event</strong>. Two parts: (1) fix the pricing model to store gross, (2) wire event pricing on mobile.</p>
 
 <h3>Context — why it doesn't work yet</h3>
 <ul class="notes">
-  <li><code>ProductList</code> + <code>ProductListItem</code> and event <code>productListId</code> / <code>priceGroupId</code> all exist, and admin can assign them — the <em>definition</em> side is done.</li>
-  <li>Nothing reads the assignment: <code>/api/products</code> has no product-list filter, mobile always fetches the general menu, and the event price group is never applied.</li>
+  <li><code>ProductPrice.Net</code> is stored and treated <strong>literally as net</strong> (pre-VAT): <code>PlaceOrder</code> adds VAT on top, and the mobile detail screen shows this <strong>net</strong> value to the customer — wrong for a PL café (customer must see brutto).</li>
+  <li>The <code>/api/products</code> list returns <strong>no price at all</strong>; event <code>productListId</code> / <code>priceGroupId</code> are never read at order time.</li>
 </ul>
 
 <h3>Seed data <em>(do first — also unblocks the Phase C reports/charts)</em></h3>
@@ -124,24 +124,26 @@
   <li class="done">Seed 10 more closed orders across dates (event-tagged + general) via a <code>SeedClosedOrderAsync</code> helper — 15 orders total; reports now show 44 items / 738.90 gross. <em>(implemented, uncommitted)</em></li>
 </ul>
 
+<h3>Pricing model — store gross (brutto) <em>(do next; needs a migration + reseed)</em></h3>
+<ul class="tasks">
+  <li>Rename <code>ProductPrice.Net</code> → <code>Gross</code> (brutto), update EF config, and add a <strong>migration</strong>.</li>
+  <li>Derive line net/VAT from gross in <code>PlaceOrder</code>: <code>net = round(gross / (1 + rate/100), 2)</code>, <code>vat = gross − net</code>. Order lines still store <code>NetPerOne</code> / <code>VatPerOne</code>, so reports are unchanged.</li>
+  <li>Update <code>SetProductPrice</code> (API) + the admin web price field to set the <strong>gross</strong> price ("Cena brutto").</li>
+  <li>Return <code>gross</code> from <code>GetProductById</code> <code>prices</code>; seed products with round gross prices; reseed with <code>down -v</code>.</li>
+</ul>
+
 <h3>API</h3>
 <ul class="tasks">
-  <li>Add a <code>productListId</code> filter to <code>GET /api/products</code> (join <code>ProductListItem</code>, return only products in that list).</li>
-  <li>Add <code>GET /api/events/active-today</code> — published events whose <code>EventDays</code> include today, returning <code>name</code>, <code>productListId</code>, <code>priceGroupId</code>.</li>
-  <li>Verify <code>/api/products</code> returns per-price-group <code>prices</code> so the client can pick the event's price group (likely no change).</li>
+  <li>Add <code>prices</code> (<code>priceGroupId</code>, <code>gross</code>) to the <code>GET /api/products</code> list response (today it returns no price).</li>
+  <li>Add <code>GET /api/events/active-today</code> — today's published event(s): <code>name</code>, <code>priceGroupId</code>, and the <strong>product ids</strong> in the event's list.</li>
 </ul>
 
 <h3>Mobile</h3>
 <ul class="tasks">
-  <li>Detect the active event today on the menu and show a banner + toggle: <strong>General menu ⇄ &lt;event&gt; menu</strong>.</li>
-  <li>Fetch the event's product list in event-menu mode, price each line from the event's price group, and stamp <code>eventId</code> on cart lines.</li>
-  <li>Verify <code>eventId</code> flows through checkout from the event-menu path (checkout already carries it).</li>
-</ul>
-
-<h3>Out of scope (for now)</h3>
-<ul class="notes">
-  <li>Preventing event-menu items and general items from mixing in one order.</li>
-  <li>Auto-locking the menu to the event (the toggle stays manual).</li>
+  <li>Resolve each product's shown gross price: if the product id is in today's event list, use <code>prices.find(p =&gt; p.priceGroupId === event.priceGroupId).gross</code>; otherwise <code>prices[0].gross</code>. Fall back to <code>prices[0]</code>. Apply on the menu card and detail screen (replacing bare <code>prices[0]</code>).</li>
+  <li>Show the gross price on each menu card, and mark event products with an event badge.</li>
+  <li>Show gross (not net) in the cart and checkout too.</li>
+  <li>Tag the order with the active event when the cart includes event products.</li>
 </ul>
 
 <hr>

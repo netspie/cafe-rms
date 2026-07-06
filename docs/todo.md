@@ -64,30 +64,32 @@ Clone the existing reports trio (`Features/Reports`, QuestPDF + ClosedXML, stati
 
 ## Phase D — Event menus (event-day ordering on mobile)
 
-**Goal:** on an event day, the mobile app can switch its menu to the event's **product list** (and its **price group**), and orders placed that way stay tagged with the event. Today an event is only a tag on the order — the `productListId` / `priceGroupId` already assignable on an event in admin are **never consumed at order time**. This phase wires that consumption end-to-end.
+**Goal:** one menu, always. Prices are **stored and shown gross (brutto, VAT-in)**. On an **event day**, event products are **marked** and shown at the **event's price group** price; everything else at the default group. Each product appears once (no mode switch). Orders with event products are **tagged with the event**. Two parts: (1) fix the pricing model to store gross, (2) wire event pricing on mobile.
 
 **Context — why it doesn't work yet** *(not objectives)*
-- `ProductList` + `ProductListItem` (a menu = a subset of products) and event `productListId` / `priceGroupId` all exist, and admin can assign them — the *definition* side is done.
-- Nothing reads the assignment: `/api/products` has no product-list filter, mobile always fetches the general menu, and the event price group is never applied.
+- `ProductPrice.Net` is stored and treated **literally as net** (pre-VAT): `PlaceOrder` adds VAT on top, and the mobile detail screen shows this **net** value to the customer — wrong for a PL café (customer must see brutto).
+- The `/api/products` list returns **no price at all**; event `productListId` / `priceGroupId` are never read at order time.
 
 **Seed data** *(do first — also unblocks the Phase C reports/charts)*
 - [x] Seed two product lists as event menus ("Menu Shiba Meet-up", "Menu Paw Painting"), each a subset of existing products, via `ProductList` + `ProductListItem`.
 - [x] Assign each list + a price group to the seeded events, and add a "Shiba Coffee Day" event with a day == **today** (published) so the event-day switch is testable.
 - [x] Seed 10 more closed orders across dates (event-tagged + general) via a `SeedClosedOrderAsync` helper — 15 orders total; reports now show 44 items / 738.90 gross. *(implemented, uncommitted)*
 
+**Pricing model — store gross (brutto)** *(do next; needs a migration + reseed)*
+- [ ] Rename `ProductPrice.Net` → `Gross` (brutto), update EF config, and add a **migration**.
+- [ ] Derive line net/VAT from gross in `PlaceOrder`: `net = round(gross / (1 + rate/100), 2)`, `vat = gross − net`. Order lines still store `NetPerOne` / `VatPerOne`, so reports are unchanged.
+- [ ] Update `SetProductPrice` (API) + the admin web price field to set the **gross** price ("Cena brutto").
+- [ ] Return `gross` from `GetProductById` `prices`; seed products with round gross prices; reseed with `down -v`.
+
 **API**
-- [ ] Add a `productListId` filter to `GET /api/products` (join `ProductListItem`, return only products in that list).
-- [ ] Add `GET /api/events/active-today` — published events whose `EventDays` include today, returning `name`, `productListId`, `priceGroupId`.
-- [ ] Verify `/api/products` returns per-price-group `prices` so the client can pick the event's price group (likely no change).
+- [ ] Add `prices` (`priceGroupId`, `gross`) to the `GET /api/products` list response (today it returns no price).
+- [ ] Add `GET /api/events/active-today` — today's published event(s): `name`, `priceGroupId`, and the **product ids** in the event's list.
 
 **Mobile**
-- [ ] Detect the active event today on the menu and show a banner + toggle: **General menu ⇄ &lt;event&gt; menu**.
-- [ ] Fetch the event's product list in event-menu mode, price each line from the event's price group, and stamp `eventId` on cart lines.
-- [ ] Verify `eventId` flows through checkout from the event-menu path (checkout already carries it).
-
-**Out of scope (for now)** *(not objectives)*
-- Preventing event-menu items and general items from mixing in one order.
-- Auto-locking the menu to the event (the toggle stays manual).
+- [ ] Resolve each product's shown gross price: if the product id is in today's event list, use `prices.find(p => p.priceGroupId === event.priceGroupId).gross`; otherwise `prices[0].gross`. Fall back to `prices[0]`. Apply on the menu card and detail screen (replacing bare `prices[0]`).
+- [ ] Show the gross price on each menu card, and mark event products with an event badge.
+- [ ] Show gross (not net) in the cart and checkout too.
+- [ ] Tag the order with the active event when the cart includes event products.
 
 ---
 
