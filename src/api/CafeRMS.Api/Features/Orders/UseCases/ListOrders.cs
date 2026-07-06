@@ -79,7 +79,13 @@ public static class ListOrders
 
         var queryable = db.Orders.AsQueryable();
         if (query.Status is OrderStatus status)
-            queryable = queryable.Where(x => x.Status == status);
+            queryable = status switch
+            {
+                OrderStatus.Placed => queryable.Where(x => x.ClosedAt == null && x.CancelledAt == null),
+                OrderStatus.Closed => queryable.Where(x => x.ClosedAt != null && x.CancelledAt == null),
+                OrderStatus.Cancelled => queryable.Where(x => x.CancelledAt != null),
+                _ => queryable
+            };
         if (query.TableId is Guid tableId)
             queryable = queryable.Where(x => x.TableId == tableId);
         if (query.OutletId is Guid outletId)

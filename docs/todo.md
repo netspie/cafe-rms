@@ -43,9 +43,10 @@ Noticed while reviewing Phase A. One rule still open (dine-in table); the bug fi
 No API changes — reuses `GET /api/orders?status=Placed&sort=-createdAt`.
 
 **Web**
-- [ ] Token-proxy poll route — `app/admin/live-orders/poll/route.ts` reads the httpOnly cookie and proxies the placed-orders query (same cookie→Bearer pattern as the report export routes).
-- [ ] Watcher client component — polls every ~7s, tracks last-seen order id/`createdAt` in `localStorage` (so a page refresh doesn't re-toast old orders), and on a new order pops a `sonner` toast ("New order — Table 5") + `router.refresh()`.
-- [ ] Mount the watcher in the admin shell so it fires on any admin page; optional dedicated "Live orders" page + nav item under **Operations**.
+- [x] Token-proxy poll route — `app/admin/live-orders/poll/route.ts` reads the httpOnly cookie and proxies `GET /api/orders?status=Placed&sort=-createdAt&pageSize=20`.
+- [x] Watcher client component (`components/live-orders-watcher.tsx`) — polls every 7s, tracks last-seen `createdAt` in `localStorage` (a refresh doesn't re-toast old orders), and on a new order pops a `sonner` toast ("New order — Table X" / "Walk-in"), plays a **Web Audio ringtone** (two-tone chime, no asset), and `router.refresh()`.
+- [x] Mounted in the admin layout so it fires on any admin page. *(skipped the optional dedicated "Live orders" page + nav item.)*
+- *(all three implemented, unverified/uncommitted)*
 
 ## Phase C — Sales-per-product report (+ per-event breakdown)
 

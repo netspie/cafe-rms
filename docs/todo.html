@@ -85,9 +85,9 @@
 
 <h3>Web</h3>
 <ul class="tasks">
-  <li>Token-proxy poll route — <code>app/admin/live-orders/poll/route.ts</code> reads the httpOnly cookie and proxies the placed-orders query (same cookie→Bearer pattern as the report export routes).</li>
-  <li>Watcher client component — polls every ~7s, tracks last-seen order id/<code>createdAt</code> in <code>localStorage</code> (so a refresh doesn't re-toast old orders), and on a new order pops a <code>sonner</code> toast ("New order — Table 5") + <code>router.refresh()</code>.</li>
-  <li>Mount the watcher in the admin shell so it fires on any admin page; optional dedicated "Live orders" page + nav item under <strong>Operations</strong>.</li>
+  <li class="done">Token-proxy poll route — <code>app/admin/live-orders/poll/route.ts</code> reads the httpOnly cookie and proxies <code>GET /api/orders?status=Placed&amp;sort=-createdAt&amp;pageSize=20</code>.</li>
+  <li class="done">Watcher client component (<code>components/live-orders-watcher.tsx</code>) — polls every 7s, tracks last-seen <code>createdAt</code> in <code>localStorage</code> (a refresh doesn't re-toast old orders), and on a new order pops a <code>sonner</code> toast ("New order — Table X" / "Walk-in"), plays a <strong>Web Audio ringtone</strong> (two-tone chime, no asset), and <code>router.refresh()</code>.</li>
+  <li class="done">Mounted in the admin layout so it fires on any admin page. <em>(skipped the optional dedicated "Live orders" page + nav item.)</em></li>
 </ul>
 
 <h2>Phase C — Sales-per-product report (+ per-event breakdown)</h2>

@@ -52,7 +52,13 @@ public static class ListMyOrders
         var queryable = db.Orders.Where(x => x.UserId == userId);
 
         if (query.Status is OrderStatus status)
-            queryable = queryable.Where(x => x.Status == status);
+            queryable = status switch
+            {
+                OrderStatus.Placed => queryable.Where(x => x.ClosedAt == null && x.CancelledAt == null),
+                OrderStatus.Closed => queryable.Where(x => x.ClosedAt != null && x.CancelledAt == null),
+                OrderStatus.Cancelled => queryable.Where(x => x.CancelledAt != null),
+                _ => queryable
+            };
 
         return await queryable
             .ApplySort(query.Sort, sortable, defaultSortExpression: "-createdAt")
