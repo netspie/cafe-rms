@@ -3,6 +3,12 @@ import { useAuthStore } from "@/stores/authStore";
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:5179";
 
+export function imageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${BASE_URL}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   detail?: string;

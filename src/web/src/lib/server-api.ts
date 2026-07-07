@@ -48,6 +48,30 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T
 }
 
+export async function postFormData<T>(path: string, form: FormData): Promise<T> {
+  const store = await cookies()
+  const token = store.get(TOKEN_COOKIE)?.value
+  const companyId = store.get(COMPANY_COOKIE)?.value
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  if (companyId) headers["X-Company-Id"] = companyId
+
+  const response = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: form, cache: "no-store" })
+
+  if (response.status === 401) redirect("/login")
+
+  const contentType = response.headers.get("content-type") ?? ""
+  const isJson = contentType.includes("application/json") || contentType.includes("application/problem+json")
+  const body = isJson ? await response.json() : null
+
+  if (!response.ok) {
+    throw new ApiError(response.status, body ?? { status: response.status, title: response.statusText })
+  }
+  return body as T
+}
+
+export const IMAGE_BASE = API_BASE
+
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: "GET" }),
   post: <T>(path: string, body?: unknown) =>

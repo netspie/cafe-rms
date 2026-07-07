@@ -57,7 +57,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Company &amp; outlet</h1>
       </div>
 
       <form action={updateOutlet} className="grid gap-6 lg:grid-cols-2">

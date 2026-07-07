@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, imageUrl } from "@/lib/api";
 import type { Allergen, Favorite, MenuItemDetail } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 import { useOrderStore } from "@/stores/orderStore";
@@ -69,7 +69,7 @@ export default function ProductDetailScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         {product.images[0] && (
           <Image
-            source={{ uri: product.images[0].url }}
+            source={{ uri: imageUrl(product.images[0].url)! }}
             className="w-full h-56 rounded-md mb-4 bg-bgSoft"
             resizeMode="cover"
           />

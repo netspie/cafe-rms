@@ -49,6 +49,7 @@ export type MenuItem = {
   id: string;
   name: string;
   barcode: string | null;
+  imageUrl: string | null;
   price: number;
   originalPrice: number | null;
   isEventPrice: boolean;

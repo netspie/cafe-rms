@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Content Include="Resources/Templates/*.docx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Persistence/Seeding/demo-images/*.jpg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,9 +25,12 @@ services:
       ConnectionStrings__Default: "Host=postgres;Database=cafe_rms;Username=postgres;Password=postgres"
     ports:
       - "5179:8080"
+    volumes:
+      - api_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  api_uploads:

@@ -21,7 +21,7 @@ public sealed class ListMenuController : ControllerBase
 
 public static class ListMenu
 {
-    public sealed record Item(Guid Id, string Name, string? Barcode, decimal Price, decimal? OriginalPrice, bool IsEventPrice);
+    public sealed record Item(Guid Id, string Name, string? Barcode, string? ImageUrl, decimal Price, decimal? OriginalPrice, bool IsEventPrice);
 
     public static async Task<IReadOnlyList<Item>> Execute(string? name, Guid? tagId, AppDbContext db, DateTimeOffset now)
     {
@@ -52,6 +52,7 @@ public static class ListMenu
                 x.Id,
                 x.Name,
                 x.Barcode,
+                db.ProductImages.Where(pi => pi.ProductId == x.Id).Select(pi => pi.Url).FirstOrDefault(),
                 eventProductIds.Contains(x.Id)
                     ? db.ProductPrices.Where(p => p.ProductId == x.Id && p.PriceGroupId == eventPriceGroupId).Select(p => p.Gross).FirstOrDefault()
                     : db.ProductPrices.Where(p => p.ProductId == x.Id && p.PriceGroupId == defaultPriceGroupId).Select(p => p.Gross).FirstOrDefault(),

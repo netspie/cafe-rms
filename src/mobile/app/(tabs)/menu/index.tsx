@@ -3,6 +3,7 @@ import { Link, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { api } from "@/lib/api";
+import { api, imageUrl } from "@/lib/api";
 import { eventColor } from "@/lib/eventColor";
 import type { MenuItem, MobileEvent, PagedResult, Tag } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
@@ -130,8 +131,21 @@ export default function MenuScreen() {
           ) : (
             (productsQuery.data ?? []).map((item) => (
               <Link key={item.id} href={`/(tabs)/menu/${item.id}`} asChild>
-                <Pressable className="bg-bgSoft rounded-md p-4 border border-border flex-row justify-between items-center">
-                  <View className="flex-1 pr-3">
+                <Pressable className="bg-bgSoft rounded-md p-3 border border-border flex-row items-center gap-3">
+                  {imageUrl(item.imageUrl) ? (
+                    <Image
+                      source={{ uri: imageUrl(item.imageUrl)! }}
+                      className="w-14 h-14 rounded-md bg-bg"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View className="w-14 h-14 rounded-md bg-bg border border-border items-center justify-center">
+                      <Text className="text-muted text-lg font-bold">
+                        {item.name.charAt(0)}
+                      </Text>
+                    </View>
+                  )}
+                  <View className="flex-1">
                     <Text className="text-ink font-semibold">{item.name}</Text>
                     {item.barcode && (
                       <Text className="text-muted text-xs mt-1">{item.barcode}</Text>

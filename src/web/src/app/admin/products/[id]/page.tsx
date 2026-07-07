@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache"
 import { Trash2, X } from "lucide-react"
 import { Field } from "@/components/field"
-import { api, type PagedResult } from "@/lib/server-api"
+import { api, postFormData, IMAGE_BASE, type PagedResult } from "@/lib/server-api"
 
 interface ProductImage { id: string; url: string }
 interface ProductPrice { priceGroupId: string; gross: number }
@@ -82,11 +82,13 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     revalidatePath(path)
   }
 
-  async function addImage(formData: FormData) {
+  async function uploadImage(formData: FormData) {
     "use server"
-    const url = formData.get("url") as string
-    if (!url) return
-    await api.post(`/api/products/${id}/images`, { url })
+    const file = formData.get("file") as File | null
+    if (!file || file.size === 0) return
+    const upload = new FormData()
+    upload.append("file", file)
+    await postFormData(`/api/products/${id}/images/upload`, upload)
     revalidatePath(path)
   }
   async function removeImage(imageId: string) {
@@ -205,22 +207,23 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         <section className="rounded-lg border bg-card p-4">
           <h2 className="mb-4 text-base font-semibold">Images</h2>
           <div className="space-y-3">
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-3">
               {product.images.length === 0 && <p className="text-sm text-muted-foreground">No images yet.</p>}
               {product.images.map((img) => (
-                <div key={img.id} className="flex items-center gap-3 rounded-md border px-3 py-2">
-                  <span className="flex-1 truncate font-mono text-xs text-muted-foreground">{img.url}</span>
-                  <form action={removeImage.bind(null, img.id)}>
-                    <button type="submit" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/10" aria-label="Remove image">
-                      <Trash2 className="h-4 w-4" />
+                <div key={img.id} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`${IMAGE_BASE}${img.url}`} alt="" className="h-24 w-24 rounded-md border object-cover" />
+                  <form action={removeImage.bind(null, img.id)} className="absolute -right-2 -top-2">
+                    <button type="submit" className="inline-flex h-7 w-7 items-center justify-center rounded-full border bg-card text-destructive shadow-sm hover:bg-destructive/10" aria-label="Remove image">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </form>
                 </div>
               ))}
             </div>
-            <form action={addImage} className="flex gap-2">
-              <input name="url" className="h-9 max-w-md flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-              <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Add image</button>
+            <form action={uploadImage} className="flex items-center gap-2">
+              <input name="file" type="file" accept=".jpg,.jpeg,.png,.webp" required className="max-w-md flex-1 text-sm file:mr-3 file:rounded-md file:border file:bg-transparent file:px-3 file:py-1.5 file:text-sm hover:file:bg-accent" />
+              <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-accent">Upload</button>
             </form>
           </div>
         </section>
