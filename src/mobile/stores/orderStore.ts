@@ -5,7 +5,6 @@ export type OrderLine = {
   productName: string;
   unitPrice: number;
   quantity: number;
-  priceGroupId: string | null;
 };
 
 type OrderState = {
@@ -15,7 +14,7 @@ type OrderState = {
   remove: (productId: string) => void;
   clear: () => void;
   totalCount: () => number;
-  totalNet: () => number;
+  totalGross: () => number;
 };
 
 export const useOrderStore = create<OrderState>((set, get) => ({
@@ -49,6 +48,6 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     })),
   clear: () => set({ lines: [] }),
   totalCount: () => get().lines.reduce((sum, l) => sum + l.quantity, 0),
-  totalNet: () =>
+  totalGross: () =>
     get().lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0),
 }));

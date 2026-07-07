@@ -60,10 +60,8 @@ export default function EventDetailScreen() {
 
         {event.status === "Published" && (
           <Button
-            label="Order at This Event"
-            onPress={() =>
-              router.push({ pathname: "/checkout", params: { eventId: event.id } })
-            }
+            label="Browse Menu"
+            onPress={() => router.push("/(tabs)/menu")}
           />
         )}
       </ScrollView>

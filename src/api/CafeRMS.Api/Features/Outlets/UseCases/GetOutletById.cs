@@ -34,6 +34,8 @@ public static class GetOutletById
         string InvoicingAddress,
         string BillingEmail,
         string BillingPhone,
+        Guid? DefaultPriceGroupId,
+        Guid? DefaultProductListId,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt);
 
@@ -45,6 +47,7 @@ public static class GetOutletById
                 x.Id, x.DisplayName, x.StreetAddress, x.Phone, x.TimeZone,
                 x.Currency.ToString(), x.LogoUrl,
                 x.LegalName, x.TaxId, x.InvoicingAddress, x.BillingEmail, x.BillingPhone,
+                x.DefaultPriceGroupId, x.DefaultProductListId,
                 x.CreatedAt, x.UpdatedAt))
             .FirstOrDefaultAsync()
             ?? throw new NotFoundException("Outlet not found.");

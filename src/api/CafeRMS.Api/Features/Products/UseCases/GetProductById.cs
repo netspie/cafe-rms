@@ -37,7 +37,7 @@ public static class GetProductById
 
     public sealed record ImageInfo(Guid Id, string Url);
 
-    public sealed record PriceInfo(Guid PriceGroupId, decimal Net);
+    public sealed record PriceInfo(Guid PriceGroupId, decimal Gross);
 
     public static async Task<Result> Execute(Guid id, AppDbContext db)
     {
@@ -48,7 +48,7 @@ public static class GetProductById
         var allergenIds = await db.ProductAllergens.Where(x => x.ProductId == id).Select(x => x.AllergenId).ToListAsync();
         var modifierGroupIds = await db.ProductModifierGroups.Where(x => x.ProductId == id).Select(x => x.ModifierGroupId).ToListAsync();
         var images = await db.ProductImages.Where(x => x.ProductId == id).Select(x => new ImageInfo(x.Id, x.Url)).ToListAsync();
-        var prices = await db.ProductPrices.Where(x => x.ProductId == id).Select(x => new PriceInfo(x.PriceGroupId, x.Net)).ToListAsync();
+        var prices = await db.ProductPrices.Where(x => x.ProductId == id).Select(x => new PriceInfo(x.PriceGroupId, x.Gross)).ToListAsync();
 
         return new Result(
             product.Id, product.Name, product.Description, product.Barcode, product.TaxRateId,

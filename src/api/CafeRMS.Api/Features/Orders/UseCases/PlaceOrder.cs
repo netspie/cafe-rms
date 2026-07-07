@@ -1,4 +1,5 @@
 using CafeRMS.Api.Features.Auth;
+using CafeRMS.Api.Features.Events;
 using CafeRMS.Api.Features.Loyalty;
 using CafeRMS.Api.Persistence;
 using CafeRMS.Api.Shared;
@@ -28,12 +29,11 @@ public sealed record PlaceOrderRequest(
     Guid OutletId,
     Guid? TableId,
     Guid? SalesChannelId,
-    Guid? EventId,
     string? PromotionCode,
     int LoyaltyPointsUsed,
     IReadOnlyList<PlaceOrderLineRequest> Lines);
 
-public sealed record PlaceOrderLineRequest(Guid ProductId, int Quantity, Guid? PriceGroupId);
+public sealed record PlaceOrderLineRequest(Guid ProductId, int Quantity);
 
 public sealed record PlaceOrderResponse(Guid OrderId);
 
@@ -61,9 +61,8 @@ public static class PlaceOrder
         if (request.Lines.Count == 0)
             throw new DomainException("Order must have at least one line.");
 
-        var outletExists = await db.Outlets.AnyAsync(x => x.Id == request.OutletId);
-        if (!outletExists)
-            throw new NotFoundException("Outlet not found.");
+        var outlet = await db.Outlets.FirstOrDefaultAsync(x => x.Id == request.OutletId)
+            ?? throw new NotFoundException("Outlet not found.");
 
         if (request.TableId is Guid tableId)
         {
@@ -80,6 +79,12 @@ public static class PlaceOrder
                 throw new DomainException("Dine-in orders require a table.");
         }
 
+        var activeEvent = await ActiveEventResolver.ResolveAsync(db, now);
+        var eventProductIds = (activeEvent?.ProductIds ?? new List<Guid>()).ToHashSet();
+        var orderEventId = activeEvent is not null && request.Lines.Any(l => eventProductIds.Contains(l.ProductId))
+            ? activeEvent.Id
+            : (Guid?)null;
+
         await using var tx = await db.Database.BeginTransactionAsync();
 
         var order = Order.Create(
@@ -87,9 +92,10 @@ public static class PlaceOrder
             request.TableId,
             request.SalesChannelId,
             userId,
-            request.EventId);
+            orderEventId);
 
-        var (lines, subtotal) = await BuildLinesAsync(request.Lines, order.Id, db);
+        var (lines, subtotal) = await BuildLinesAsync(
+            request.Lines, order.Id, outlet.DefaultPriceGroupId, activeEvent?.PriceGroupId, eventProductIds, db);
 
         order.RedeemLoyaltyPoints(request.LoyaltyPointsUsed, subtotal);
 
@@ -110,6 +116,9 @@ public static class PlaceOrder
     private static async Task<(List<OrderLine> Lines, decimal Subtotal)> BuildLinesAsync(
         IReadOnlyList<PlaceOrderLineRequest> requestLines,
         Guid orderId,
+        Guid? defaultPriceGroupId,
+        Guid? eventPriceGroupId,
+        HashSet<Guid> eventProductIds,
         AppDbContext db)
     {
         var lines = new List<OrderLine>();
@@ -125,15 +134,21 @@ public static class PlaceOrder
                 .FirstOrDefaultAsync(x => x.Id == line.ProductId)
                 ?? throw new NotFoundException($"Product {line.ProductId} not found.");
 
+            var priceGroupId = eventProductIds.Contains(line.ProductId)
+                ? eventPriceGroupId
+                : defaultPriceGroupId;
+
             var priceQuery = db.ProductPrices.Where(x => x.ProductId == line.ProductId);
-            if (line.PriceGroupId is Guid pgId)
+            if (priceGroupId is Guid pgId)
                 priceQuery = priceQuery.Where(x => x.PriceGroupId == pgId);
+                
             var price = await priceQuery.FirstOrDefaultAsync()
                 ?? throw new NotFoundException($"No price set for product {line.ProductId}.");
 
-            var vatPerOne = Math.Round(price.Net * (product.TaxRate!.Rate / 100m), 2);
-            lines.Add(OrderLine.Create(orderId, line.ProductId, line.Quantity, price.Net, vatPerOne));
-            subtotal += (price.Net + vatPerOne) * line.Quantity;
+            var netPerOne = Math.Round(price.Gross / (1m + product.TaxRate!.Rate / 100m), 2);
+            var vatPerOne = price.Gross - netPerOne;
+            lines.Add(OrderLine.Create(orderId, line.ProductId, line.Quantity, netPerOne, vatPerOne));
+            subtotal += price.Gross * line.Quantity;
         }
 
         return (lines, subtotal);

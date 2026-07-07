@@ -75,21 +75,24 @@ Clone the existing reports trio (`Features/Reports`, QuestPDF + ClosedXML, stati
 - [x] Assign each list + a price group to the seeded events, and add a "Shiba Coffee Day" event with a day == **today** (published) so the event-day switch is testable.
 - [x] Seed 10 more closed orders across dates (event-tagged + general) via a `SeedClosedOrderAsync` helper — 15 orders total; reports now show 44 items / 738.90 gross. *(implemented, uncommitted)*
 
-**Pricing model — store gross (brutto)** *(do next; needs a migration + reseed)*
-- [ ] Rename `ProductPrice.Net` → `Gross` (brutto), update EF config, and add a **migration**.
-- [ ] Derive line net/VAT from gross in `PlaceOrder`: `net = round(gross / (1 + rate/100), 2)`, `vat = gross − net`. Order lines still store `NetPerOne` / `VatPerOne`, so reports are unchanged.
-- [ ] Update `SetProductPrice` (API) + the admin web price field to set the **gross** price ("Cena brutto").
-- [ ] Return `gross` from `GetProductById` `prices`; seed products with round gross prices; reseed with `down -v`.
+**Pricing model — store gross (brutto)** *(done; migration + reseed applied)*
+- [x] Rename `ProductPrice.Net` → `Gross` (brutto), update EF config, add migration `RenameProductPriceNetToGross`.
+- [x] Derive line net/VAT from gross in `PlaceOrder`: `net = round(gross / (1 + rate/100), 2)`, `vat = gross − net`. Order lines still store `NetPerOne` / `VatPerOne`, so reports are unchanged.
+- [x] Update `SetProductPrice` (API) + the admin web price field to set the **gross** price ("gross / brutto").
+- [x] Return `gross` from `GetProductById` `prices`; seed products with round gross prices; reseeded with `down -v` (verified: Cappuccino 12.60/14.00; report reconciles net 644.43 + vat 45.57 = gross 690.00).
 
 **API**
-- [ ] Add `prices` (`priceGroupId`, `gross`) to the `GET /api/products` list response (today it returns no price).
-- [ ] Add `GET /api/events/active-today` — today's published event(s): `name`, `priceGroupId`, and the **product ids** in the event's list.
+- [x] Add `prices` (`priceGroupId`, `gross`) to the `GET /api/products` list response (correlated subquery on `Item`).
+- [x] Add `GET /api/events/active-today` — today's published event: `name`, `priceGroupId`, `productListId`, and the **product ids** in the event's list (returns null when none). *(verified: Shiba Coffee Day, 4 products.)*
+
+*No `PriceGroup.IsDefault` exists and a channel offers multiple groups, so the **default shown price is the highest (regular) one** — product prices are returned ordered by gross desc (`ListProducts`, `GetProductById`, and the `PlaceOrder` fallback). Loyalty/event groups are discounts, applied only when their group matches. Verified: non-event products show Standard (14.00), the 4 event products show the −10% event price (12.60) with a badge on the event day.*
 
 **Mobile**
-- [ ] Resolve each product's shown gross price: if the product id is in today's event list, use `prices.find(p => p.priceGroupId === event.priceGroupId).gross`; otherwise `prices[0].gross`. Fall back to `prices[0]`. Apply on the menu card and detail screen (replacing bare `prices[0]`).
-- [ ] Show the gross price on each menu card, and mark event products with an event badge.
-- [ ] Show gross (not net) in the cart and checkout too.
-- [ ] Tag the order with the active event when the cart includes event products.
+- [x] Resolve each product's shown gross price via `lib/pricing.ts` `resolvePrice(prices, activeEvent, productId)`: event product → `prices.find(p => p.priceGroupId === event.priceGroupId).gross`; else `prices[0].gross`. Applied on the menu card + detail screen.
+- [x] Show the gross price on each menu card, and mark event products with an "Event price" badge (card + detail).
+- [x] Show gross in the cart and checkout — renamed store `totalNet()` → `totalGross()`, labels "Subtotal (Net)" → "Total".
+- [x] Tag the order with the active event when the cart includes event-priced lines (checkout auto-derives `eventId`; event detail button now routes to the menu).
+- *(pricing model + API + mobile all implemented, unverified in-app but API surfaces verified; uncommitted)*
 
 ---
 

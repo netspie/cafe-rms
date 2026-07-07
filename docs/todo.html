@@ -124,27 +124,29 @@
   <li class="done">Seed 10 more closed orders across dates (event-tagged + general) via a <code>SeedClosedOrderAsync</code> helper — 15 orders total; reports now show 44 items / 738.90 gross. <em>(implemented, uncommitted)</em></li>
 </ul>
 
-<h3>Pricing model — store gross (brutto) <em>(do next; needs a migration + reseed)</em></h3>
+<h3>Pricing model — store gross (brutto) <em>(done; migration + reseed applied)</em></h3>
 <ul class="tasks">
-  <li>Rename <code>ProductPrice.Net</code> → <code>Gross</code> (brutto), update EF config, and add a <strong>migration</strong>.</li>
-  <li>Derive line net/VAT from gross in <code>PlaceOrder</code>: <code>net = round(gross / (1 + rate/100), 2)</code>, <code>vat = gross − net</code>. Order lines still store <code>NetPerOne</code> / <code>VatPerOne</code>, so reports are unchanged.</li>
-  <li>Update <code>SetProductPrice</code> (API) + the admin web price field to set the <strong>gross</strong> price ("Cena brutto").</li>
-  <li>Return <code>gross</code> from <code>GetProductById</code> <code>prices</code>; seed products with round gross prices; reseed with <code>down -v</code>.</li>
+  <li class="done">Rename <code>ProductPrice.Net</code> → <code>Gross</code> (brutto), update EF config, add migration <code>RenameProductPriceNetToGross</code>.</li>
+  <li class="done">Derive line net/VAT from gross in <code>PlaceOrder</code>: <code>net = round(gross / (1 + rate/100), 2)</code>, <code>vat = gross − net</code>. Order lines still store <code>NetPerOne</code> / <code>VatPerOne</code>, so reports are unchanged.</li>
+  <li class="done">Update <code>SetProductPrice</code> (API) + the admin web price field to set the <strong>gross</strong> price ("gross / brutto").</li>
+  <li class="done">Return <code>gross</code> from <code>GetProductById</code> <code>prices</code>; seed products with round gross prices; reseeded with <code>down -v</code> (verified: Cappuccino 12.60/14.00; report reconciles net 644.43 + vat 45.57 = gross 690.00).</li>
 </ul>
 
 <h3>API</h3>
 <ul class="tasks">
-  <li>Add <code>prices</code> (<code>priceGroupId</code>, <code>gross</code>) to the <code>GET /api/products</code> list response (today it returns no price).</li>
-  <li>Add <code>GET /api/events/active-today</code> — today's published event(s): <code>name</code>, <code>priceGroupId</code>, and the <strong>product ids</strong> in the event's list.</li>
+  <li class="done">Add <code>prices</code> (<code>priceGroupId</code>, <code>gross</code>) to the <code>GET /api/products</code> list response (correlated subquery on <code>Item</code>).</li>
+  <li class="done">Add <code>GET /api/events/active-today</code> — today's published event: <code>name</code>, <code>priceGroupId</code>, <code>productListId</code>, and the <strong>product ids</strong> in the event's list (null when none). <em>(verified: Shiba Coffee Day, 4 products.)</em></li>
 </ul>
+<p class="notes">No <code>PriceGroup.IsDefault</code> exists and a channel offers multiple groups, so the <strong>default shown price is the highest (regular) one</strong> — product prices are returned ordered by gross desc (<code>ListProducts</code>, <code>GetProductById</code>, and the <code>PlaceOrder</code> fallback). Loyalty/event groups are discounts, applied only when their group matches. Verified: non-event products show Standard (14.00), the 4 event products show the −10% event price (12.60) with a badge on the event day.</p>
 
 <h3>Mobile</h3>
 <ul class="tasks">
-  <li>Resolve each product's shown gross price: if the product id is in today's event list, use <code>prices.find(p =&gt; p.priceGroupId === event.priceGroupId).gross</code>; otherwise <code>prices[0].gross</code>. Fall back to <code>prices[0]</code>. Apply on the menu card and detail screen (replacing bare <code>prices[0]</code>).</li>
-  <li>Show the gross price on each menu card, and mark event products with an event badge.</li>
-  <li>Show gross (not net) in the cart and checkout too.</li>
-  <li>Tag the order with the active event when the cart includes event products.</li>
+  <li class="done">Resolve each product's shown gross price via <code>lib/pricing.ts</code> <code>resolvePrice(prices, activeEvent, productId)</code>: event product → <code>prices.find(p =&gt; p.priceGroupId === event.priceGroupId).gross</code>; else <code>prices[0].gross</code>. Applied on the menu card + detail screen.</li>
+  <li class="done">Show the gross price on each menu card, and mark event products with an "Event price" badge (card + detail).</li>
+  <li class="done">Show gross in the cart and checkout — renamed store <code>totalNet()</code> → <code>totalGross()</code>, labels "Subtotal (Net)" → "Total".</li>
+  <li class="done">Tag the order with the active event when the cart includes event-priced lines (checkout auto-derives <code>eventId</code>; event detail button now routes to the menu).</li>
 </ul>
+<p class="notes"><em>Pricing model + API + mobile all implemented; API surfaces verified; uncommitted.</em></p>
 
 <hr>
 

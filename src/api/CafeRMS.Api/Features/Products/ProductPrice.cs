@@ -10,18 +10,18 @@ public class ProductPrice : Entity
     public Product? Product { get; private init; }
     public Guid PriceGroupId { get; private init; }
     public PriceGroup? PriceGroup { get; private init; }
-    public decimal Net { get; private set; }
+    public decimal Gross { get; private set; }
 
     private ProductPrice() { }
 
-    public static ProductPrice Create(Guid productId, Guid priceGroupId, decimal net)
+    public static ProductPrice Create(Guid productId, Guid priceGroupId, decimal gross)
     {
         return new ProductPrice
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
             PriceGroupId = priceGroupId,
-            Net = net
+            Gross = gross
         };
     }
 }

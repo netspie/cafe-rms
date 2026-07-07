@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "@/lib/api";
-import type { PagedResult, ProductItem, Tag } from "@/lib/types";
+import type { MenuItem, PagedResult, Tag } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 import { useOrderStore } from "@/stores/orderStore";
 
@@ -28,12 +28,10 @@ export default function MenuScreen() {
 
   const productsQuery = useFetch(
     () => {
-      const params = new URLSearchParams({ pageSize: "50", sort: "name" });
+      const params = new URLSearchParams();
       if (search) params.set("name", search);
       if (selectedTag) params.set("tagId", selectedTag);
-      return api.get<PagedResult<ProductItem>>(
-        `/api/products?${params.toString()}`,
-      );
+      return api.get<MenuItem[]>(`/api/menu?${params.toString()}`);
     },
     [search, selectedTag],
   );
@@ -76,18 +74,28 @@ export default function MenuScreen() {
           style={{ flex: 1, minHeight: 0 }}
           contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 8 }}
         >
-          {(productsQuery.data?.items ?? []).length === 0 ? (
+          {(productsQuery.data ?? []).length === 0 ? (
             <Text className="text-muted text-center mt-8">
               No products match.
             </Text>
           ) : (
-            (productsQuery.data?.items ?? []).map((item) => (
+            (productsQuery.data ?? []).map((item) => (
               <Link key={item.id} href={`/(tabs)/menu/${item.id}`} asChild>
-                <Pressable className="bg-bgSoft rounded-md p-4 border border-border">
-                  <Text className="text-ink font-semibold">{item.name}</Text>
-                  {item.barcode && (
-                    <Text className="text-muted text-xs mt-1">{item.barcode}</Text>
-                  )}
+                <Pressable className="bg-bgSoft rounded-md p-4 border border-border flex-row justify-between items-center">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-ink font-semibold">{item.name}</Text>
+                    {item.barcode && (
+                      <Text className="text-muted text-xs mt-1">{item.barcode}</Text>
+                    )}
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-accent font-semibold">
+                      {item.price.toFixed(2)} PLN
+                    </Text>
+                    {item.isEventPrice && (
+                      <Text className="text-xs text-accent mt-1">Event price</Text>
+                    )}
+                  </View>
                 </Pressable>
               </Link>
             ))

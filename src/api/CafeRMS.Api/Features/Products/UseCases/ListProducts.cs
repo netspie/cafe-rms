@@ -62,10 +62,13 @@ public static class ListProducts
             var needle = query.Name.ToLower();
             queryable = queryable.Where(x => x.Name.ToLower().Contains(needle));
         }
+
         if (!string.IsNullOrWhiteSpace(query.Barcode))
             queryable = queryable.Where(x => x.Barcode == query.Barcode);
+
         if (query.TaxRateId is Guid taxRateId)
             queryable = queryable.Where(x => x.TaxRateId == taxRateId);
+
         if (query.TagId is Guid tagId)
             queryable = queryable.Where(x =>
                 db.ProductTags.Any(pt => pt.ProductId == x.Id && pt.TagId == tagId));

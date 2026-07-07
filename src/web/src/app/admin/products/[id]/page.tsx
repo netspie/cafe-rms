@@ -4,7 +4,7 @@ import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
 
 interface ProductImage { id: string; url: string }
-interface ProductPrice { priceGroupId: string; net: number }
+interface ProductPrice { priceGroupId: string; gross: number }
 interface ProductDetail {
   id: string
   name: string
@@ -98,8 +98,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   async function setPrice(formData: FormData) {
     "use server"
     const priceGroupId = formData.get("priceGroupId") as string
-    const net = Number(formData.get("net"))
-    await api.put(`/api/products/${id}/prices/${priceGroupId}`, { net })
+    const gross = Number(formData.get("gross"))
+    await api.put(`/api/products/${id}/prices/${priceGroupId}`, { gross })
     revalidatePath(path)
   }
 
@@ -109,7 +109,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const allergensAvailable = allergens.items.filter((a) => !product.allergenIds.includes(a.id))
   const groupsAttached = modifierGroups.items.filter((g) => product.modifierGroupIds.includes(g.id))
   const groupsAvailable = modifierGroups.items.filter((g) => !product.modifierGroupIds.includes(g.id))
-  const priceFor = (groupId: string) => product.prices.find((p) => p.priceGroupId === groupId)?.net ?? ""
+  const priceFor = (groupId: string) => product.prices.find((p) => p.priceGroupId === groupId)?.gross ?? ""
 
   return (
     <div className="space-y-6">
@@ -226,7 +226,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         </section>
 
         <section className="rounded-lg border bg-card p-4 lg:col-span-2">
-          <h2 className="mb-4 text-base font-semibold">Prices per price group</h2>
+          <h2 className="mb-4 text-base font-semibold">Prices per price group (gross / brutto)</h2>
           <div className="space-y-3">
             {priceGroups.items.length === 0 && <p className="text-sm text-muted-foreground">No price groups defined yet.</p>}
             {priceGroups.items.map((g) => (
@@ -234,7 +234,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
                 <span className="w-40 text-sm font-medium">{g.name}</span>
                 <input type="hidden" name="priceGroupId" value={g.id} />
                 <input
-                  name="net"
+                  name="gross"
                   type="number"
                   step="0.01"
                   min="0"

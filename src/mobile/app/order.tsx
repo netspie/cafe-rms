@@ -16,7 +16,7 @@ export default function OrderScreen() {
   const lines = useOrderStore((s) => s.lines);
   const setQuantity = useOrderStore((s) => s.setQuantity);
   const remove = useOrderStore((s) => s.remove);
-  const totalNet = useOrderStore((s) => s.totalNet());
+  const totalGross = useOrderStore((s) => s.totalGross());
 
   return (
     <View className="flex-1 bg-bg">
@@ -62,9 +62,9 @@ export default function OrderScreen() {
           style={{ paddingBottom: insets.bottom + 16 }}
         >
           <View className="flex-row justify-between">
-            <Text className="text-muted">Subtotal (Net)</Text>
+            <Text className="text-muted">Total</Text>
             <Text className="text-ink font-semibold">
-              {totalNet.toFixed(2)} PLN
+              {totalGross.toFixed(2)} PLN
             </Text>
           </View>
           <Button label="Checkout" onPress={() => router.push("/checkout")} />

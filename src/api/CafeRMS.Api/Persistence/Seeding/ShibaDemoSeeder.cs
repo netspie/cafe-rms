@@ -60,6 +60,11 @@ public class ShibaDemoSeeder(
         var allergens = await SeedAllergensAsync();
         var modifierGroups = await SeedModifierGroupsAsync();
         var priceGroups = await SeedPriceGroupsAsync();
+
+        var outlet = await db.Outlets.FirstAsync(x => x.Id == outletId);
+        outlet.SetDefaultMenu(priceGroups.Standard.Id, productListId: null);
+        await db.SaveChangesAsync();
+
         var salesChannels = await SeedSalesChannelsAsync(priceGroups);
         var tables = await SeedTablesAsync(outletId);
         var products = await SeedProductsAsync(taxRates, tags, allergens, modifierGroups, priceGroups);
@@ -466,6 +471,28 @@ public class ShibaDemoSeeder(
         db.EventDays.Add(EventDay.Create(coffeeDay.Id, DateOnly.FromDateTime(now.Date)));
         coffeeDay.Publish(now.AddDays(-1));
 
+        var puppyYoga = Event.Create(
+            "Puppy Yoga & Coffee",
+            description: "Poranna joga w towarzystwie szczeniąt Shiba, a potem kawa z menu wydarzenia.",
+            imageUrl: null,
+            productListId: productLists.WorkshopMenu.Id,
+            priceGroupId: priceGroups.Standard.Id);
+        db.Events.Add(puppyYoga);
+        await db.SaveChangesAsync();
+        db.EventDays.Add(EventDay.Create(puppyYoga.Id, DateOnly.FromDateTime(now.Date)));
+        puppyYoga.Publish(now.AddHours(-4));
+
+        var latteArt = Event.Create(
+            "Barista Latte Art Show",
+            description: "Pokaz latte art naszych baristów — degustacja i głosowanie na najlepszy wzór.",
+            imageUrl: null,
+            productListId: productLists.MeetupMenu.Id,
+            priceGroupId: priceGroups.Standard.Id);
+        db.Events.Add(latteArt);
+        await db.SaveChangesAsync();
+        db.EventDays.Add(EventDay.Create(latteArt.Id, DateOnly.FromDateTime(now.Date)));
+        latteArt.Publish(now.AddHours(-2));
+
         await db.SaveChangesAsync();
         return new EventRefs(shibaMeetup, pawPainting, coffeeDay);
     }
@@ -525,7 +552,7 @@ public class ShibaDemoSeeder(
         await db.SaveChangesAsync();
         AddOrderLine(promoOrder.Id, products.HojichaLatte, 1, 18.00m, 0.08m);
         AddOrderLine(promoOrder.Id, products.Cheesecake, 1, 22.00m, 0.08m);
-        promoOrder.RedeemLoyaltyPoints(20, subtotal: 43.20m);
+        promoOrder.RedeemLoyaltyPoints(20, subtotal: 40.00m);
         promoOrder.AssignPromotion(promotions.Welcome10.Id, discount: 4.32m);
         promotions.Welcome10.RegisterUsage();
         promoOrder.Close(now.AddMinutes(-30));
@@ -580,22 +607,23 @@ public class ShibaDemoSeeder(
         Guid? userId,
         Guid? eventId,
         DateTimeOffset closedAt,
-        params (Product Product, int Quantity, decimal Net, decimal VatRate)[] lines)
+        params (Product Product, int Quantity, decimal Gross, decimal VatRate)[] lines)
     {
         var order = Order.Create(outletId, tableId: tableId, salesChannelId: salesChannelId, userId: userId, eventId: eventId);
         db.Orders.Add(order);
         await db.SaveChangesAsync();
 
         foreach (var line in lines)
-            AddOrderLine(order.Id, line.Product, line.Quantity, line.Net, line.VatRate);
+            AddOrderLine(order.Id, line.Product, line.Quantity, line.Gross, line.VatRate);
 
         order.Close(closedAt);
         return order;
     }
 
-    private void AddOrderLine(Guid orderId, Product product, int quantity, decimal netPerOne, decimal vatRate)
+    private void AddOrderLine(Guid orderId, Product product, int quantity, decimal grossPerOne, decimal vatRate)
     {
-        var vatPerOne = Math.Round(netPerOne * vatRate, 2);
+        var netPerOne = Math.Round(grossPerOne / (1m + vatRate), 2);
+        var vatPerOne = grossPerOne - netPerOne;
         db.OrderLines.Add(OrderLine.Create(orderId, product.Id, quantity, netPerOne, vatPerOne));
     }
 

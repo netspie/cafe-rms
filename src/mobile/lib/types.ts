@@ -43,29 +43,24 @@ export type Tag = {
 
 export type Allergen = { id: string; name: string };
 
-export type ProductItem = {
+export type ImageInfo = { id: string; url: string };
+
+export type MenuItem = {
   id: string;
   name: string;
   barcode: string | null;
-  vat: number;
+  price: number;
+  isEventPrice: boolean;
 };
 
-export type PriceInfo = { priceGroupId: string; net: number };
-export type ImageInfo = { id: string; url: string };
-
-export type ProductDetail = {
+export type MenuItemDetail = {
   id: string;
   name: string;
   description: string | null;
-  barcode: string | null;
-  taxRateId: string;
-  tagIds: string[];
+  price: number;
+  isEventPrice: boolean;
   allergenIds: string[];
-  modifierGroupIds: string[];
   images: ImageInfo[];
-  prices: PriceInfo[];
-  createdAt: string;
-  updatedAt: string | null;
 };
 
 export type SalesChannel = {

@@ -3,6 +3,7 @@ using System;
 using CafeRMS.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CafeRMS.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707102454_AddOutletDefaultPriceGroup")]
+    partial class AddOutletDefaultPriceGroup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -812,10 +815,6 @@ namespace CafeRMS.Api.Persistence.Migrations
                     b.Property<Guid?>("DefaultPriceGroupId")
                         .HasColumnType("uuid")
                         .HasColumnName("default_price_group_id");
-
-                    b.Property<Guid?>("DefaultProductListId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("default_product_list_id");
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")

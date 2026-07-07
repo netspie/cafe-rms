@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { ApiError, api } from "@/lib/api";
-import type { Allergen, Favorite, ProductDetail } from "@/lib/types";
+import type { Allergen, Favorite, MenuItemDetail } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 import { useOrderStore } from "@/stores/orderStore";
 
@@ -25,7 +25,7 @@ export default function ProductDetailScreen() {
   const add = useOrderStore((s) => s.add);
 
   const productQuery = useFetch(
-    () => api.get<ProductDetail>(`/api/products/${id}`),
+    () => api.get<MenuItemDetail>(`/api/menu/${id}`),
     [id],
   );
 
@@ -58,7 +58,6 @@ export default function ProductDetailScreen() {
   }
 
   const product = productQuery.data;
-  const standardPrice = product.prices[0]?.net ?? 0;
   const allergens = allergensQuery.data?.items ?? [];
   const productAllergens = allergens.filter((a) =>
     product.allergenIds.includes(a.id),
@@ -92,9 +91,14 @@ export default function ProductDetailScreen() {
           </Pressable>
         </View>
 
-        <Text className="text-xl font-bold text-accent mb-4">
-          {standardPrice.toFixed(2)} PLN
-        </Text>
+        <View className="flex-row items-center gap-2 mb-4">
+          <Text className="text-xl font-bold text-accent">
+            {product.price.toFixed(2)} PLN
+          </Text>
+          {product.isEventPrice && (
+            <Text className="text-sm text-accent">· Event price</Text>
+          )}
+        </View>
 
         {productAllergens.length > 0 && (
           <View className="mb-4">
@@ -135,9 +139,8 @@ export default function ProductDetailScreen() {
             add({
               productId: product.id,
               productName: product.name,
-              unitPrice: standardPrice,
+              unitPrice: product.price,
               quantity,
-              priceGroupId: product.prices[0]?.priceGroupId ?? null,
             });
             if (router.canGoBack()) router.back();
             else router.replace("/(tabs)/menu");

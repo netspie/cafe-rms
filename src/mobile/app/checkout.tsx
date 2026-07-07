@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -23,9 +23,8 @@ import { useOrderStore } from "@/stores/orderStore";
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { eventId } = useLocalSearchParams<{ eventId?: string }>();
   const lines = useOrderStore((s) => s.lines);
-  const totalNet = useOrderStore((s) => s.totalNet());
+  const totalGross = useOrderStore((s) => s.totalGross());
   const clear = useOrderStore((s) => s.clear);
 
   const [tableId, setTableId] = useState<string | null>(null);
@@ -74,13 +73,11 @@ export default function CheckoutScreen() {
         outletId: meQuery.data?.outletId,
         tableId,
         salesChannelId,
-        eventId: eventId ?? null,
         promotionCode: promoValidation?.valid ? promotionCode : null,
         loyaltyPointsUsed: parseInt(loyaltyPointsUsed, 10) || 0,
         lines: lines.map((l) => ({
           productId: l.productId,
           quantity: l.quantity,
-          priceGroupId: l.priceGroupId,
         })),
       });
       clear();
@@ -101,7 +98,7 @@ export default function CheckoutScreen() {
   const isMissingTable = requiresTable && tableId === null;
 
   const loyaltyBalance = balanceQuery.data?.balance ?? 0;
-  const maxRedeemablePoints = Math.min(loyaltyBalance, Math.floor(totalNet * 0.5));
+  const maxRedeemablePoints = Math.min(loyaltyBalance, Math.floor(totalGross * 0.5));
   const pointsEntered = parseInt(loyaltyPointsUsed, 10) || 0;
   const loyaltyExceeded = pointsEntered > maxRedeemablePoints;
 
@@ -207,9 +204,9 @@ export default function CheckoutScreen() {
 
         <View className="border-t border-border pt-4 gap-2">
           <View className="flex-row justify-between">
-            <Text className="text-muted">Subtotal (Net)</Text>
+            <Text className="text-muted">Total</Text>
             <Text className="text-ink font-semibold">
-              {totalNet.toFixed(2)} PLN
+              {totalGross.toFixed(2)} PLN
             </Text>
           </View>
         </View>

@@ -16,8 +16,16 @@ public class Outlet : SoftDeletableEntity
     public string InvoicingAddress { get; private set; } = "";
     public string BillingEmail { get; private set; } = "";
     public string BillingPhone { get; private set; } = "";
+    public Guid? DefaultPriceGroupId { get; private set; }
+    public Guid? DefaultProductListId { get; private set; }
 
     private Outlet() { }
+
+    public void SetDefaultMenu(Guid? priceGroupId, Guid? productListId)
+    {
+        DefaultPriceGroupId = priceGroupId;
+        DefaultProductListId = productListId;
+    }
 
     public static Outlet Create(
         string displayName,

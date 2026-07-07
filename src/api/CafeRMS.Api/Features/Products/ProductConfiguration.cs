@@ -55,7 +55,7 @@ public class ProductConfiguration
     public void Configure(EntityTypeBuilder<ProductPrice> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Net).HasPrecision(18, 2);
+        builder.Property(x => x.Gross).HasPrecision(18, 2);
         builder.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.PriceGroup).WithMany().HasForeignKey(x => x.PriceGroupId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => new { x.ProductId, x.PriceGroupId })
