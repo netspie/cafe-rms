@@ -72,13 +72,13 @@ export default function MenuScreen() {
               style={{ backgroundColor: eventColor(todayEvent.name) }}
             >
               <Text className="text-white/90 text-xs font-bold tracking-widest">
-                TODAY'S EVENT
+                DZISIEJSZE WYDARZENIE
               </Text>
               <Text className="text-white text-2xl font-bold mt-1">
                 {todayEvent.name}
               </Text>
               <View className="flex-row items-center gap-1 mt-2">
-                <Text className="text-white/90 text-sm font-medium">See details</Text>
+                <Text className="text-white/90 text-sm font-medium">Zobacz szczegóły</Text>
                 <Ionicons name="chevron-forward" size={16} color="white" />
               </View>
             </Pressable>
@@ -90,7 +90,7 @@ export default function MenuScreen() {
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="Search by Name"
+          placeholder="Szukaj po nazwie"
           placeholderTextColor="#6B6B6B"
           className="bg-white border border-ink rounded-xl px-3 py-2.5 text-ink mb-3"
         />
@@ -98,7 +98,7 @@ export default function MenuScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View className="flex-row gap-2">
               <TagChip
-                label="All"
+                label="Wszystkie"
                 active={!selectedTag}
                 onPress={() => setSelectedTag(null)}
               />
@@ -127,7 +127,7 @@ export default function MenuScreen() {
         >
           {(productsQuery.data ?? []).length === 0 ? (
             <Text className="text-muted text-center mt-8">
-              No products match.
+              Brak pasujących produktów.
             </Text>
           ) : (
             (productsQuery.data ?? []).map((item) => (
@@ -162,7 +162,7 @@ export default function MenuScreen() {
                       {item.price.toFixed(2)} PLN
                     </Text>
                     {item.isEventPrice && (
-                      <Text className="text-xs text-accent mt-1">Event price</Text>
+                      <Text className="text-xs text-accent mt-1">Cena wydarzenia</Text>
                     )}
                   </View>
                 </Pressable>

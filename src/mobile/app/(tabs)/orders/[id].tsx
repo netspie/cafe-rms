@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { ApiError, api } from "@/lib/api";
+import { orderStatusLabel } from "@/lib/labels";
 import type { OrderDetail } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 
@@ -47,7 +48,7 @@ export default function OrderDetailScreen() {
       setShowCancel(false);
     } catch (err) {
       if (err instanceof ApiError)
-        Alert.alert("Cancel Failed", err.detail ?? err.message);
+        Alert.alert("Nie udało się anulować", err.detail ?? err.message);
     } finally {
       setIsCancelling(false);
     }
@@ -56,7 +57,7 @@ export default function OrderDetailScreen() {
   if (query.isPending || !query.data) {
     return (
       <View className="flex-1 bg-bg">
-        <Stack.Screen options={{ headerShown: true, title: "Order Detail" }} />
+        <Stack.Screen options={{ headerShown: true, title: "Szczegóły zamówienia" }} />
         <ActivityIndicator className="mt-8" />
       </View>
     );
@@ -71,13 +72,13 @@ export default function OrderDetailScreen() {
 
   return (
     <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
-      <Stack.Screen options={{ headerShown: true, title: "Order Detail" }} />
+      <Stack.Screen options={{ headerShown: true, title: "Szczegóły zamówienia" }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }}>
         <View className="flex-row justify-between items-center">
           <Text className="text-xl font-bold text-ink">
-            Order {order.id.slice(0, 8)}
+            Zamówienie {order.id.slice(0, 8)}
           </Text>
-          <Text className="text-muted">{order.status}</Text>
+          <Text className="text-muted">{orderStatusLabel(order.status)}</Text>
         </View>
 
         <View className="border-t border-accentSoft pt-3 gap-2">
@@ -94,46 +95,46 @@ export default function OrderDetailScreen() {
         </View>
 
         <View className="border-t border-accentSoft pt-3 gap-1">
-          <Row label="Subtotal" value={`${subtotal.toFixed(2)} PLN`} />
+          <Row label="Suma częściowa" value={`${subtotal.toFixed(2)} PLN`} />
           {order.discount > 0 && (
-            <Row label="Promo Discount" value={`-${order.discount.toFixed(2)} PLN`} />
+            <Row label="Rabat promocyjny" value={`-${order.discount.toFixed(2)} PLN`} />
           )}
           {order.loyaltyPointsUsed > 0 && (
             <Row
-              label={`Loyalty (${order.loyaltyPointsUsed} pts)`}
+              label={`Lojalność (${order.loyaltyPointsUsed} pkt)`}
               value={`-${order.loyaltyPointsUsed.toFixed(2)} PLN`}
             />
           )}
           <View className="flex-row justify-between border-t border-accentSoft pt-2 mt-1">
-            <Text className="text-ink font-semibold">Total</Text>
+            <Text className="text-ink font-semibold">Razem</Text>
             <Text className="text-ink font-bold text-lg">{total.toFixed(2)} PLN</Text>
           </View>
         </View>
 
         {order.cancelledAt && order.cancellationReason && (
           <View className="bg-accentSoft rounded-xl p-3">
-            <Text className="text-muted text-sm">Cancellation Reason</Text>
+            <Text className="text-muted text-sm">Powód anulowania</Text>
             <Text className="text-ink mt-1">{order.cancellationReason}</Text>
           </View>
         )}
 
         {order.status === "Placed" && !showCancel && (
           <Button
-            label="Cancel Order"
+            label="Anuluj zamówienie"
             variant="danger"
             onPress={() => setShowCancel(true)}
           />
         )}
         {showCancel && (
           <View className="gap-2">
-            <Text className="text-sm text-muted">Reason (Optional)</Text>
+            <Text className="text-sm text-muted">Powód (opcjonalnie)</Text>
             <TextInput
               value={reason}
               onChangeText={setReason}
               className="bg-white border border-ink rounded-xl px-3 py-2.5 text-ink"
             />
             <Button
-              label="Confirm Cancellation"
+              label="Potwierdź anulowanie"
               variant="danger"
               onPress={cancel}
               loading={isCancelling}

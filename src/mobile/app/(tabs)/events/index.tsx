@@ -16,7 +16,7 @@ import type { MobileEvent } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
+  return new Date(iso).toLocaleDateString("pl-PL", {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -50,7 +50,7 @@ export default function EventsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <View className="px-4 pt-4 pb-2">
-        <Text className="text-2xl font-bold text-ink">Events</Text>
+        <Text className="text-2xl font-bold text-ink">Wydarzenia</Text>
       </View>
       {query.isPending ? (
         <ActivityIndicator className="mt-8" />
@@ -63,7 +63,7 @@ export default function EventsScreen() {
           }
         >
           {events.length === 0 && (
-            <Text className="text-muted text-center mt-8">No events scheduled.</Text>
+            <Text className="text-muted text-center mt-8">Brak zaplanowanych wydarzeń.</Text>
           )}
 
           {today.map((e) => (
@@ -73,7 +73,7 @@ export default function EventsScreen() {
                 style={{ backgroundColor: eventColor(e.name) }}
               >
                 <Text className="text-white/90 text-xs font-bold tracking-widest">
-                  TODAY
+                  DZIŚ
                 </Text>
                 <Text className="text-white text-2xl font-bold mt-1">{e.name}</Text>
                 <Text className="text-white/90 mt-1">{formatDate(e.nextDate)}</Text>
@@ -83,7 +83,7 @@ export default function EventsScreen() {
 
           {upcoming.length > 0 && (
             <Text className="text-muted text-xs font-semibold uppercase tracking-wider mt-2">
-              Upcoming
+              Nadchodzące
             </Text>
           )}
           {upcoming.map((e) => (

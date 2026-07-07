@@ -30,7 +30,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="orders"
         options={{
-          title: "Orders",
+          title: "Zamówienia",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="receipt-outline" size={size} color={color} />
           ),
@@ -39,7 +39,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="loyalty"
         options={{
-          title: "Loyalty",
+          title: "Lojalność",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="star-outline" size={size} color={color} />
           ),
@@ -48,7 +48,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="events"
         options={{
-          title: "Events",
+          title: "Wydarzenia",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size} color={color} />
           ),
@@ -57,7 +57,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Profil",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),

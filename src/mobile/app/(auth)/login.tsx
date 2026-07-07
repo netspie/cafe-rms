@@ -1,6 +1,6 @@
 import { Link } from "expo-router";
 import { useState } from "react";
-import { Alert, Text, TextInput, View } from "react-native";
+import { Alert, Image, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
@@ -20,8 +20,8 @@ export default function LoginScreen() {
       const res = await api.post<LoginResponse>("/api/auth/login", { email, password });
       await setToken(res.accessToken);
     } catch (err) {
-      if (err instanceof ApiError) Alert.alert("Sign In Failed", err.message);
-      else Alert.alert("Sign In Failed", String(err));
+      if (err instanceof ApiError) Alert.alert("Logowanie nieudane", err.message);
+      else Alert.alert("Logowanie nieudane", String(err));
     } finally {
       setIsPending(false);
     }
@@ -30,10 +30,17 @@ export default function LoginScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <View className="flex-1 px-6 justify-center gap-4">
-        <Text className="text-3xl font-bold text-ink mb-4">Sign In</Text>
+        <View className="items-center mb-6">
+          <Image
+            source={require("../../assets/images/icon.png")}
+            className="w-32 h-32 rounded-3xl"
+            resizeMode="cover"
+          />
+          <Text className="text-4xl font-bold text-ink mt-4">Shiba Cafe</Text>
+        </View>
 
         <View>
-          <Text className="text-sm text-muted mb-1">Email</Text>
+          <Text className="text-sm text-muted mb-1">E-mail</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -44,7 +51,7 @@ export default function LoginScreen() {
         </View>
 
         <View>
-          <Text className="text-sm text-muted mb-1">Password</Text>
+          <Text className="text-sm text-muted mb-1">Hasło</Text>
           <TextInput
             value={password}
             onChangeText={setPassword}
@@ -54,14 +61,14 @@ export default function LoginScreen() {
         </View>
 
         <Button
-          label="Sign In"
+          label="Zaloguj się"
           onPress={submit}
           loading={isPending}
           disabled={!email || !password}
         />
 
         <Link href="/(auth)/register" className="text-accent text-center mt-2">
-          Don't have an account? Register
+          Nie masz konta? Zarejestruj się
         </Link>
       </View>
     </SafeAreaView>

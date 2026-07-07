@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { api } from "@/lib/api";
+import { accountTypeLabel } from "@/lib/labels";
 import type { Me } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 import { useAuthStore } from "@/stores/authStore";
@@ -21,7 +22,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <Text className="text-2xl font-bold text-ink">Profile</Text>
+        <Text className="text-2xl font-bold text-ink">Profil</Text>
 
         {meQuery.isPending ? (
           <ActivityIndicator />
@@ -32,19 +33,19 @@ export default function ProfileScreen() {
             </Text>
             <Text className="text-muted">{meQuery.data.email}</Text>
             <Text className="text-muted text-sm mt-2">
-              {meQuery.data.accountType}
+              {accountTypeLabel(meQuery.data.accountType)}
             </Text>
           </View>
         ) : (
-          <Text className="text-danger">Couldn't load profile.</Text>
+          <Text className="text-danger">Nie udało się załadować profilu.</Text>
         )}
 
         <Link href="/(tabs)/menu/favorites" className="text-accent">
-          Favorites →
+          Ulubione →
         </Link>
 
         <View className="mt-4">
-          <Button label="Sign Out" variant="secondary" onPress={() => logout()} />
+          <Button label="Wyloguj się" variant="secondary" onPress={() => logout()} />
         </View>
       </ScrollView>
     </SafeAreaView>

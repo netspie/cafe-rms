@@ -31,8 +31,8 @@ export default function RegisterScreen() {
       });
       await setToken(res.accessToken);
     } catch (err) {
-      if (err instanceof ApiError) Alert.alert("Registration Failed", err.message);
-      else Alert.alert("Registration Failed", String(err));
+      if (err instanceof ApiError) Alert.alert("Rejestracja nieudana", err.message);
+      else Alert.alert("Rejestracja nieudana", String(err));
     } finally {
       setIsPending(false);
     }
@@ -41,33 +41,33 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <View className="flex-1 px-6 justify-center gap-3">
-        <Text className="text-3xl font-bold text-ink mb-2">Create Account</Text>
+        <Text className="text-3xl font-bold text-ink mb-2">Załóż konto</Text>
 
-        <Field label="First Name" value={firstName} onChangeText={setFirstName} />
-        <Field label="Last Name" value={lastName} onChangeText={setLastName} />
+        <Field label="Imię" value={firstName} onChangeText={setFirstName} />
+        <Field label="Nazwisko" value={lastName} onChangeText={setLastName} />
         <Field
-          label="Email"
+          label="E-mail"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
         />
         <Field
-          label="Password"
+          label="Hasło"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
 
         <Button
-          label="Create Account"
+          label="Załóż konto"
           onPress={submit}
           loading={isPending}
           disabled={!email || !password || !firstName || !lastName}
         />
 
         <Link href="/(auth)/login" className="text-accent text-center mt-2">
-          Already have an account? Sign In
+          Masz już konto? Zaloguj się
         </Link>
       </View>
     </SafeAreaView>

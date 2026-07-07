@@ -20,16 +20,16 @@ export default function OrderScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <Stack.Screen options={{ headerShown: true, title: "Order" }} />
+      <Stack.Screen options={{ headerShown: true, title: "Zamówienie" }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 200, gap: 8 }}>
         {lines.length === 0 ? (
-          <Text className="text-muted text-center mt-8">Order is empty.</Text>
+          <Text className="text-muted text-center mt-8">Zamówienie jest puste.</Text>
         ) : (
           lines.map((item) => (
             <View key={item.productId} className="bg-accentSoft rounded-xl p-3">
               <Text className="text-ink font-semibold">{item.productName}</Text>
               <Text className="text-muted text-sm mt-1">
-                {item.unitPrice.toFixed(2)} PLN each
+                {item.unitPrice.toFixed(2)} PLN / szt.
               </Text>
               <View className="flex-row items-center justify-between mt-3">
                 <View className="flex-row items-center gap-3">
@@ -48,7 +48,7 @@ export default function OrderScreen() {
                   </Pressable>
                 </View>
                 <Pressable onPress={() => remove(item.productId)}>
-                  <Text className="text-danger">Remove</Text>
+                  <Text className="text-danger">Usuń</Text>
                 </Pressable>
               </View>
             </View>
@@ -62,12 +62,12 @@ export default function OrderScreen() {
           style={{ paddingBottom: insets.bottom + 16 }}
         >
           <View className="flex-row justify-between">
-            <Text className="text-muted">Total</Text>
+            <Text className="text-muted">Razem</Text>
             <Text className="text-ink font-semibold">
               {totalGross.toFixed(2)} PLN
             </Text>
           </View>
-          <Button label="Checkout" onPress={() => router.push("/checkout")} />
+          <Button label="Przejdź do podsumowania" onPress={() => router.push("/checkout")} />
         </View>
       )}
     </View>

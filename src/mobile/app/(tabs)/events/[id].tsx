@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
 import { api } from "@/lib/api";
+import { eventStatusLabel } from "@/lib/labels";
 import type { EventDetail } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 
@@ -42,17 +43,22 @@ export default function EventDetailScreen() {
           />
         )}
         <Text className="text-2xl font-bold text-ink">{event.name}</Text>
-        <Text className="text-muted">{event.status}</Text>
+        <Text className="text-muted">{eventStatusLabel(event.status)}</Text>
         {event.description && (
           <Text className="text-ink">{event.description}</Text>
         )}
 
         {event.days.length > 0 && (
           <View>
-            <Text className="text-sm text-muted mb-2 uppercase">Dates</Text>
+            <Text className="text-sm text-muted mb-2 uppercase">Terminy</Text>
             {event.days.map((d) => (
               <Text key={d.id} className="text-ink py-1">
-                {new Date(d.date).toDateString()}
+                {new Date(d.date).toLocaleDateString("pl-PL", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
               </Text>
             ))}
           </View>
@@ -60,7 +66,7 @@ export default function EventDetailScreen() {
 
         {event.status === "Published" && (
           <Button
-            label="Browse Menu"
+            label="Przeglądaj menu"
             onPress={() => router.push("/(tabs)/menu")}
           />
         )}

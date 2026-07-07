@@ -84,8 +84,8 @@ export default function CheckoutScreen() {
       router.replace(`/(tabs)/orders/${res.orderId}`);
     } catch (err) {
       if (err instanceof ApiError)
-        Alert.alert("Order Failed", err.detail ?? err.message);
-      else Alert.alert("Order Failed", String(err));
+        Alert.alert("Nie udało się złożyć zamówienia", err.detail ?? err.message);
+      else Alert.alert("Nie udało się złożyć zamówienia", String(err));
     } finally {
       setIsPlacingOrder(false);
     }
@@ -106,15 +106,15 @@ export default function CheckoutScreen() {
 
   return (
     <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
-      <Stack.Screen options={{ headerShown: true, title: "Checkout" }} />
+      <Stack.Screen options={{ headerShown: true, title: "Podsumowanie" }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }}>
         <View>
-          <Text className="text-sm text-muted mb-2">Sales Channel</Text>
+          <Text className="text-sm text-muted mb-2">Kanał sprzedaży</Text>
           <View className="gap-2">
             {channelsQuery.data?.items.map((sc) => (
               <Selectable
                 key={sc.id}
-                label={sc.name + (sc.isTakeout ? " (takeout)" : "")}
+                label={sc.name}
                 selected={salesChannelId === sc.id}
                 onPress={() => setSalesChannelId(sc.id)}
               />
@@ -124,12 +124,12 @@ export default function CheckoutScreen() {
 
         <View>
           <Text className="text-sm text-muted mb-2">
-            {requiresTable ? "Table" : "Table (Optional)"}
+            {requiresTable ? "Stolik" : "Stolik (opcjonalnie)"}
           </Text>
           <View className="gap-2">
             {!requiresTable && (
               <Selectable
-                label="No Table"
+                label="Bez stolika"
                 selected={tableId === null}
                 onPress={() => setTableId(null)}
               />
@@ -145,13 +145,13 @@ export default function CheckoutScreen() {
           </View>
           {isMissingTable && (
             <Text className="text-sm text-danger mt-2">
-              Dine-in orders need a table.
+              Zamówienia na miejscu wymagają stolika.
             </Text>
           )}
         </View>
 
         <View>
-          <Text className="text-sm text-muted mb-2">Promotion Code</Text>
+          <Text className="text-sm text-muted mb-2">Kod promocyjny</Text>
           <View className="flex-row gap-2">
             <TextInput
               value={promotionCode}
@@ -162,7 +162,7 @@ export default function CheckoutScreen() {
               className="flex-1 bg-white border border-ink rounded-xl px-3 py-2.5 text-ink"
             />
             <Button
-              label="Check"
+              label="Sprawdź"
               variant="secondary"
               onPress={validatePromo}
               loading={isValidatingPromo}
@@ -176,17 +176,17 @@ export default function CheckoutScreen() {
               }`}
             >
               {promoValidation.valid
-                ? `${promoValidation.discountPercentage}% off applied`
-                : (promoValidation.reason ?? "Invalid code")}
+                ? `Zniżka ${promoValidation.discountPercentage}% zastosowana`
+                : (promoValidation.reason ?? "Nieprawidłowy kod")}
             </Text>
           )}
         </View>
 
         <View>
           <Text className="text-sm text-muted mb-2">
-            Loyalty Points to Redeem
+            Punkty do wykorzystania
             {balanceQuery.data
-              ? ` (balance ${balanceQuery.data.balance})`
+              ? ` (saldo ${balanceQuery.data.balance})`
               : ""}
           </Text>
           <TextInput
@@ -196,28 +196,28 @@ export default function CheckoutScreen() {
             className="bg-white border border-ink rounded-xl px-3 py-2.5 text-ink"
           />
           <Text className="text-xs text-muted mt-1">
-            Up to {maxRedeemablePoints} pts — points can cover at most half the order.
+            Do {maxRedeemablePoints} pkt — punkty mogą pokryć maksymalnie połowę zamówienia.
           </Text>
           {loyaltyExceeded && (
             <Text className="text-sm text-danger mt-1">
-              Too many points — max {maxRedeemablePoints} for this order.
+              Za dużo punktów — maksymalnie {maxRedeemablePoints} dla tego zamówienia.
             </Text>
           )}
         </View>
 
         <View className="border-t border-accentSoft pt-4 gap-2">
           <View className="flex-row justify-between">
-            <Text className="text-muted">Subtotal</Text>
+            <Text className="text-muted">Suma częściowa</Text>
             <Text className="text-ink">{totalGross.toFixed(2)} PLN</Text>
           </View>
           {pointsApplied > 0 && (
             <View className="flex-row justify-between">
-              <Text className="text-muted">Loyalty ({pointsApplied} pts)</Text>
+              <Text className="text-muted">Lojalność ({pointsApplied} pkt)</Text>
               <Text className="text-accent">−{pointsApplied.toFixed(2)} PLN</Text>
             </View>
           )}
           <View className="flex-row justify-between border-t border-accentSoft pt-2">
-            <Text className="text-ink font-semibold">To pay</Text>
+            <Text className="text-ink font-semibold">Do zapłaty</Text>
             <Text className="text-ink font-bold text-lg">
               {finalTotal.toFixed(2)} PLN
             </Text>
@@ -225,7 +225,7 @@ export default function CheckoutScreen() {
         </View>
 
         <Button
-          label="Place Order"
+          label="Złóż zamówienie"
           onPress={placeOrder}
           loading={isPlacingOrder}
           disabled={

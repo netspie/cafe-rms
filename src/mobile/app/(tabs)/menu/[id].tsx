@@ -44,7 +44,7 @@ export default function ProductDetailScreen() {
       else await api.post("/api/my/favorites", { productId: id });
       await favoritesQuery.refetch();
     } catch (err) {
-      if (err instanceof ApiError) Alert.alert("Favorite Failed", err.message);
+      if (err instanceof ApiError) Alert.alert("Nie udało się", err.message);
     }
   };
 
@@ -101,13 +101,13 @@ export default function ProductDetailScreen() {
             {product.price.toFixed(2)} PLN
           </Text>
           {product.isEventPrice && (
-            <Text className="text-sm text-accent">Event price</Text>
+            <Text className="text-sm text-accent">Cena wydarzenia</Text>
           )}
         </View>
 
         {productAllergens.length > 0 && (
           <View className="mb-4">
-            <Text className="text-sm text-muted mb-2">Allergens</Text>
+            <Text className="text-sm text-muted mb-2">Alergeny</Text>
             <View className="flex-row flex-wrap gap-2">
               {productAllergens.map((a) => (
                 <View
@@ -122,7 +122,7 @@ export default function ProductDetailScreen() {
         )}
 
         <View className="flex-row items-center gap-4 mb-4">
-          <Text className="text-ink">Quantity</Text>
+          <Text className="text-ink">Ilość</Text>
           <Pressable
             onPress={() => setQuantity(Math.max(1, quantity - 1))}
             className="w-9 h-9 rounded-lg bg-accentSoft items-center justify-center"
@@ -139,7 +139,7 @@ export default function ProductDetailScreen() {
         </View>
 
         <Button
-          label="Add to Order"
+          label="Dodaj do zamówienia"
           onPress={() => {
             add({
               productId: product.id,
