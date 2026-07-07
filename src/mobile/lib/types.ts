@@ -82,6 +82,14 @@ export type EventItem = {
   createdAt: string;
 };
 
+export type MobileEvent = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  nextDate: string;
+  isToday: boolean;
+};
+
 export type EventDetail = {
   id: string;
   name: string;

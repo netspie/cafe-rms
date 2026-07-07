@@ -49,14 +49,6 @@
   <li>Refine the default product set + rename products so each is recognizable.</li>
 </ul>
 
-<h3>Events</h3>
-<ul class="tasks">
-  <li>Seed fewer events; keep one event <strong>always dated today</strong> (dynamic, relative to reseed time) so the demo always has an active event.</li>
-  <li>Mobile: hide closed/past events; show today's event <strong>first</strong> and highlighted; list upcoming events below, less prominent.</li>
-  <li>Give each event a <strong>stable generated colour</strong> (hash of id/name → colour/gradient), no image; use it on the event cards.</li>
-  <li>Show a today-event banner (its colour + name) on the <strong>Menu tab top</strong> and the <strong>Events tab</strong>.</li>
-</ul>
-
 <h3>Web</h3>
 <ul class="tasks">
   <li>Rename the Settings page to "Company &amp; outlet" (fit the name properly).</li>
@@ -79,6 +71,7 @@
 
 <h2>Done <span class="meta">(short log — see git history for detail)</span></h2>
 <ul class="tasks">
+  <li class="done">Events (mobile): <code>/api/events/mobile</code> returns published today-or-future only, today-first; closed/past hidden. Today's event shows as a highlighted card + a banner on the Menu tab; upcoming below. Stable per-event colour (id hash, sakura/gold palette). Seeder keeps one event always dated today (dynamic on reseed). <em>(uncommitted)</em></li>
   <li class="done">Event strikethrough price: <code>/api/menu</code> (+ detail) returns the pre-event default price for event items; mobile strikes it through above the discounted price on card + detail. <em>(uncommitted)</em></li>
   <li class="done">Tables on orders: staff order list/detail show table + total; waiter table view groups open orders.</li>
   <li class="done">Order rules: dine-in requires a table; loyalty redemption capped at half the order (1 pt = 1 PLN), enforced in the Order entity.</li>

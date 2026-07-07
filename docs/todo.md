@@ -15,12 +15,6 @@ Working notes. Full detail lives in git history; below is a short log of what's 
 **Products**
 - [ ] Refine the default product set + rename products so each is recognizable.
 
-**Events**
-- [ ] Seed fewer events; keep one event **always dated today** (dynamic, relative to reseed time) so the demo always has an active event.
-- [ ] Mobile: hide closed/past events; show today's event **first** and highlighted; list upcoming events below, less prominent.
-- [ ] Give each event a **stable generated colour** (hash of id/name → colour/gradient), no image; use it on the event cards.
-- [ ] Show a today-event banner (its colour + name) on the **Menu tab top** and the **Events tab**.
-
 **Web**
 - [ ] Rename the Settings page to "Company & outlet" (fit the name properly).
 
@@ -34,6 +28,7 @@ Working notes. Full detail lives in git history; below is a short log of what's 
 - [ ] Improve overall look — all list-item backgrounds/cards look bland (mobile + web); make them more appealing.
 
 ## Done (short log — see git history for detail)
+- Events (mobile): `/api/events/mobile` returns published today-or-future only, today-first; closed/past hidden. Today's event shows as a highlighted card + a banner on the Menu tab; upcoming below. Stable per-event colour (id hash, sakura/gold palette). Seeder keeps one event always dated today (dynamic on reseed). *(uncommitted)*
 - Event strikethrough price: `/api/menu` (+ detail) returns the pre-event default price for event items; mobile strikes it through above the discounted price on card + detail. *(uncommitted)*
 - Tables on orders: staff order list/detail show table + total; waiter table view groups open orders.
 - Order rules: dine-in requires a table; loyalty redemption capped at half the order (1 pt = 1 PLN), enforced in the Order entity.

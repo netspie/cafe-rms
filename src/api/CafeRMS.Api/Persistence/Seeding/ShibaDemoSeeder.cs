@@ -475,7 +475,8 @@ public class ShibaDemoSeeder(
         db.Events.Add(pawPainting);
         await db.SaveChangesAsync();
         db.EventDays.Add(EventDay.Create(pawPainting.Id, new DateOnly(2026, 6, 14)));
-        pawPainting.Publish(now.AddDays(-2));
+        pawPainting.Publish(now.AddDays(-25));
+        pawPainting.Close(now.AddDays(-22));
 
         var coffeeDay = Event.Create(
             "Shiba Coffee Day",
@@ -496,8 +497,8 @@ public class ShibaDemoSeeder(
             priceGroupId: priceGroups.Standard.Id);
         db.Events.Add(puppyYoga);
         await db.SaveChangesAsync();
-        db.EventDays.Add(EventDay.Create(puppyYoga.Id, DateOnly.FromDateTime(now.Date)));
-        puppyYoga.Publish(now.AddHours(-4));
+        db.EventDays.Add(EventDay.Create(puppyYoga.Id, DateOnly.FromDateTime(now.AddDays(5).Date)));
+        puppyYoga.Publish(now.AddDays(-1));
 
         var latteArt = Event.Create(
             "Barista Latte Art Show",
@@ -507,8 +508,8 @@ public class ShibaDemoSeeder(
             priceGroupId: priceGroups.Standard.Id);
         db.Events.Add(latteArt);
         await db.SaveChangesAsync();
-        db.EventDays.Add(EventDay.Create(latteArt.Id, DateOnly.FromDateTime(now.Date)));
-        latteArt.Publish(now.AddHours(-2));
+        db.EventDays.Add(EventDay.Create(latteArt.Id, DateOnly.FromDateTime(now.AddDays(12).Date)));
+        latteArt.Publish(now.AddDays(-1));
 
         await db.SaveChangesAsync();
         return new EventRefs(shibaMeetup, pawPainting, coffeeDay);

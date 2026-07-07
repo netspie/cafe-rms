@@ -13,7 +13,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "@/lib/api";
-import type { MenuItem, PagedResult, Tag } from "@/lib/types";
+import { eventColor } from "@/lib/eventColor";
+import type { MenuItem, MobileEvent, PagedResult, Tag } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 import { useOrderStore } from "@/stores/orderStore";
 
@@ -26,6 +27,12 @@ export default function MenuScreen() {
     () => api.get<PagedResult<Tag>>("/api/tags?pageSize=50"),
     [],
   );
+
+  const eventsQuery = useFetch(
+    () => api.get<MobileEvent[]>("/api/events/mobile"),
+    [],
+  );
+  const todayEvent = eventsQuery.data?.find((e) => e.isToday) ?? null;
 
   const productsQuery = useFetch(
     () => {
@@ -56,7 +63,7 @@ export default function MenuScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View className="px-4 pt-4 pb-2">
+      <View className="px-4 pt-4 pb-3">
         <Text className="text-2xl font-bold text-ink mb-3">Menu</Text>
         <TextInput
           value={search}
@@ -85,12 +92,33 @@ export default function MenuScreen() {
         )}
       </View>
 
+      {todayEvent && (
+        <View className="px-4 pb-3">
+          <Link href={`/(tabs)/events/${todayEvent.id}`} asChild>
+            <Pressable
+              className="rounded-xl px-4 py-3 flex-row items-center justify-between"
+              style={{ backgroundColor: eventColor(todayEvent.id) }}
+            >
+              <View className="flex-1 pr-2">
+                <Text className="text-white/90 text-[11px] font-bold tracking-widest">
+                  TODAY'S EVENT
+                </Text>
+                <Text className="text-white font-bold text-base mt-0.5">
+                  {todayEvent.name}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="white" />
+            </Pressable>
+          </Link>
+        </View>
+      )}
+
       {productsQuery.isPending ? (
         <ActivityIndicator className="mt-8" />
       ) : (
         <ScrollView
           style={{ flex: 1, minHeight: 0 }}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 100, gap: 8 }}
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
           }
