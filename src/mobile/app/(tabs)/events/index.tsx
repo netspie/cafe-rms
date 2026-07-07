@@ -34,7 +34,7 @@ export default function EventsScreen() {
                 <Pressable className="bg-bgSoft border border-border rounded-md p-4">
                   <Text className="text-ink font-semibold">{item.name}</Text>
                   <Text className="text-muted text-xs mt-1">
-                    {item.status} · {new Date(item.createdAt).toLocaleDateString()}
+                    {item.status}, {new Date(item.createdAt).toLocaleDateString()}
                   </Text>
                 </Pressable>
               </Link>

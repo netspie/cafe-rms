@@ -92,11 +92,16 @@ export default function ProductDetailScreen() {
         </View>
 
         <View className="flex-row items-center gap-2 mb-4">
+          {product.originalPrice != null && product.originalPrice > product.price && (
+            <Text className="text-lg text-muted line-through">
+              {product.originalPrice.toFixed(2)}
+            </Text>
+          )}
           <Text className="text-xl font-bold text-accent">
             {product.price.toFixed(2)} PLN
           </Text>
           {product.isEventPrice && (
-            <Text className="text-sm text-accent">· Event price</Text>
+            <Text className="text-sm text-accent">Event price</Text>
           )}
         </View>
 

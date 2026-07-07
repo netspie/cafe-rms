@@ -1,102 +1,53 @@
-# CafeRMS — Feature plan: waiter ops + reporting
+# CafeRMS — plan
 
-Three features for the next iteration. Decisions locked with the user:
+Working notes. Full detail lives in git history; below is a short log of what's done and a space for what's next.
 
-- **Live order notifications:** polling (no SignalR/SSE). Simplest to build and defend; ~5–10s latency is fine for a cafe.
-- **Order model:** orders stay immutable (promo/loyalty/VAT snapshot at placement). A table can hold **multiple open orders**; no "add items to an open order" endpoint. The waiter view groups a table's orders and shows a combined total.
-- **Reports:** a single new **sales-per-product** report with an optional `eventId` filter. With no event = store-wide "what sells"; with an event = "which products sold at this event" (the event-success check). No change to the existing event-attendance report.
+## Next
 
-Build order: Phase A (tables on orders) first, because the notification toast and the waiter view both depend on the table being visible. Then B (notifications), then C (report).
+**Mobile — pricing UX**
+- [ ] Update the checkout total in real time as loyalty points change (live discount preview; 1 pt = 1 PLN).
 
----
+**Product images**
+- [ ] Add image upload on **web admin only** (no mobile upload); store files on the API server filesystem, serve as static `/uploads/...`, persist via a Docker volume. `ProductImage.Url` holds the path.
+- [ ] Get product images into the repo + seed by path. *(I can't fetch real photos — user sources free-for-commercial from Unsplash/Pexels/Pixabay and drops files in; alternatively I generate committed SVG placeholders.)*
+- [ ] Show images on mobile: detail screen already renders the first image; add a thumbnail field to `/api/menu` and show it on the menu list cards.
 
-## Phase A — Tables on orders (staff visibility)
+**Products**
+- [ ] Refine the default product set + rename products so each is recognizable.
 
-Data side already works: mobile checkout picks a table and `POST /api/my/orders` persists `Order.TableId`. The gap is that staff can't see it.
-
-**API**
-- [x] Surface the table on order DTOs — added `TableId` + `TableName` (+ per-order `Total`) to `ListOrders.Item`; added `TableName` to `GetOrderById.Result`. Also added a `tableId` filter to `/api/orders`.
-- [x] Validate `TableId` in `PlaceOrder` — rejects when the table doesn't exist or isn't in the order's outlet.
-
-**Web**
-- [x] Orders list (`app/admin/orders/page.tsx`) — added "Table" + "Total" columns.
-- [x] Order detail (`app/admin/orders/[id]/page.tsx`) — shows a "Table X" chip.
-- [x] Tables detail (`app/admin/tables/[id]/page.tsx`) — shows the table's open orders (count + combined total + links).
-
-## Phase A½ — Order-flow fixes & rules
-
-Noticed while reviewing Phase A. One rule still open (dine-in table); the bug fixes are done.
-
-**Bug fixes**
-- [x] **Mobile order auto-refresh** — order detail polls `/api/my/orders/{id}` every ~7s while status is `Placed`, refetches only when the status changes, so a waiter-closed/cancelled order updates the UI (hides the Cancel button). *(done — commit `488bb96`)*
-- [x] Loyalty "negative total" bug — **decided: 1 pt = 1 PLN**, and points may cover **at most half** the order. `PlaceOrder` rejects `LoyaltyPointsUsed > floor(subtotal · 0.5)` (`MaxLoyaltyShareOfSubtotal`); `ListOrders` total keeps `− LoyaltyPointsUsed` (now valid & bounded ≥ half price). Seeded promo order lowered 50 → 20 pts to satisfy the cap. *(done — commit `488bb96`)*
-
-**Order rules — server-side in `PlaceOrder`**
-- [x] Dine-in requires a table; takeaway may be tableless. `PlaceOrder` loads the sales channel and rejects a dine-in (`IsTakeout == false`) order with no `TableId` ("Dine-in orders require a table."); takeaway keeps the table optional. Mobile checkout mirrors it — for a dine-in channel it hides "No Table", shows a hint, and disables Place Order until a table is picked. *(implemented, unverified/uncommitted)*
-
-**Already shipped (for record)** — commit `ca3417f`
-- [x] Demo seed accounts hardcoded (`Demo1234`; admin/manager/barista/user1/user2 `@shiba.pl`) + web & mobile login prefill.
-- [x] Mobile startup 401s fixed — gate route render until auth settles.
-
-## Phase B — Live new-order notifications (polling)
-
-No API changes — reuses `GET /api/orders?status=Placed&sort=-createdAt`.
+**Events**
+- [ ] Seed fewer events; keep one event **always dated today** (dynamic, relative to reseed time) so the demo always has an active event.
+- [ ] Mobile: hide closed/past events; show today's event **first** and highlighted; list upcoming events below, less prominent.
+- [ ] Give each event a **stable generated colour** (hash of id/name → colour/gradient), no image; use it on the event cards.
+- [ ] Show a today-event banner (its colour + name) on the **Menu tab top** and the **Events tab**.
 
 **Web**
-- [x] Token-proxy poll route — `app/admin/live-orders/poll/route.ts` reads the httpOnly cookie and proxies `GET /api/orders?status=Placed&sort=-createdAt&pageSize=20`.
-- [x] Watcher client component (`components/live-orders-watcher.tsx`) — polls every 7s, tracks last-seen `createdAt` in `localStorage` (a refresh doesn't re-toast old orders), and on a new order pops a `sonner` toast ("New order — Table X" / "Walk-in"), plays a **Web Audio ringtone** (two-tone chime, no asset), and `router.refresh()`.
-- [x] Mounted in the admin layout so it fires on any admin page. *(skipped the optional dedicated "Live orders" page + nav item.)*
-- *(all three implemented, unverified/uncommitted)*
+- [ ] Rename the Settings page to "Company & outlet" (fit the name properly).
 
-## Phase C — Sales-per-product report (+ per-event breakdown)
+**Seed / localisation**
+- [ ] Use Polish names for seeded staff and customers (this is an RMS for Poland); keep the `@shiba.pl` emails + `admin/user1` handles.
 
-Clone the existing reports trio (`Features/Reports`, QuestPDF + ClosedXML, static `Render` classes).
+**Demo**
+- [ ] Plan the full demo script across features — primary the 1/2/3 business scenarios from the thesis docs, then extras (adding menu items, ordering, reports).
 
-**API**
-- [x] `GetSalesPerProduct` use case — `GET /api/reports/products?from&to&eventId?`, gated `ReportsView`. Groups closed/non-cancelled order lines by product; per product: qty, net/VAT/gross (`(NetPerOne + VatPerOne) * Quantity`), ordered by gross desc. `eventId` filters `Order.EventId`. FluentValidation on the date range.
-- [x] `ExportSalesPerProduct` — `export.pdf` (`SalesPerProductPdf`) + `export.xlsx` (`SalesPerProductExcel`).
+**UI polish (last)**
+- [ ] Improve overall look — all list-item backgrounds/cards look bland (mobile + web); make them more appealing.
 
-**Web**
-- [x] `app/admin/reports/products/page.tsx` — date range + optional event picker, stat cards (gross/items/products), recharts bar chart (gross per product), breakdown table.
-- [x] `export-pdf/route.ts` + `export-xlsx/route.ts` — cloned the report route handlers.
-- [x] Reports nav item ("Sales per product"); event detail page links to the report pre-filtered by that event ("Products sold").
-- *(all implemented, unverified/uncommitted)*
-
-## Phase D — Event menus (event-day ordering on mobile)
-
-**Goal:** one menu, always. Prices are **stored and shown gross (brutto, VAT-in)**. On an **event day**, event products are **marked** and shown at the **event's price group** price; everything else at the default group. Each product appears once (no mode switch). Orders with event products are **tagged with the event**. Two parts: (1) fix the pricing model to store gross, (2) wire event pricing on mobile.
-
-**Context — why it doesn't work yet** *(not objectives)*
-- `ProductPrice.Net` is stored and treated **literally as net** (pre-VAT): `PlaceOrder` adds VAT on top, and the mobile detail screen shows this **net** value to the customer — wrong for a PL café (customer must see brutto).
-- The `/api/products` list returns **no price at all**; event `productListId` / `priceGroupId` are never read at order time.
-
-**Seed data** *(do first — also unblocks the Phase C reports/charts)*
-- [x] Seed two product lists as event menus ("Menu Shiba Meet-up", "Menu Paw Painting"), each a subset of existing products, via `ProductList` + `ProductListItem`.
-- [x] Assign each list + a price group to the seeded events, and add a "Shiba Coffee Day" event with a day == **today** (published) so the event-day switch is testable.
-- [x] Seed 10 more closed orders across dates (event-tagged + general) via a `SeedClosedOrderAsync` helper — 15 orders total; reports now show 44 items / 738.90 gross. *(implemented, uncommitted)*
-
-**Pricing model — store gross (brutto)** *(done; migration + reseed applied)*
-- [x] Rename `ProductPrice.Net` → `Gross` (brutto), update EF config, add migration `RenameProductPriceNetToGross`.
-- [x] Derive line net/VAT from gross in `PlaceOrder`: `net = round(gross / (1 + rate/100), 2)`, `vat = gross − net`. Order lines still store `NetPerOne` / `VatPerOne`, so reports are unchanged.
-- [x] Update `SetProductPrice` (API) + the admin web price field to set the **gross** price ("gross / brutto").
-- [x] Return `gross` from `GetProductById` `prices`; seed products with round gross prices; reseeded with `down -v` (verified: Cappuccino 12.60/14.00; report reconciles net 644.43 + vat 45.57 = gross 690.00).
-
-**API**
-- [x] Add `prices` (`priceGroupId`, `gross`) to the `GET /api/products` list response (correlated subquery on `Item`).
-- [x] Add `GET /api/events/active-today` — today's published event: `name`, `priceGroupId`, `productListId`, and the **product ids** in the event's list (returns null when none). *(verified: Shiba Coffee Day, 4 products.)*
-
-*No `PriceGroup.IsDefault` exists and a channel offers multiple groups, so the **default shown price is the highest (regular) one** — product prices are returned ordered by gross desc (`ListProducts`, `GetProductById`, and the `PlaceOrder` fallback). Loyalty/event groups are discounts, applied only when their group matches. Verified: non-event products show Standard (14.00), the 4 event products show the −10% event price (12.60) with a badge on the event day.*
-
-**Mobile**
-- [x] Resolve each product's shown gross price via `lib/pricing.ts` `resolvePrice(prices, activeEvent, productId)`: event product → `prices.find(p => p.priceGroupId === event.priceGroupId).gross`; else `prices[0].gross`. Applied on the menu card + detail screen.
-- [x] Show the gross price on each menu card, and mark event products with an "Event price" badge (card + detail).
-- [x] Show gross in the cart and checkout — renamed store `totalNet()` → `totalGross()`, labels "Subtotal (Net)" → "Total".
-- [x] Tag the order with the active event when the cart includes event-priced lines (checkout auto-derives `eventId`; event detail button now routes to the menu).
-- *(pricing model + API + mobile all implemented, unverified in-app but API surfaces verified; uncommitted)*
-
----
+## Done (short log — see git history for detail)
+- Event strikethrough price: `/api/menu` (+ detail) returns the pre-event default price for event items; mobile strikes it through above the discounted price on card + detail. *(uncommitted)*
+- Tables on orders: staff order list/detail show table + total; waiter table view groups open orders.
+- Order rules: dine-in requires a table; loyalty redemption capped at half the order (1 pt = 1 PLN), enforced in the Order entity.
+- Live new-order notifications: web polls `/admin/live-orders/poll`, sonner toast + Web Audio ringtone + refresh.
+- Sales-per-product report: `/api/reports/products` (+ event filter), PDF/Excel export, web page with chart.
+- Gross (brutto) pricing: `ProductPrice.Gross` stored; line net/VAT derived at placement so reports are unchanged.
+- Event-day pricing: an event has a product list + price group; its products are re-priced on the event day.
+- Outlet default menu: `DefaultPriceGroupId` + `DefaultProductListId`; two switchable menus seeded (Menu standardowe = default, Menu poranne); price groups renamed Standard / Promocja. Switchable live in admin Settings.
+- Server-authoritative pricing: client sends only `{productId, quantity}` — server resolves the price group (event override vs outlet default) and tags the event. New customer endpoints `/api/menu` + `/api/menu/{id}` return one resolved gross price; `/api/products` is the admin catalog.
+- Web: 401 → `/login` redirect (stale session no longer crashes); settings selects keyed so saved value shows after save.
+- Mobile: single price + event badge; pull-to-refresh + refetch on focus; `useFetch.refetch` stabilised.
+- Demo seed: 5 accounts (all `Demo1234`), event menus, three events today.
 
 ## Discipline
-- One phase at a time; pause for go/no-go between phases.
-- Build green before commit; verify commit before push. No build+commit+push in one shell call.
+- One phase at a time; pause for go/no-go.
+- Build green before commit; verify commit before push. Never build+commit+push in one shell call.
 - Commit only on explicit command.

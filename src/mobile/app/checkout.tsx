@@ -112,7 +112,7 @@ export default function CheckoutScreen() {
             {channelsQuery.data?.items.map((sc) => (
               <Selectable
                 key={sc.id}
-                label={sc.name + (sc.isTakeout ? " · takeout" : "")}
+                label={sc.name + (sc.isTakeout ? " (takeout)" : "")}
                 selected={salesChannelId === sc.id}
                 onPress={() => setSalesChannelId(sc.id)}
               />

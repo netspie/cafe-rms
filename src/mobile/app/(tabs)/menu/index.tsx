@@ -110,6 +110,11 @@ export default function MenuScreen() {
                     )}
                   </View>
                   <View className="items-end">
+                    {item.originalPrice != null && item.originalPrice > item.price && (
+                      <Text className="text-xs text-muted line-through">
+                        {item.originalPrice.toFixed(2)} PLN
+                      </Text>
+                    )}
                     <Text className="text-accent font-semibold">
                       {item.price.toFixed(2)} PLN
                     </Text>

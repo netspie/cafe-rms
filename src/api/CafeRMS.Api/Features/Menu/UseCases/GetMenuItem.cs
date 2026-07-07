@@ -26,6 +26,7 @@ public static class GetMenuItem
         string Name,
         string? Description,
         decimal Price,
+        decimal? OriginalPrice,
         bool IsEventPrice,
         IReadOnlyList<Guid> AllergenIds,
         IReadOnlyList<ImageInfo> Images);
@@ -50,9 +51,16 @@ public static class GetMenuItem
             .Select(x => x.Gross)
             .FirstOrDefaultAsync();
 
+        decimal? originalPrice = isEventPrice
+            ? await db.ProductPrices
+                .Where(x => x.ProductId == id && x.PriceGroupId == outlet!.DefaultPriceGroupId)
+                .Select(x => (decimal?)x.Gross)
+                .FirstOrDefaultAsync()
+            : null;
+
         var allergenIds = await db.ProductAllergens.Where(x => x.ProductId == id).Select(x => x.AllergenId).ToListAsync();
         var images = await db.ProductImages.Where(x => x.ProductId == id).Select(x => new ImageInfo(x.Id, x.Url)).ToListAsync();
 
-        return new Result(product.Id, product.Name, product.Description, price, isEventPrice, allergenIds, images);
+        return new Result(product.Id, product.Name, product.Description, price, originalPrice, isEventPrice, allergenIds, images);
     }
 }

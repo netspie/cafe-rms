@@ -50,6 +50,7 @@ export type MenuItem = {
   name: string;
   barcode: string | null;
   price: number;
+  originalPrice: number | null;
   isEventPrice: boolean;
 };
 
@@ -58,6 +59,7 @@ export type MenuItemDetail = {
   name: string;
   description: string | null;
   price: number;
+  originalPrice: number | null;
   isEventPrice: boolean;
   allergenIds: string[];
   images: ImageInfo[];
