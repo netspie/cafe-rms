@@ -32,11 +32,6 @@
 
 <h2>Next</h2>
 
-<h3>Mobile — pricing UX</h3>
-<ul class="tasks">
-  <li>Update the checkout total in real time as loyalty points change (live discount preview; 1 pt = 1 PLN).</li>
-</ul>
-
 <h3>Product images</h3>
 <ul class="tasks">
   <li>Add image upload on <strong>web admin only</strong> (no mobile upload); store files on the API server filesystem, serve as static <code>/uploads/...</code>, persist via a Docker volume. <code>ProductImage.Url</code> holds the path.</li>
@@ -71,6 +66,7 @@
 
 <h2>Done <span class="meta">(short log — see git history for detail)</span></h2>
 <ul class="tasks">
+  <li class="done">Checkout live loyalty discount: shows Subtotal / Loyalty (−N pts) / To pay, updating in real time as points change (1 pt = 1 PLN). <em>(uncommitted)</em></li>
   <li class="done">Events (mobile): <code>/api/events/mobile</code> returns published today-or-future only, today-first; closed/past hidden. Today's event shows as a highlighted card + a banner on the Menu tab; upcoming below. Stable per-event colour (id hash, sakura/gold palette). Seeder keeps one event always dated today (dynamic on reseed). <em>(uncommitted)</em></li>
   <li class="done">Event strikethrough price: <code>/api/menu</code> (+ detail) returns the pre-event default price for event items; mobile strikes it through above the discounted price on card + detail. <em>(uncommitted)</em></li>
   <li class="done">Tables on orders: staff order list/detail show table + total; waiter table view groups open orders.</li>

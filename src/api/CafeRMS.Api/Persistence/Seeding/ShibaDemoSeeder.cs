@@ -456,7 +456,7 @@ public class ShibaDemoSeeder(
 
         var shibaMeetup = Event.Create(
             "Shiba Meet-up",
-            description: "Niedzielne popołudnie z miłośnikami Shib — kawa, herbata i mnóstwo puszystych ogonków.",
+            description: "Niedziela pełna Shib! 🐕 Kawa parzona z sercem, herbata rzemieślnicza i całe stado puszystych ogonków w jednym miejscu. Przyprowadź swojego pupila albo po prostu wpadnij poprzytulać cudze — gwarantujemy uśmiech od ucha do ucha.",
             imageUrl: null,
             productListId: productLists.MeetupMenu.Id,
             priceGroupId: priceGroups.Standard.Id);
@@ -468,7 +468,7 @@ public class ShibaDemoSeeder(
 
         var pawPainting = Event.Create(
             "Paw Painting Workshop",
-            description: "Warsztaty malowania pamiątkowych odcisków łap Twojego pupila.",
+            description: "Zamień łapkę pupila w dzieło sztuki! 🐾🎨 Na naszych warsztatach stworzysz pamiątkowy odcisk łapy w otoczeniu kawy i dobrej energii. Wychodzisz z unikatową pamiątką, którą pokochasz na lata.",
             imageUrl: null,
             productListId: productLists.WorkshopMenu.Id,
             priceGroupId: priceGroups.Standard.Id);
@@ -479,8 +479,8 @@ public class ShibaDemoSeeder(
         pawPainting.Close(now.AddDays(-22));
 
         var coffeeDay = Event.Create(
-            "Shiba Coffee Day",
-            description: "Cały dzień ze specialty — tylko dziś, menu wydarzenia i ceny lojalnościowe.",
+            "Matcha Matsuri",
+            description: "Cały dzień w zieleni matchi! 🍵 Ceremonialna matcha ubijana na miejscu, matcha latte i matchowe słodkości. Znajdź swój ulubiony odcień zieleni — dziś w specjalnych cenach wydarzenia.",
             imageUrl: null,
             productListId: productLists.MeetupMenu.Id,
             priceGroupId: priceGroups.Promo.Id);
@@ -490,8 +490,8 @@ public class ShibaDemoSeeder(
         coffeeDay.Publish(now.AddDays(-1));
 
         var puppyYoga = Event.Create(
-            "Puppy Yoga & Coffee",
-            description: "Poranna joga w towarzystwie szczeniąt Shiba, a potem kawa z menu wydarzenia.",
+            "Hanami — pod kwitnącą wiśnią",
+            description: "Świętujemy sezon sakury! 🌸 Różowa dekoracja, limitowane napoje o smaku kwiatu wiśni i japońskie przekąski. Usiądź, zwolnij i poczuj klimat wiosny w Tokio — bez lotu samolotem.",
             imageUrl: null,
             productListId: productLists.WorkshopMenu.Id,
             priceGroupId: priceGroups.Standard.Id);
@@ -502,7 +502,7 @@ public class ShibaDemoSeeder(
 
         var latteArt = Event.Create(
             "Barista Latte Art Show",
-            description: "Pokaz latte art naszych baristów — degustacja i głosowanie na najlepszy wzór.",
+            description: "Bariści stają w szranki! ☕🎨 Pokaz latte art na żywo, w którym mleko zamienia się w małe dzieła sztuki. Degustujesz, kibicujesz i to Twój głos decyduje, który wzór zgarnie tytuł mistrza dnia.",
             imageUrl: null,
             productListId: productLists.MeetupMenu.Id,
             priceGroupId: priceGroups.Standard.Id);

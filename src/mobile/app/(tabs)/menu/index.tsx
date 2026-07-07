@@ -63,7 +63,28 @@ export default function MenuScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View className="px-4 pt-4 pb-3">
+      {todayEvent && (
+        <View className="px-4 pt-4 pb-1">
+          <Link href={`/(tabs)/events/${todayEvent.id}`} asChild>
+            <Pressable
+              className="rounded-2xl p-5"
+              style={{ backgroundColor: eventColor(todayEvent.id) }}
+            >
+              <Text className="text-white/90 text-xs font-bold tracking-widest">
+                TODAY'S EVENT
+              </Text>
+              <Text className="text-white text-2xl font-bold mt-1">
+                {todayEvent.name}
+              </Text>
+              <View className="flex-row items-center gap-1 mt-2">
+                <Text className="text-white/90 text-sm font-medium">See details</Text>
+                <Ionicons name="chevron-forward" size={16} color="white" />
+              </View>
+            </Pressable>
+          </Link>
+        </View>
+      )}
+      <View className={`px-4 pb-3 ${todayEvent ? "pt-3" : "pt-4"}`}>
         <Text className="text-2xl font-bold text-ink mb-3">Menu</Text>
         <TextInput
           value={search}
@@ -91,27 +112,6 @@ export default function MenuScreen() {
           </ScrollView>
         )}
       </View>
-
-      {todayEvent && (
-        <View className="px-4 pb-3">
-          <Link href={`/(tabs)/events/${todayEvent.id}`} asChild>
-            <Pressable
-              className="rounded-xl px-4 py-3 flex-row items-center justify-between"
-              style={{ backgroundColor: eventColor(todayEvent.id) }}
-            >
-              <View className="flex-1 pr-2">
-                <Text className="text-white/90 text-[11px] font-bold tracking-widest">
-                  TODAY'S EVENT
-                </Text>
-                <Text className="text-white font-bold text-base mt-0.5">
-                  {todayEvent.name}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="white" />
-            </Pressable>
-          </Link>
-        </View>
-      )}
 
       {productsQuery.isPending ? (
         <ActivityIndicator className="mt-8" />

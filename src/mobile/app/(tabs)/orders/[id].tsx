@@ -67,6 +67,7 @@ export default function OrderDetailScreen() {
     (sum, l) => sum + (l.netPerOne + l.vatPerOne) * l.quantity,
     0,
   );
+  const total = Math.max(0, subtotal - order.discount - order.loyaltyPointsUsed);
 
   return (
     <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
@@ -99,10 +100,14 @@ export default function OrderDetailScreen() {
           )}
           {order.loyaltyPointsUsed > 0 && (
             <Row
-              label="Loyalty Redeemed"
-              value={`${order.loyaltyPointsUsed} pts`}
+              label={`Loyalty (${order.loyaltyPointsUsed} pts)`}
+              value={`-${order.loyaltyPointsUsed.toFixed(2)} PLN`}
             />
           )}
+          <View className="flex-row justify-between border-t border-border pt-2 mt-1">
+            <Text className="text-ink font-semibold">Total</Text>
+            <Text className="text-ink font-bold text-lg">{total.toFixed(2)} PLN</Text>
+          </View>
         </View>
 
         {order.cancelledAt && order.cancellationReason && (

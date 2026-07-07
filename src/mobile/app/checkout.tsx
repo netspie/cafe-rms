@@ -101,6 +101,8 @@ export default function CheckoutScreen() {
   const maxRedeemablePoints = Math.min(loyaltyBalance, Math.floor(totalGross * 0.5));
   const pointsEntered = parseInt(loyaltyPointsUsed, 10) || 0;
   const loyaltyExceeded = pointsEntered > maxRedeemablePoints;
+  const pointsApplied = Math.min(Math.max(pointsEntered, 0), maxRedeemablePoints);
+  const finalTotal = Math.max(0, totalGross - pointsApplied);
 
   return (
     <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
@@ -204,9 +206,19 @@ export default function CheckoutScreen() {
 
         <View className="border-t border-border pt-4 gap-2">
           <View className="flex-row justify-between">
-            <Text className="text-muted">Total</Text>
-            <Text className="text-ink font-semibold">
-              {totalGross.toFixed(2)} PLN
+            <Text className="text-muted">Subtotal</Text>
+            <Text className="text-ink">{totalGross.toFixed(2)} PLN</Text>
+          </View>
+          {pointsApplied > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-muted">Loyalty ({pointsApplied} pts)</Text>
+              <Text className="text-accent">−{pointsApplied.toFixed(2)} PLN</Text>
+            </View>
+          )}
+          <View className="flex-row justify-between border-t border-border pt-2">
+            <Text className="text-ink font-semibold">To pay</Text>
+            <Text className="text-ink font-bold text-lg">
+              {finalTotal.toFixed(2)} PLN
             </Text>
           </View>
         </View>
