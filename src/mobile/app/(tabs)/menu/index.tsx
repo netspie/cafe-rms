@@ -63,7 +63,7 @@ export default function MenuScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       {todayEvent && (
         <View className="px-4 pt-4 pb-1">
           <Link href={`/(tabs)/events/${todayEvent.id}`} asChild>
@@ -120,7 +120,7 @@ export default function MenuScreen() {
       ) : (
         <ScrollView
           style={{ flex: 1, minHeight: 0 }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 100, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: orderCount > 0 ? 100 : 16, gap: 8 }}
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
           }
