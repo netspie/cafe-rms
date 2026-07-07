@@ -60,15 +60,14 @@ public class ShibaDemoSeeder(
         var allergens = await SeedAllergensAsync();
         var modifierGroups = await SeedModifierGroupsAsync();
         var priceGroups = await SeedPriceGroupsAsync();
-
-        var outlet = await db.Outlets.FirstAsync(x => x.Id == outletId);
-        outlet.SetDefaultMenu(priceGroups.Standard.Id, productListId: null);
-        await db.SaveChangesAsync();
-
         var salesChannels = await SeedSalesChannelsAsync(priceGroups);
         var tables = await SeedTablesAsync(outletId);
         var products = await SeedProductsAsync(taxRates, tags, allergens, modifierGroups, priceGroups);
         var productLists = await SeedProductListsAsync(products);
+
+        var outlet = await db.Outlets.FirstAsync(x => x.Id == outletId);
+        outlet.SetDefaultMenu(priceGroups.Standard.Id, productLists.StandardMenu.Id);
+        await db.SaveChangesAsync();
         var staff = await SeedStaffAsync(DemoPassword);
         var customers = await SeedCustomersAsync(DemoPassword);
         await SeedLoyaltyAsync(customers);
@@ -193,12 +192,12 @@ public class ShibaDemoSeeder(
         return new ModifierGroupRefs(size, milk, sweetness, temperature);
     }
 
-    public sealed record PriceGroupRefs(PriceGroup Standard, PriceGroup Loyalty);
+    public sealed record PriceGroupRefs(PriceGroup Standard, PriceGroup Promo);
 
     private async Task<PriceGroupRefs> SeedPriceGroupsAsync()
     {
-        var standard = PriceGroup.Create("Standardowa");
-        var loyalty = PriceGroup.Create("Lojalność");
+        var standard = PriceGroup.Create("Standard");
+        var loyalty = PriceGroup.Create("Promocja");
         db.PriceGroups.AddRange(standard, loyalty);
         await db.SaveChangesAsync();
         return new PriceGroupRefs(standard, loyalty);
@@ -215,9 +214,9 @@ public class ShibaDemoSeeder(
 
         db.SalesChannelPriceGroups.AddRange(
             SalesChannelPriceGroup.Create(dineIn.Id, priceGroups.Standard.Id),
-            SalesChannelPriceGroup.Create(dineIn.Id, priceGroups.Loyalty.Id),
+            SalesChannelPriceGroup.Create(dineIn.Id, priceGroups.Promo.Id),
             SalesChannelPriceGroup.Create(takeout.Id, priceGroups.Standard.Id),
-            SalesChannelPriceGroup.Create(takeout.Id, priceGroups.Loyalty.Id));
+            SalesChannelPriceGroup.Create(takeout.Id, priceGroups.Promo.Id));
 
         await db.SaveChangesAsync();
         return new SalesChannelRefs(dineIn, takeout);
@@ -303,7 +302,7 @@ public class ShibaDemoSeeder(
 
         db.ProductPrices.AddRange(
             ProductPrice.Create(product.Id, priceGroups.Standard.Id, basePrice),
-            ProductPrice.Create(product.Id, priceGroups.Loyalty.Id, Discount(basePrice, 0.10m)));
+            ProductPrice.Create(product.Id, priceGroups.Promo.Id, Discount(basePrice, 0.10m)));
 
         foreach (var tag in productTags)
             db.ProductTags.Add(ProductTag.Create(product.Id, tag.Id));
@@ -318,13 +317,17 @@ public class ShibaDemoSeeder(
     private static decimal Discount(decimal net, decimal percentage) =>
         Math.Round(net * (1m - percentage), 2);
 
-    public sealed record ProductListRefs(ProductList MeetupMenu, ProductList WorkshopMenu);
+    public sealed record ProductListRefs(
+        ProductList MeetupMenu, ProductList WorkshopMenu,
+        ProductList StandardMenu, ProductList MorningMenu);
 
     private async Task<ProductListRefs> SeedProductListsAsync(ProductRefs products)
     {
         var meetupMenu = ProductList.Create("Menu Shiba Meet-up");
         var workshopMenu = ProductList.Create("Menu Paw Painting");
-        db.ProductLists.AddRange(meetupMenu, workshopMenu);
+        var standardMenu = ProductList.Create("Menu standardowe");
+        var morningMenu = ProductList.Create("Menu poranne");
+        db.ProductLists.AddRange(meetupMenu, workshopMenu, standardMenu, morningMenu);
         await db.SaveChangesAsync();
 
         db.ProductListItems.AddRange(
@@ -336,10 +339,24 @@ public class ShibaDemoSeeder(
             ProductListItem.Create(workshopMenu.Id, products.YuzuLemoniada.Id),
             ProductListItem.Create(workshopMenu.Id, products.MochiDonut.Id),
             ProductListItem.Create(workshopMenu.Id, products.Cheesecake.Id),
-            ProductListItem.Create(workshopMenu.Id, products.OnigiriSalmon.Id));
+            ProductListItem.Create(workshopMenu.Id, products.OnigiriSalmon.Id),
+
+            ProductListItem.Create(standardMenu.Id, products.MatchaLatte.Id),
+            ProductListItem.Create(standardMenu.Id, products.HojichaLatte.Id),
+            ProductListItem.Create(standardMenu.Id, products.Cappuccino.Id),
+            ProductListItem.Create(standardMenu.Id, products.YuzuLemoniada.Id),
+            ProductListItem.Create(standardMenu.Id, products.ShibaCookie.Id),
+            ProductListItem.Create(standardMenu.Id, products.MochiDonut.Id),
+            ProductListItem.Create(standardMenu.Id, products.Cheesecake.Id),
+            ProductListItem.Create(standardMenu.Id, products.OnigiriSalmon.Id),
+
+            ProductListItem.Create(morningMenu.Id, products.Cappuccino.Id),
+            ProductListItem.Create(morningMenu.Id, products.MatchaLatte.Id),
+            ProductListItem.Create(morningMenu.Id, products.ShibaCookie.Id),
+            ProductListItem.Create(morningMenu.Id, products.Cheesecake.Id));
 
         await db.SaveChangesAsync();
-        return new ProductListRefs(meetupMenu, workshopMenu);
+        return new ProductListRefs(meetupMenu, workshopMenu, standardMenu, morningMenu);
     }
 
     public sealed record StaffRefs(Guid ManagerUserId, Guid BaristaUserId);
@@ -465,7 +482,7 @@ public class ShibaDemoSeeder(
             description: "Cały dzień ze specialty — tylko dziś, menu wydarzenia i ceny lojalnościowe.",
             imageUrl: null,
             productListId: productLists.MeetupMenu.Id,
-            priceGroupId: priceGroups.Loyalty.Id);
+            priceGroupId: priceGroups.Promo.Id);
         db.Events.Add(coffeeDay);
         await db.SaveChangesAsync();
         db.EventDays.Add(EventDay.Create(coffeeDay.Id, DateOnly.FromDateTime(now.Date)));

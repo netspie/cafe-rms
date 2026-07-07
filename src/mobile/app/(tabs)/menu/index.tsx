@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
-import { useState } from "react";
+import { Link, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -34,6 +35,23 @@ export default function MenuScreen() {
       return api.get<MenuItem[]>(`/api/menu?${params.toString()}`);
     },
     [search, selectedTag],
+  );
+
+  const refetchProducts = productsQuery.refetch;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchProducts();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetchProducts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchProducts();
+    }, [refetchProducts]),
   );
 
   return (
@@ -73,6 +91,9 @@ export default function MenuScreen() {
         <ScrollView
           style={{ flex: 1, minHeight: 0 }}
           contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 8 }}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+          }
         >
           {(productsQuery.data ?? []).length === 0 ? (
             <Text className="text-muted text-center mt-8">

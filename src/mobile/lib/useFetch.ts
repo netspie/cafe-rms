@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useFetch<T>(
   fetcher: () => Promise<T>,
@@ -7,17 +7,19 @@ export function useFetch<T>(
   const [data, setData] = useState<T | null>(null);
   const [isPending, setIsPending] = useState(true);
 
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
+
   const refetch = useCallback(async () => {
-    const result = await fetcher();
+    const result = await fetcherRef.current();
     setData(result);
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
     setIsPending(true);
-    fetcher()
+    fetcherRef.current()
       .then((result) => {
         if (!isCancelled) setData(result);
       })

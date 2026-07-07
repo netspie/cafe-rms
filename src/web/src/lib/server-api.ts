@@ -1,5 +1,6 @@
 import "server-only"
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5179"
 const TOKEN_COOKIE = "caferms-token"
@@ -37,6 +38,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const contentType = response.headers.get("content-type") ?? ""
   const isJson = contentType.includes("application/json") || contentType.includes("application/problem+json")
   const body = isJson ? await response.json() : null
+
+  if (response.status === 401) redirect("/login")
 
   if (!response.ok) {
     throw new ApiError(response.status, body ?? { status: response.status, title: response.statusText })

@@ -30,7 +30,9 @@ public sealed class UpdateOutletController : ControllerBase
             request.InvoicingAddress,
             request.BillingEmail,
             request.BillingPhone,
-            request.LogoUrl);
+            request.LogoUrl,
+            request.DefaultPriceGroupId,
+            request.DefaultProductListId);
         await UpdateOutlet.Execute(command, db);
         return NoContent();
     }
@@ -47,7 +49,9 @@ public sealed record UpdateOutletRequest(
     string InvoicingAddress,
     string BillingEmail,
     string BillingPhone,
-    string? LogoUrl);
+    string? LogoUrl,
+    Guid? DefaultPriceGroupId,
+    Guid? DefaultProductListId);
 
 public sealed class UpdateOutletValidator : AbstractValidator<UpdateOutletRequest>
 {
@@ -81,7 +85,9 @@ public static class UpdateOutlet
         string InvoicingAddress,
         string BillingEmail,
         string BillingPhone,
-        string? LogoUrl);
+        string? LogoUrl,
+        Guid? DefaultPriceGroupId,
+        Guid? DefaultProductListId);
 
     public static async Task Execute(Command command, AppDbContext db)
     {
@@ -100,6 +106,7 @@ public static class UpdateOutlet
             command.BillingEmail,
             command.BillingPhone,
             command.LogoUrl);
+        outlet.SetDefaultMenu(command.DefaultPriceGroupId, command.DefaultProductListId);
         await db.SaveChangesAsync();
     }
 }

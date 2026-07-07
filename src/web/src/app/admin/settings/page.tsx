@@ -1,8 +1,9 @@
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
-import { api } from "@/lib/server-api"
+import { api, type PagedResult } from "@/lib/server-api"
 
 interface MeResult { outletId: string | null }
+interface NamedRow { id: string; name: string }
 interface OutletDetail {
   id: string
   displayName: string
@@ -16,6 +17,8 @@ interface OutletDetail {
   invoicingAddress: string
   billingEmail: string
   billingPhone: string
+  defaultPriceGroupId: string | null
+  defaultProductListId: string | null
 }
 
 const CURRENCIES = ["PLN", "EUR", "USD", "GBP", "CZK"]
@@ -25,7 +28,11 @@ export default async function SettingsPage() {
   const me = await api.get<MeResult>("/api/me")
   if (!me.outletId) return <p className="text-sm text-muted-foreground">No outlet is configured yet.</p>
 
-  const outlet = await api.get<OutletDetail>(`/api/outlets/${me.outletId}`)
+  const [outlet, priceGroups, productLists] = await Promise.all([
+    api.get<OutletDetail>(`/api/outlets/${me.outletId}`),
+    api.get<PagedResult<NamedRow>>(`/api/price-groups?page=1&pageSize=100&sort=name`),
+    api.get<PagedResult<NamedRow>>(`/api/product-lists?page=1&pageSize=100&sort=name`),
+  ])
 
   async function updateOutlet(formData: FormData) {
     "use server"
@@ -41,6 +48,8 @@ export default async function SettingsPage() {
       invoicingAddress: formData.get("invoicingAddress") as string,
       billingEmail: formData.get("billingEmail") as string,
       billingPhone: formData.get("billingPhone") as string,
+      defaultPriceGroupId: (formData.get("defaultPriceGroupId") as string) || null,
+      defaultProductListId: (formData.get("defaultProductListId") as string) || null,
     })
     revalidatePath("/admin/settings")
   }
@@ -101,6 +110,25 @@ export default async function SettingsPage() {
               <input name="invoicingAddress" defaultValue={outlet.invoicingAddress} required className={inputClass} />
             </Field>
           </div>
+        </section>
+
+        <section className="rounded-lg border bg-card p-4 lg:col-span-2">
+          <h2 className="mb-4 text-base font-semibold">Customer menu</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Default price group">
+              <select key={`pg-${outlet.defaultPriceGroupId ?? "none"}`} name="defaultPriceGroupId" defaultValue={outlet.defaultPriceGroupId ?? ""} className={inputClass}>
+                <option value="">— none —</option>
+                {priceGroups.items.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Default menu (product list)">
+              <select key={`pl-${outlet.defaultProductListId ?? "none"}`} name="defaultProductListId" defaultValue={outlet.defaultProductListId ?? ""} className={inputClass}>
+                <option value="">All products</option>
+                {productLists.items.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Controls what the mobile app shows: the menu is limited to the selected list (or all products), priced at the default group. Event days override the price for their products.</p>
         </section>
 
         <div className="lg:col-span-2">
