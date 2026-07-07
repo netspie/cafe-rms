@@ -91,7 +91,7 @@ function Field(props: {
         autoCapitalize={props.autoCapitalize}
         keyboardType={props.keyboardType}
         secureTextEntry={props.secureTextEntry}
-        className="border border-border rounded-md px-3 py-3 text-ink"
+        className="bg-white border border-ink rounded-xl px-3 py-3 text-ink"
       />
     </View>
   );

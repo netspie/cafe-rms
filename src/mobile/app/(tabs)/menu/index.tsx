@@ -69,7 +69,7 @@ export default function MenuScreen() {
           <Link href={`/(tabs)/events/${todayEvent.id}`} asChild>
             <Pressable
               className="rounded-2xl p-5"
-              style={{ backgroundColor: eventColor(todayEvent.id) }}
+              style={{ backgroundColor: eventColor(todayEvent.name) }}
             >
               <Text className="text-white/90 text-xs font-bold tracking-widest">
                 TODAY'S EVENT
@@ -91,7 +91,8 @@ export default function MenuScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Search by Name"
-          className="border border-border rounded-md px-3 py-2 text-ink mb-3"
+          placeholderTextColor="#6B6B6B"
+          className="bg-white border border-ink rounded-xl px-3 py-2.5 text-ink mb-3"
         />
         {tagsQuery.data && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -131,16 +132,16 @@ export default function MenuScreen() {
           ) : (
             (productsQuery.data ?? []).map((item) => (
               <Link key={item.id} href={`/(tabs)/menu/${item.id}`} asChild>
-                <Pressable className="bg-bgSoft rounded-md p-3 border border-border flex-row items-center gap-3">
+                <Pressable className="bg-accentSoft rounded-xl p-3 flex-row items-center gap-3">
                   {imageUrl(item.imageUrl) ? (
                     <Image
                       source={{ uri: imageUrl(item.imageUrl)! }}
-                      className="w-14 h-14 rounded-md bg-bg"
+                      className="w-14 h-14 rounded-lg bg-white"
                       resizeMode="cover"
                     />
                   ) : (
-                    <View className="w-14 h-14 rounded-md bg-bg border border-border items-center justify-center">
-                      <Text className="text-muted text-lg font-bold">
+                    <View className="w-14 h-14 rounded-lg bg-white items-center justify-center">
+                      <Text className="text-accent text-lg font-bold">
                         {item.name.charAt(0)}
                       </Text>
                     </View>
@@ -195,11 +196,11 @@ function TagChip({
   return (
     <Pressable
       onPress={onPress}
-      className={`px-3 py-1 rounded-full border ${
-        active ? "bg-accent border-accent" : "bg-bg border-border"
+      className={`px-3 py-1.5 rounded-full border ${
+        active ? "bg-accent border-accent" : "bg-white border-ink"
       }`}
     >
-      <Text className={active ? "text-white" : "text-ink"}>{label}</Text>
+      <Text className={active ? "text-white font-semibold" : "text-ink"}>{label}</Text>
     </Pressable>
   );
 }

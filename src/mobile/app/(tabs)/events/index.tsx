@@ -70,7 +70,7 @@ export default function EventsScreen() {
             <Link key={e.id} href={`/(tabs)/events/${e.id}`} asChild>
               <Pressable
                 className="rounded-2xl p-5"
-                style={{ backgroundColor: eventColor(e.id) }}
+                style={{ backgroundColor: eventColor(e.name) }}
               >
                 <Text className="text-white/90 text-xs font-bold tracking-widest">
                   TODAY
@@ -88,8 +88,8 @@ export default function EventsScreen() {
           )}
           {upcoming.map((e) => (
             <Link key={e.id} href={`/(tabs)/events/${e.id}`} asChild>
-              <Pressable className="flex-row items-stretch bg-bgSoft border border-border rounded-xl overflow-hidden">
-                <View style={{ width: 6, backgroundColor: eventColor(e.id) }} />
+              <Pressable className="flex-row items-stretch bg-accentSoft rounded-xl overflow-hidden">
+                <View style={{ width: 6, backgroundColor: eventColor(e.name) }} />
                 <View className="flex-1 p-4">
                   <Text className="text-ink font-semibold">{e.name}</Text>
                   <Text className="text-muted text-xs mt-1">{formatDate(e.nextDate)}</Text>

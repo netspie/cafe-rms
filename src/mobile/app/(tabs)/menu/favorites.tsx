@@ -30,7 +30,7 @@ export default function FavoritesScreen() {
           ) : (
             (query.data ?? []).map((item) => (
               <Link key={item.productId} href={`/(tabs)/menu/${item.productId}`} asChild>
-                <Pressable className="bg-bgSoft rounded-md p-4 border border-border">
+                <Pressable className="bg-accentSoft rounded-xl p-4">
                   <Text className="text-ink font-semibold">{item.productName}</Text>
                   {item.description && (
                     <Text className="text-muted text-sm mt-1">{item.description}</Text>

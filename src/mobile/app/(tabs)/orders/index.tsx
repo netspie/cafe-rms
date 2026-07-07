@@ -33,7 +33,7 @@ export default function OrdersScreen() {
           ) : (
             (query.data?.items ?? []).map((item) => (
               <Link key={item.id} href={`/(tabs)/orders/${item.id}`} asChild>
-                <Pressable className="bg-bgSoft border border-border rounded-md p-4">
+                <Pressable className="bg-accentSoft rounded-xl p-4">
                   <View className="flex-row justify-between items-center mb-1">
                     <StatusBadge status={item.status} />
                     <Text className="text-muted text-xs">
@@ -52,17 +52,11 @@ export default function OrdersScreen() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const color =
-    status === "Closed"
-      ? "bg-accentSoft text-accent"
-      : status === "Cancelled"
-        ? "bg-bgSoft text-danger"
-        : "bg-bgSoft text-ink";
+  const background =
+    status === "Cancelled" ? "bg-danger" : status === "Closed" ? "bg-ink" : "bg-accent";
   return (
-    <View className={`px-2 py-0.5 rounded-full ${color.split(" ")[0]}`}>
-      <Text className={`text-xs font-semibold ${color.split(" ")[1]}`}>
-        {status}
-      </Text>
+    <View className={`px-2.5 py-0.5 rounded-full ${background}`}>
+      <Text className="text-xs font-semibold text-white">{status}</Text>
     </View>
   );
 }

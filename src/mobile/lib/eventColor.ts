@@ -9,7 +9,10 @@ const PALETTE = [
   "#E0685A", // coral
 ];
 
+const MatchaGreen = "#5E8C3E";
+
 export function eventColor(seed: string): string {
+  if (seed.toLowerCase().includes("matcha")) return MatchaGreen;
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   return PALETTE[hash % PALETTE.length];

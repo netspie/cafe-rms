@@ -39,7 +39,7 @@ export default function LoginScreen() {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            className="border border-border rounded-md px-3 py-3 text-ink"
+            className="bg-white border border-ink rounded-xl px-3 py-3 text-ink"
           />
         </View>
 
@@ -49,7 +49,7 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            className="border border-border rounded-md px-3 py-3 text-ink"
+            className="bg-white border border-ink rounded-xl px-3 py-3 text-ink"
           />
         </View>
 

@@ -13,7 +13,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
   const base = "py-3 px-4 rounded-md items-center";
   const styles = {
     primary: "bg-accent",
-    secondary: "bg-bgSoft border border-border",
+    secondary: "bg-accentSoft",
     danger: "bg-danger",
   };
   const textStyles = {

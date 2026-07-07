@@ -80,7 +80,7 @@ export default function OrderDetailScreen() {
           <Text className="text-muted">{order.status}</Text>
         </View>
 
-        <View className="border-t border-border pt-3 gap-2">
+        <View className="border-t border-accentSoft pt-3 gap-2">
           {order.lines.map((line) => (
             <View key={line.id} className="flex-row justify-between">
               <Text className="text-ink">
@@ -93,7 +93,7 @@ export default function OrderDetailScreen() {
           ))}
         </View>
 
-        <View className="border-t border-border pt-3 gap-1">
+        <View className="border-t border-accentSoft pt-3 gap-1">
           <Row label="Subtotal" value={`${subtotal.toFixed(2)} PLN`} />
           {order.discount > 0 && (
             <Row label="Promo Discount" value={`-${order.discount.toFixed(2)} PLN`} />
@@ -104,14 +104,14 @@ export default function OrderDetailScreen() {
               value={`-${order.loyaltyPointsUsed.toFixed(2)} PLN`}
             />
           )}
-          <View className="flex-row justify-between border-t border-border pt-2 mt-1">
+          <View className="flex-row justify-between border-t border-accentSoft pt-2 mt-1">
             <Text className="text-ink font-semibold">Total</Text>
             <Text className="text-ink font-bold text-lg">{total.toFixed(2)} PLN</Text>
           </View>
         </View>
 
         {order.cancelledAt && order.cancellationReason && (
-          <View className="bg-bgSoft border border-border rounded-md p-3">
+          <View className="bg-accentSoft rounded-xl p-3">
             <Text className="text-muted text-sm">Cancellation Reason</Text>
             <Text className="text-ink mt-1">{order.cancellationReason}</Text>
           </View>
@@ -130,7 +130,7 @@ export default function OrderDetailScreen() {
             <TextInput
               value={reason}
               onChangeText={setReason}
-              className="border border-border rounded-md px-3 py-2 text-ink"
+              className="bg-white border border-ink rounded-xl px-3 py-2.5 text-ink"
             />
             <Button
               label="Confirm Cancellation"

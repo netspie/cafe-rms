@@ -70,7 +70,7 @@ export default function ProductDetailScreen() {
         {product.images[0] && (
           <Image
             source={{ uri: imageUrl(product.images[0].url)! }}
-            className="w-full h-56 rounded-md mb-4 bg-bgSoft"
+            className="w-full h-56 rounded-xl mb-4 bg-accentSoft"
             resizeMode="cover"
           />
         )}
@@ -112,7 +112,7 @@ export default function ProductDetailScreen() {
               {productAllergens.map((a) => (
                 <View
                   key={a.id}
-                  className="bg-bgSoft border border-border rounded-full px-3 py-1"
+                  className="bg-accentSoft rounded-full px-3 py-1"
                 >
                   <Text className="text-ink text-sm">{a.name}</Text>
                 </View>
@@ -125,14 +125,14 @@ export default function ProductDetailScreen() {
           <Text className="text-ink">Quantity</Text>
           <Pressable
             onPress={() => setQuantity(Math.max(1, quantity - 1))}
-            className="w-9 h-9 rounded-md border border-border items-center justify-center"
+            className="w-9 h-9 rounded-lg bg-accentSoft items-center justify-center"
           >
             <Text className="text-ink text-lg">−</Text>
           </Pressable>
           <Text className="text-ink text-lg w-6 text-center">{quantity}</Text>
           <Pressable
             onPress={() => setQuantity(quantity + 1)}
-            className="w-9 h-9 rounded-md border border-border items-center justify-center"
+            className="w-9 h-9 rounded-lg bg-accentSoft items-center justify-center"
           >
             <Text className="text-ink text-lg">+</Text>
           </Pressable>

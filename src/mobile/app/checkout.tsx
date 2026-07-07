@@ -158,7 +158,8 @@ export default function CheckoutScreen() {
               onChangeText={setPromotionCode}
               autoCapitalize="characters"
               placeholder="WELCOME10"
-              className="flex-1 border border-border rounded-md px-3 py-2 text-ink"
+              placeholderTextColor="#6B6B6B"
+              className="flex-1 bg-white border border-ink rounded-xl px-3 py-2.5 text-ink"
             />
             <Button
               label="Check"
@@ -192,7 +193,7 @@ export default function CheckoutScreen() {
             value={loyaltyPointsUsed}
             onChangeText={setLoyaltyPointsUsed}
             keyboardType="number-pad"
-            className="border border-border rounded-md px-3 py-2 text-ink"
+            className="bg-white border border-ink rounded-xl px-3 py-2.5 text-ink"
           />
           <Text className="text-xs text-muted mt-1">
             Up to {maxRedeemablePoints} pts — points can cover at most half the order.
@@ -204,7 +205,7 @@ export default function CheckoutScreen() {
           )}
         </View>
 
-        <View className="border-t border-border pt-4 gap-2">
+        <View className="border-t border-accentSoft pt-4 gap-2">
           <View className="flex-row justify-between">
             <Text className="text-muted">Subtotal</Text>
             <Text className="text-ink">{totalGross.toFixed(2)} PLN</Text>
@@ -215,7 +216,7 @@ export default function CheckoutScreen() {
               <Text className="text-accent">−{pointsApplied.toFixed(2)} PLN</Text>
             </View>
           )}
-          <View className="flex-row justify-between border-t border-border pt-2">
+          <View className="flex-row justify-between border-t border-accentSoft pt-2">
             <Text className="text-ink font-semibold">To pay</Text>
             <Text className="text-ink font-bold text-lg">
               {finalTotal.toFixed(2)} PLN
@@ -250,12 +251,10 @@ function Selectable({
 }) {
   return (
     <View
-      className={`border rounded-md px-3 py-2 ${
-        selected ? "border-accent bg-accentSoft" : "border-border"
-      }`}
+      className={`rounded-xl px-3 py-2.5 ${selected ? "bg-accent" : "bg-accentSoft"}`}
       onTouchEnd={onPress}
     >
-      <Text className={selected ? "text-accent font-semibold" : "text-ink"}>
+      <Text className={selected ? "text-white font-semibold" : "text-ink"}>
         {label}
       </Text>
     </View>

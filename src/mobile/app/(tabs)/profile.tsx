@@ -26,7 +26,7 @@ export default function ProfileScreen() {
         {meQuery.isPending ? (
           <ActivityIndicator />
         ) : meQuery.data ? (
-          <View className="bg-bgSoft border border-border rounded-md p-4 gap-1">
+          <View className="bg-accentSoft rounded-xl p-4 gap-1">
             <Text className="text-ink text-lg font-semibold">
               {meQuery.data.firstName} {meQuery.data.lastName}
             </Text>

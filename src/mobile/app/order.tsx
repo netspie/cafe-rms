@@ -26,7 +26,7 @@ export default function OrderScreen() {
           <Text className="text-muted text-center mt-8">Order is empty.</Text>
         ) : (
           lines.map((item) => (
-            <View key={item.productId} className="bg-bgSoft border border-border rounded-md p-3">
+            <View key={item.productId} className="bg-accentSoft rounded-xl p-3">
               <Text className="text-ink font-semibold">{item.productName}</Text>
               <Text className="text-muted text-sm mt-1">
                 {item.unitPrice.toFixed(2)} PLN each
@@ -35,14 +35,14 @@ export default function OrderScreen() {
                 <View className="flex-row items-center gap-3">
                   <Pressable
                     onPress={() => setQuantity(item.productId, item.quantity - 1)}
-                    className="w-8 h-8 rounded-md border border-border items-center justify-center"
+                    className="w-8 h-8 rounded-lg bg-white items-center justify-center"
                   >
                     <Text className="text-ink">−</Text>
                   </Pressable>
                   <Text className="text-ink w-6 text-center">{item.quantity}</Text>
                   <Pressable
                     onPress={() => setQuantity(item.productId, item.quantity + 1)}
-                    className="w-8 h-8 rounded-md border border-border items-center justify-center"
+                    className="w-8 h-8 rounded-lg bg-white items-center justify-center"
                   >
                     <Text className="text-ink">+</Text>
                   </Pressable>
@@ -58,7 +58,7 @@ export default function OrderScreen() {
 
       {lines.length > 0 && (
         <View
-          className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-bg border-t border-border gap-3"
+          className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-bg border-t border-accentSoft gap-3"
           style={{ paddingBottom: insets.bottom + 16 }}
         >
           <View className="flex-row justify-between">

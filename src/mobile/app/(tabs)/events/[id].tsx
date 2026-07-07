@@ -37,7 +37,7 @@ export default function EventDetailScreen() {
         {event.imageUrl && (
           <Image
             source={{ uri: event.imageUrl }}
-            className="w-full h-48 rounded-md bg-bgSoft"
+            className="w-full h-48 rounded-xl bg-accentSoft"
             resizeMode="cover"
           />
         )}

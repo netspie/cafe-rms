@@ -28,7 +28,7 @@ export default function LoyaltyScreen() {
           <Text className="text-2xl font-bold text-ink">Loyalty</Text>
         </View>
 
-        <View className="mx-4 my-2 bg-accentSoft border border-border rounded-md p-6 items-center">
+        <View className="mx-4 my-2 bg-accentSoft rounded-2xl p-6 items-center">
           <Text className="text-muted text-sm mb-2">Your balance</Text>
           {balanceQuery.isPending ? (
             <ActivityIndicator />
@@ -49,7 +49,7 @@ export default function LoyaltyScreen() {
           <View className="px-4">
             {(historyQuery.data?.items ?? []).map((item, idx) => (
               <View key={item.id}>
-                {idx > 0 && <View className="h-px bg-border my-1" />}
+                {idx > 0 && <View className="h-px bg-accentSoft my-1" />}
                 <View className="flex-row justify-between items-center py-2">
                   <View className="flex-1">
                     <Text className="text-ink">{item.reason ?? "(no reason)"}</Text>
