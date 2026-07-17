@@ -2,26 +2,25 @@
 
 A management system for small, themed cafes that combine food service with event hosting. Engineering thesis project (projekt inżynierski).
 
+🇵🇱 [Wersja polska](README.pl.md)
+
 ## System Components
 
-| Component | Technology | Purpose |
-|---|---|---|
-| **API / Backend** | ASP.NET Core, PostgreSQL, EF Core | Shared backend for both clients |
-| **Admin Panel** | Next.js, TypeScript | Staff: manage outlets, products, menus, events, orders |
-| **Mobile App** | React Native (Expo) | Customers: browse menu, order online, loyalty, events |
+| Component | Directory | Technology | Purpose |
+|---|---|---|---|
+| **API / Backend** | `src/api` | ASP.NET Core, PostgreSQL, EF Core | Shared backend for both clients |
+| **Admin Panel** | `src/web` | Next.js, TypeScript | Staff: manage products, menus, events, orders, reports |
+| **Mobile App** | `src/mobile` | React Native (Expo) | Customers: browse menu, order online, loyalty, events |
 
 Payments are **out of scope** — no transactions or payment gateway integration.
 
-**This repository contains the API / Backend.**
-
 ## Tech Stack
 
-- .NET 10 / C# 14 — ASP.NET Core Minimal API
-- PostgreSQL via EF Core
-- ASP.NET Core Identity + JWT (internal auth)
-- FluentValidation
-- NUnit integration tests
-- Scalar for API docs
+**API** — .NET 10 / C# 14, ASP.NET Core (MVC controllers), PostgreSQL via EF Core, ASP.NET Core Identity + JWT, FluentValidation, QuestPDF + ClosedXML (report exports), Scalar (API docs).
+
+**Web** — Next.js 16 (App Router, server components), React 19, TypeScript, Tailwind CSS 4, Recharts.
+
+**Mobile** — Expo 54, expo-router, React Native 0.81, NativeWind, Zustand.
 
 ## Architecture
 
@@ -29,11 +28,11 @@ Vertical Slices + CQRS. Each use case is a single file containing route registra
 
 ## Getting Started
 
-You can run the API in two ways: **Docker Compose** (zero local setup beyond Docker) or **local .NET + Postgres**.
+Run the backend first — both clients need it.
 
-### Run with Docker Compose (recommended)
+### 1. Backend
 
-Brings up Postgres + API with one command. Migrations are applied and demo data is seeded on first start. The compose file lives in `src/api/`; run from the repo root with `-f`:
+Brings up Postgres + API with one command. Migrations are applied and demo data is seeded on first start.
 
 ```bash
 docker compose -f src/api/docker-compose.yml up --build -d
@@ -45,72 +44,93 @@ docker compose -f src/api/docker-compose.yml up --build -d
 | API docs (Scalar) | http://localhost:5179/scalar |
 | Postgres | localhost:5434 (`postgres` / `postgres`, db `cafe_rms`) |
 
-Useful commands (all from the repo root):
+Other commands:
 
 ```bash
-docker compose -f src/api/docker-compose.yml up -d --build    # detached
 docker compose -f src/api/docker-compose.yml logs -f api      # tail API logs
-docker compose -f src/api/docker-compose.yml down             # stop, keep data
-docker compose -f src/api/docker-compose.yml down -v          # stop AND wipe Postgres volume (full reset)
-docker compose -f src/api/docker-compose.yml up --build api   # rebuild only the API after code changes
+docker compose -f src/api/docker-compose.yml up --build api   # rebuild only the API
+docker compose -f src/api/docker-compose.yml down -v          # stop and reset the database
 ```
 
-### Run locally (without Docker)
+<details>
+<summary>Run the API locally instead of in Docker</summary>
 
-#### Prerequisites
-
-- .NET 10 SDK
-- PostgreSQL on `localhost:5434` (db `cafe_rms`, user `postgres`, password `postgres` — or override `ConnectionStrings:Default` in `appsettings.Development.json`)
-
-#### Run
+Requires the .NET 10 SDK and PostgreSQL on `localhost:5434` (db `cafe_rms`, user `postgres`, password `postgres` — or override `ConnectionStrings:Default` in `appsettings.Development.json`).
 
 ```bash
-# Apply migrations
 dotnet ef database update --project src/api/CafeRMS.Api
-
-# Run the API
 dotnet run --project src/api/CafeRMS.Api
 ```
+</details>
 
-API docs available at `/scalar` in development.
-
-#### Test
+### 2. Admin Panel (web)
 
 ```bash
-dotnet test src/api/CafeRMS.Api.Tests
+cd src/web
+npm install
+npm run dev
 ```
+
+Open http://localhost:3000. Expects the API at `http://localhost:5179`; override with `API_BASE_URL`.
+
+### 3. Mobile App
+
+```bash
+cd src/mobile
+npm install
+npx expo start
+```
+
+Press `i` for the iOS simulator, `a` for Android, or scan the QR code with Expo Go. Expects the API at `http://localhost:5179`; override with `EXPO_PUBLIC_API_BASE_URL`.
+
+> On a physical device, `localhost` points at the phone. Set `EXPO_PUBLIC_API_BASE_URL` to your machine's LAN address, e.g. `EXPO_PUBLIC_API_BASE_URL=http://192.168.1.10:5179 npx expo start`.
+
+## Demo Accounts
+
+Seeded automatically on first start. Password for every account: **`Demo1234`**
+
+| Email | Role | Client | Sees |
+|---|---|---|---|
+| `admin@shiba.pl` | Owner | Web | Everything |
+| `manager@shiba.pl` | Kierownik | Web | Everything except role management |
+| `barista@shiba.pl` | Barista | Web | Orders, loyalty, products |
+| `user1@shiba.pl` | Customer | Mobile | Menu, own orders, loyalty, events |
+| `user2@shiba.pl` | Customer | Mobile | Menu, own orders, loyalty, events |
+
+The admin panel hides navigation the signed-in role cannot use; the API enforces the same permissions independently.
 
 ## Project Structure
 
 ```
 src/
-  CafeRMS.Api/
+  api/CafeRMS.Api/
     Features/           # Vertical slices — one folder per domain area
-      Auth/             # Register, Login (ASP.NET Core Identity + JWT)
-      Companies/
-      Outlets/
-      Products/
-      Orders/
+      Auth/             # Login, roles, permissions (Identity + JWT)
+      Products/         # Catalog, prices, images
+      Orders/           # Order placement and lifecycle
+      Events/           # Events, event days, printouts
+      Reports/          # Sales, sales-per-product, attendance (+ PDF/Excel)
       ...
-    Persistence/        # AppDbContext + Migrations
+    Persistence/        # AppDbContext, migrations, seeding
     Infrastructure/     # Auth handlers, exception handling
+    Resources/          # Printout templates
     Shared/             # Cross-cutting: validation filter, extensions, errors
     Program.cs
-  CafeRMS.Api.Tests/
-    ApiFactory.cs
-    Features/
+  web/                  # Next.js admin panel
+  mobile/               # Expo customer app
 ```
 
 ## Domain Overview
 
 | Area | Entities |
 |---|---|
-| Organization | Company, Outlet, OutletArea, Table |
+| Organization | Outlet, Table |
 | Auth | AppUser, AppRole (ASP.NET Core Identity) |
 | Settings | UserSettings |
-| Products | Product, Tag, Allergen, ProductImage, ProductPrice, ProductList |
+| Products | Product, Tag, Allergen, ProductImage, ProductPrice, ProductList, ProductListItem |
 | Modifiers | ModifierGroup, Modifier |
 | Sales Config | PriceGroup, SalesChannel, TaxRate |
 | Orders | Order, OrderLine, PromotionCode |
 | Loyalty | LoyaltyPointLog, Favorite |
 | Events | Event, EventDay |
+| Printouts | PrintoutTemplate |
