@@ -49,6 +49,7 @@ Pozostałe komendy:
 ```bash
 docker compose -f src/api/docker-compose.yml logs -f api      # podgląd logów API
 docker compose -f src/api/docker-compose.yml up --build api   # przebudowanie samego API
+docker compose -f src/api/docker-compose.yml down             # zatrzymanie, dane zostają
 docker compose -f src/api/docker-compose.yml down -v          # zatrzymanie i wyczyszczenie bazy
 ```
 

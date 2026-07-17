@@ -49,6 +49,7 @@ Other commands:
 ```bash
 docker compose -f src/api/docker-compose.yml logs -f api      # tail API logs
 docker compose -f src/api/docker-compose.yml up --build api   # rebuild only the API
+docker compose -f src/api/docker-compose.yml down             # stop, keep data
 docker compose -f src/api/docker-compose.yml down -v          # stop and reset the database
 ```
 
