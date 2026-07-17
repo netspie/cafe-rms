@@ -4,6 +4,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface LoyaltyEntry { id: string; userId: string; points: number; reason: string | null; createdAt: string }
 interface UserRow { id: string; firstName: string; lastName: string; email: string }
@@ -21,6 +22,7 @@ async function recordAdjustment(formData: FormData) {
 }
 
 export default async function LoyaltyPage({ searchParams }: { searchParams: Promise<{ page?: string; user?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/loyalty")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const userId = sp.user ?? ""

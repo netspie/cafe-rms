@@ -6,6 +6,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 type EventStatus = "Draft" | "Published" | "Closed" | "Cancelled"
 
@@ -35,6 +36,7 @@ async function createEvent(formData: FormData) {
 }
 
 export default async function EventsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/events")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""

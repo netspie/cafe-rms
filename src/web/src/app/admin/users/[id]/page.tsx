@@ -2,11 +2,13 @@ import { revalidatePath } from "next/cache"
 import { X } from "lucide-react"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface UserDetail { id: string; email: string; firstName: string; lastName: string; roles: string[] }
 interface RoleRow { id: string; name: string; permissions: string[] }
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/users")
   const { id } = await params
   const [user, roles] = await Promise.all([
     api.get<UserDetail>(`/api/users/${id}`),

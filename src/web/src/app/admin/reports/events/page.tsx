@@ -1,4 +1,5 @@
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 import { EventsChart } from "./events-chart"
 
 interface EventRow {
@@ -46,6 +47,7 @@ export default async function EventAttendanceReportPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>
 }) {
+  await requirePermissionFor("/admin/reports/events")
   const sp = await searchParams
   const from = sp.from ?? daysAgo(90)
   const to = sp.to ?? formatToday()

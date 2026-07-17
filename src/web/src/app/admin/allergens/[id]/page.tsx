@@ -2,10 +2,12 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface AllergenDetail { id: string; name: string }
 
 export default async function EditAllergenPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/allergens")
   const { id } = await params
   const allergen = await api.get<AllergenDetail>(`/api/allergens/${id}`)
 

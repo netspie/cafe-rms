@@ -3,11 +3,13 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface TableDetail { id: string; name: string }
 interface OpenOrder { id: string; createdAt: string; total: number }
 
 export default async function EditTablePage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/tables")
   const { id } = await params
   const [item, openOrders] = await Promise.all([
     api.get<TableDetail>(`/api/tables/${id}`),

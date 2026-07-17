@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface PromotionCodeDetail {
   id: string
@@ -16,6 +17,7 @@ interface PromotionCodeDetail {
 const toDateInput = (iso: string | null) => iso ? iso.slice(0, 10) : ""
 
 export default async function EditPromotionCodePage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/promotion-codes")
   const { id } = await params
   const item = await api.get<PromotionCodeDetail>(`/api/promotion-codes/${id}`)
 

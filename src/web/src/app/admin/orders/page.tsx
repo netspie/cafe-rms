@@ -3,6 +3,7 @@ import { Eye } from "lucide-react"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 type OrderStatus = "Placed" | "Closed" | "Cancelled"
 
@@ -28,6 +29,7 @@ function statusClass(status: OrderStatus): string {
 }
 
 export default async function OrdersListPage({ searchParams }: { searchParams: Promise<{ page?: string; status?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/orders")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const status = (sp.status as OrderStatus | "") ?? ""

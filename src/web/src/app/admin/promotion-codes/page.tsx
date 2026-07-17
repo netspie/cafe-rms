@@ -5,6 +5,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface PromotionCodeItem {
   id: string
@@ -41,6 +42,7 @@ async function deletePromotionCode(id: string) {
 }
 
 export default async function PromotionCodesListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/promotion-codes")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""

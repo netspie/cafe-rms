@@ -5,6 +5,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface ProductListItem { id: string; name: string; createdAt: string }
 
@@ -23,6 +24,7 @@ async function deleteProductList(id: string) {
 }
 
 export default async function ProductListsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/product-lists")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""

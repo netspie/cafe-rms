@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface UserItem {
   id: string
@@ -36,6 +37,7 @@ async function deleteUser(id: string) {
 }
 
 export default async function UsersListPage({ searchParams }: { searchParams: Promise<{ accountType?: string; q?: string; role?: string }> }) {
+  await requirePermissionFor("/admin/users")
   const sp = await searchParams
   const accountType = sp.accountType === "Guest" ? "Guest" : "Staff"
   const nameFilter = sp.q ?? ""

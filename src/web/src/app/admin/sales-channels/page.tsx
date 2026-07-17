@@ -5,6 +5,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface SalesChannelItem { id: string; name: string; isTakeout: boolean; createdAt: string }
 
@@ -26,6 +27,7 @@ async function deleteSalesChannel(id: string) {
 }
 
 export default async function SalesChannelsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/sales-channels")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""

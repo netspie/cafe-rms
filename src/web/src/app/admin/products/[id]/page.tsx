@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache"
 import { Trash2, X } from "lucide-react"
 import { Field } from "@/components/field"
 import { api, postFormData, IMAGE_BASE, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface ProductImage { id: string; url: string }
 interface ProductPrice { priceGroupId: string; gross: number }
@@ -20,6 +21,7 @@ interface ProductDetail {
 interface NamedRow { id: string; name: string }
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/products")
   const { id } = await params
   const [product, taxRates, tags, allergens, modifierGroups, priceGroups] = await Promise.all([
     api.get<ProductDetail>(`/api/products/${id}`),

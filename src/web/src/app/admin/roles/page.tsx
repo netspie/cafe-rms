@@ -6,6 +6,7 @@ import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api } from "@/lib/server-api"
 import { ALL_PERMISSIONS, PERMISSION_LABELS } from "@/features/auth/permissions"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface RoleItem { id: string; name: string; permissions: string[] }
 
@@ -23,6 +24,7 @@ async function deleteRole(id: string) {
 }
 
 export default async function RolesListPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
+  await requirePermissionFor("/admin/roles")
   const sp = await searchParams
   const sort = sp.sort ?? "name"
   const roles = await api.get<RoleItem[]>("/api/roles")

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface MeResult { outletId: string | null }
 interface NamedRow { id: string; name: string }
@@ -25,6 +26,7 @@ const CURRENCIES = ["PLN", "EUR", "USD", "GBP", "CZK"]
 const inputClass = "h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
 
 export default async function SettingsPage() {
+  await requirePermissionFor("/admin/settings")
   const me = await api.get<MeResult>("/api/me")
   if (!me.outletId) return <p className="text-sm text-muted-foreground">No outlet is configured yet.</p>
 

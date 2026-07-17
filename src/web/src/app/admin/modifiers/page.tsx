@@ -5,6 +5,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface ModifierItem { id: string; name: string; modifierGroupId: string; createdAt: string }
 interface NamedRow { id: string; name: string }
@@ -27,6 +28,7 @@ async function deleteModifier(id: string) {
 }
 
 export default async function ModifiersListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; group?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/modifiers")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""

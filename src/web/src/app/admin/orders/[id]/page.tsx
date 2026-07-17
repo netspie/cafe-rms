@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 type OrderStatus = "Placed" | "Closed" | "Cancelled"
 
@@ -34,6 +35,7 @@ function statusClass(status: OrderStatus): string {
 }
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/orders")
   const { id } = await params
   const [order, products] = await Promise.all([
     api.get<OrderDetail>(`/api/orders/${id}`),

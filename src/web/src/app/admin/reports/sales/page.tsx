@@ -1,4 +1,5 @@
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 import { SalesChart } from "./sales-chart"
 
 interface Bucket {
@@ -34,6 +35,7 @@ export default async function SalesReportPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; granularity?: string }>
 }) {
+  await requirePermissionFor("/admin/reports/sales")
   const sp = await searchParams
   const from = sp.from ?? daysAgo(30)
   const to = sp.to ?? formatToday()

@@ -6,6 +6,7 @@ import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface ProductItem { id: string; name: string; barcode: string | null; taxRateId: string; createdAt: string }
 interface TaxRateRow { id: string; name: string }
@@ -31,6 +32,7 @@ async function deleteProduct(id: string) {
 }
 
 export default async function ProductsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
+  await requirePermissionFor("/admin/products")
   const sp = await searchParams
   const page = Number(sp.page ?? 1)
   const filter = sp.q ?? ""

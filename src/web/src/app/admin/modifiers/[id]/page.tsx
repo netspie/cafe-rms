@@ -2,11 +2,13 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface ModifierDetail { id: string; name: string; modifierGroupId: string }
 interface NamedRow { id: string; name: string }
 
 export default async function EditModifierPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/modifiers")
   const { id } = await params
   const [item, groups] = await Promise.all([
     api.get<ModifierDetail>(`/api/modifiers/${id}`),

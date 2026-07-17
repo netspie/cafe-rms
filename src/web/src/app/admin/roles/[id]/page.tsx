@@ -3,10 +3,12 @@ import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
 import { ALL_PERMISSIONS, PERMISSION_LABELS } from "@/features/auth/permissions"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface RoleItem { id: string; name: string; permissions: string[] }
 
 export default async function EditRolePage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/roles")
   const { id } = await params
   const roles = await api.get<RoleItem[]>("/api/roles")
   const role = roles.find((r) => r.id === id)

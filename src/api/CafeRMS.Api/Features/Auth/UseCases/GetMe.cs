@@ -49,11 +49,15 @@ public static class GetMe
             .Select(r => r.Id)
             .ToListAsync();
 
-        var permissions = await db.RoleClaims
+        var claimedPermissions = await db.RoleClaims
             .Where(c => roleIds.Contains(c.RoleId) && c.ClaimType == ClaimsPrincipalExtensions.PermissionClaim)
             .Select(c => c.ClaimValue ?? "")
             .Distinct()
             .ToListAsync();
+
+        var permissions = roles.Contains(SystemRoles.Owner)
+            ? Permissions.All.ToList()
+            : claimedPermissions;
 
         return new Result(
             user.Id,

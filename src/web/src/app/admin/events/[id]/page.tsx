@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache"
 import { Download, Trash2, Package } from "lucide-react"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 type EventStatus = "Draft" | "Published" | "Closed" | "Cancelled"
 
@@ -30,6 +31,7 @@ function statusClass(status: EventStatus): string {
 }
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/events")
   const { id } = await params
   const [event, productLists, priceGroups] = await Promise.all([
     api.get<EventDetail>(`/api/events/${id}`),

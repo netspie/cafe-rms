@@ -2,11 +2,13 @@ import { revalidatePath } from "next/cache"
 import { X } from "lucide-react"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface SalesChannelDetail { id: string; name: string; isTakeout: boolean; priceGroupIds: string[] }
 interface PriceGroupRow { id: string; name: string }
 
 export default async function EditSalesChannelPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/sales-channels")
   const { id } = await params
   const [channel, priceGroups] = await Promise.all([
     api.get<SalesChannelDetail>(`/api/sales-channels/${id}`),

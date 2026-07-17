@@ -2,10 +2,12 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface PriceGroupDetail { id: string; name: string }
 
 export default async function EditPriceGroupPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/price-groups")
   const { id } = await params
   const item = await api.get<PriceGroupDetail>(`/api/price-groups/${id}`)
 

@@ -3,11 +3,13 @@ import { revalidatePath } from "next/cache"
 import { X } from "lucide-react"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface ProductListDetail { id: string; name: string; productIds: string[] }
 interface ProductRow { id: string; name: string }
 
 export default async function EditProductListPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/product-lists")
   const { id } = await params
   const [list, products] = await Promise.all([
     api.get<ProductListDetail>(`/api/product-lists/${id}`),

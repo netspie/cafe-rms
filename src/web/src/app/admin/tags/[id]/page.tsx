@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 
 interface TagDetail {
   id: string
@@ -10,6 +11,7 @@ interface TagDetail {
 }
 
 export default async function EditTagPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermissionFor("/admin/tags")
   const { id } = await params
   const tag = await api.get<TagDetail>(`/api/tags/${id}`)
 

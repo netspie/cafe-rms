@@ -1,4 +1,5 @@
 import { api } from "@/lib/server-api"
+import { requirePermissionFor } from "@/features/auth/access"
 import { ProductsChart } from "./products-chart"
 
 interface ProductRow {
@@ -46,6 +47,7 @@ export default async function ProductsReportPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; eventId?: string }>
 }) {
+  await requirePermissionFor("/admin/reports/products")
   const sp = await searchParams
   const from = sp.from ?? daysAgo(30)
   const to = sp.to ?? formatToday()
