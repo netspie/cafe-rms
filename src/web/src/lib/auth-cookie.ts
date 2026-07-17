@@ -2,7 +2,6 @@ import "server-only"
 import { cookies } from "next/headers"
 
 const TOKEN_COOKIE = "caferms-token"
-const COMPANY_COOKIE = "caferms-company"
 
 export async function getToken(): Promise<string | null> {
   const store = await cookies()
@@ -23,25 +22,4 @@ export async function setToken(token: string, expiresAt: Date) {
 export async function clearToken() {
   const store = await cookies()
   store.delete(TOKEN_COOKIE)
-  store.delete(COMPANY_COOKIE)
-}
-
-export async function getCompanyId(): Promise<string | null> {
-  const store = await cookies()
-  return store.get(COMPANY_COOKIE)?.value ?? null
-}
-
-export async function setCompanyId(id: string) {
-  const store = await cookies()
-  store.set(COMPANY_COOKIE, id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  })
-}
-
-export async function clearCompanyId() {
-  const store = await cookies()
-  store.delete(COMPANY_COOKIE)
 }

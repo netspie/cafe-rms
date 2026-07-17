@@ -4,7 +4,6 @@ import { redirect } from "next/navigation"
 
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5179"
 const TOKEN_COOKIE = "caferms-token"
-const COMPANY_COOKIE = "caferms-company"
 
 export interface ProblemDetails {
   type?: string
@@ -23,13 +22,11 @@ export class ApiError extends Error {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const store = await cookies()
   const token = store.get(TOKEN_COOKIE)?.value
-  const companyId = store.get(COMPANY_COOKIE)?.value
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(init.headers as Record<string, string> | undefined),
   }
   if (token) headers.Authorization = `Bearer ${token}`
-  if (companyId) headers["X-Company-Id"] = companyId
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers, cache: "no-store" })
 
@@ -51,10 +48,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export async function postFormData<T>(path: string, form: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
   const store = await cookies()
   const token = store.get(TOKEN_COOKIE)?.value
-  const companyId = store.get(COMPANY_COOKIE)?.value
   const headers: Record<string, string> = {}
   if (token) headers.Authorization = `Bearer ${token}`
-  if (companyId) headers["X-Company-Id"] = companyId
 
   const response = await fetch(`${API_BASE}${path}`, { method, headers, body: form, cache: "no-store" })
 
