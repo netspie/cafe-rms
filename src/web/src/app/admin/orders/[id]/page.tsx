@@ -10,6 +10,7 @@ interface OrderLine {
   quantity: number
   netPerOne: number
   vatPerOne: number
+  selectedModifiers: string | null
 }
 
 interface OrderDetail {
@@ -103,7 +104,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <tbody>
             {order.lines.map((l) => (
               <tr key={l.id} className="border-t">
-                <td className="px-3 py-2">{productName(l.productId)}</td>
+                <td className="px-3 py-2">
+                  {productName(l.productId)}
+                  {l.selectedModifiers && <div className="text-xs text-muted-foreground">{l.selectedModifiers}</div>}
+                </td>
                 <td className="px-3 py-2 text-right font-mono">{l.quantity}</td>
                 <td className="px-3 py-2 text-right font-mono">{l.netPerOne.toFixed(2)}</td>
                 <td className="px-3 py-2 text-right font-mono">{l.vatPerOne.toFixed(2)}</td>

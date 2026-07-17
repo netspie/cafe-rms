@@ -33,7 +33,7 @@ public sealed record PlaceOrderRequest(
     int LoyaltyPointsUsed,
     IReadOnlyList<PlaceOrderLineRequest> Lines);
 
-public sealed record PlaceOrderLineRequest(Guid ProductId, int Quantity);
+public sealed record PlaceOrderLineRequest(Guid ProductId, int Quantity, IReadOnlyList<Guid>? ModifierIds = null);
 
 public sealed record PlaceOrderResponse(Guid OrderId);
 
@@ -147,7 +147,19 @@ public static class PlaceOrder
 
             var netPerOne = Math.Round(price.Gross / (1m + product.TaxRate!.Rate / 100m), 2);
             var vatPerOne = price.Gross - netPerOne;
-            lines.Add(OrderLine.Create(orderId, line.ProductId, line.Quantity, netPerOne, vatPerOne));
+
+            string? selectedModifiers = null;
+            if (line.ModifierIds is { Count: > 0 })
+            {
+                var names = await db.Modifiers
+                    .Where(m => line.ModifierIds.Contains(m.Id))
+                    .Select(m => m.Name)
+                    .ToListAsync();
+                if (names.Count > 0)
+                    selectedModifiers = string.Join(", ", names);
+            }
+
+            lines.Add(OrderLine.Create(orderId, line.ProductId, line.Quantity, netPerOne, vatPerOne, selectedModifiers));
             subtotal += price.Gross * line.Quantity;
         }
 

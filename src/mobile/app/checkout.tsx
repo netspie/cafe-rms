@@ -78,6 +78,7 @@ export default function CheckoutScreen() {
         lines: lines.map((l) => ({
           productId: l.productId,
           quantity: l.quantity,
+          modifierIds: l.modifiers.map((m) => m.id),
         })),
       });
       clear();

@@ -26,28 +26,33 @@ export default function OrderScreen() {
           <Text className="text-muted text-center mt-8">Zamówienie jest puste.</Text>
         ) : (
           lines.map((item) => (
-            <View key={item.productId} className="bg-accentSoft rounded-xl p-3">
+            <View key={item.key} className="bg-accentSoft rounded-xl p-3">
               <Text className="text-ink font-semibold">{item.productName}</Text>
+              {item.modifiers.length > 0 && (
+                <Text className="text-muted text-sm mt-0.5">
+                  {item.modifiers.map((m) => m.name).join(", ")}
+                </Text>
+              )}
               <Text className="text-muted text-sm mt-1">
                 {item.unitPrice.toFixed(2)} PLN / szt.
               </Text>
               <View className="flex-row items-center justify-between mt-3">
                 <View className="flex-row items-center gap-3">
                   <Pressable
-                    onPress={() => setQuantity(item.productId, item.quantity - 1)}
+                    onPress={() => setQuantity(item.key, item.quantity - 1)}
                     className="w-8 h-8 rounded-lg bg-white items-center justify-center"
                   >
                     <Text className="text-ink">−</Text>
                   </Pressable>
                   <Text className="text-ink w-6 text-center">{item.quantity}</Text>
                   <Pressable
-                    onPress={() => setQuantity(item.productId, item.quantity + 1)}
+                    onPress={() => setQuantity(item.key, item.quantity + 1)}
                     className="w-8 h-8 rounded-lg bg-white items-center justify-center"
                   >
                     <Text className="text-ink">+</Text>
                   </Pressable>
                 </View>
-                <Pressable onPress={() => remove(item.productId)}>
+                <Pressable onPress={() => remove(item.key)}>
                   <Text className="text-danger">Usuń</Text>
                 </Pressable>
               </View>

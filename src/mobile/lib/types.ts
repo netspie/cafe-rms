@@ -55,6 +55,10 @@ export type MenuItem = {
   isEventPrice: boolean;
 };
 
+export type Modifier = { id: string; name: string };
+
+export type ModifierGroup = { id: string; name: string; modifiers: Modifier[] };
+
 export type MenuItemDetail = {
   id: string;
   name: string;
@@ -64,6 +68,7 @@ export type MenuItemDetail = {
   isEventPrice: boolean;
   allergenIds: string[];
   images: ImageInfo[];
+  modifierGroups: ModifierGroup[];
 };
 
 export type SalesChannel = {
@@ -125,6 +130,7 @@ export type OrderLine = {
   quantity: number;
   netPerOne: number;
   vatPerOne: number;
+  selectedModifiers: string | null;
 };
 
 export type OrderDetail = {

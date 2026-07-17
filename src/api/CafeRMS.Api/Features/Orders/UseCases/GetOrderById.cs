@@ -57,7 +57,7 @@ public static class GetOrderById
         IReadOnlyList<LineInfo> Lines,
         DateTimeOffset CreatedAt);
 
-    public sealed record LineInfo(Guid Id, Guid ProductId, string ProductName, int Quantity, decimal NetPerOne, decimal VatPerOne);
+    public sealed record LineInfo(Guid Id, Guid ProductId, string ProductName, int Quantity, decimal NetPerOne, decimal VatPerOne, string? SelectedModifiers);
 
     public static async Task<Result> Execute(Guid id, AppDbContext db)
     {
@@ -74,7 +74,7 @@ public static class GetOrderById
                 db.Products,
                 ol => ol.ProductId,
                 p => p.Id,
-                (ol, p) => new LineInfo(ol.Id, ol.ProductId, p.Name, ol.Quantity, ol.NetPerOne, ol.VatPerOne))
+                (ol, p) => new LineInfo(ol.Id, ol.ProductId, p.Name, ol.Quantity, ol.NetPerOne, ol.VatPerOne, ol.SelectedModifiers))
             .ToListAsync();
 
         return new Result(

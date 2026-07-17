@@ -84,9 +84,14 @@ export default function OrderDetailScreen() {
         <View className="border-t border-accentSoft pt-3 gap-2">
           {order.lines.map((line) => (
             <View key={line.id} className="flex-row justify-between">
-              <Text className="text-ink">
-                {line.quantity} × {line.productName}
-              </Text>
+              <View className="flex-1 pr-2">
+                <Text className="text-ink">
+                  {line.quantity} × {line.productName}
+                </Text>
+                {line.selectedModifiers && (
+                  <Text className="text-muted text-sm">{line.selectedModifiers}</Text>
+                )}
+              </View>
               <Text className="text-ink">
                 {((line.netPerOne + line.vatPerOne) * line.quantity).toFixed(2)} PLN
               </Text>

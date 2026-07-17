@@ -29,9 +29,14 @@ public static class GetMenuItem
         decimal? OriginalPrice,
         bool IsEventPrice,
         IReadOnlyList<Guid> AllergenIds,
-        IReadOnlyList<ImageInfo> Images);
+        IReadOnlyList<ImageInfo> Images,
+        IReadOnlyList<ModifierGroupInfo> ModifierGroups);
 
     public sealed record ImageInfo(Guid Id, string Url);
+
+    public sealed record ModifierGroupInfo(Guid Id, string Name, IReadOnlyList<ModifierInfo> Modifiers);
+
+    public sealed record ModifierInfo(Guid Id, string Name);
 
     public static async Task<Result> Execute(Guid id, AppDbContext db, DateTimeOffset now)
     {
@@ -61,6 +66,15 @@ public static class GetMenuItem
         var allergenIds = await db.ProductAllergens.Where(x => x.ProductId == id).Select(x => x.AllergenId).ToListAsync();
         var images = await db.ProductImages.Where(x => x.ProductId == id).Select(x => new ImageInfo(x.Id, x.Url)).ToListAsync();
 
-        return new Result(product.Id, product.Name, product.Description, price, originalPrice, isEventPrice, allergenIds, images);
+        var groupIds = await db.ProductModifierGroups.Where(x => x.ProductId == id).Select(x => x.ModifierGroupId).ToListAsync();
+        var modifierGroups = await db.ModifierGroups
+            .Where(g => groupIds.Contains(g.Id))
+            .Select(g => new ModifierGroupInfo(
+                g.Id,
+                g.Name,
+                db.Modifiers.Where(m => m.ModifierGroupId == g.Id).Select(m => new ModifierInfo(m.Id, m.Name)).ToList()))
+            .ToListAsync();
+
+        return new Result(product.Id, product.Name, product.Description, price, originalPrice, isEventPrice, allergenIds, images, modifierGroups);
     }
 }

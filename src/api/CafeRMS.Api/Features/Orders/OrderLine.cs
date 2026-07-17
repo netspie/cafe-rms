@@ -13,10 +13,11 @@ public class OrderLine : Entity
     public int Quantity { get; private set; }
     public decimal NetPerOne { get; private set; }
     public decimal VatPerOne { get; private set; }
+    public string? SelectedModifiers { get; private set; }
 
     private OrderLine() { }
 
-    public static OrderLine Create(Guid orderId, Guid productId, int quantity, decimal netPerOne, decimal vatPerOne)
+    public static OrderLine Create(Guid orderId, Guid productId, int quantity, decimal netPerOne, decimal vatPerOne, string? selectedModifiers = null)
     {
         return new OrderLine
         {
@@ -25,7 +26,8 @@ public class OrderLine : Entity
             ProductId = productId,
             Quantity = quantity,
             NetPerOne = netPerOne,
-            VatPerOne = vatPerOne
+            VatPerOne = vatPerOne,
+            SelectedModifiers = selectedModifiers
         };
     }
 }

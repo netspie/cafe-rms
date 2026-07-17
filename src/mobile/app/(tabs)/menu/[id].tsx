@@ -22,7 +22,14 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
+  const [selectedModifierIds, setSelectedModifierIds] = useState<string[]>([]);
   const add = useOrderStore((s) => s.add);
+
+  const selectModifier = (groupModifierIds: string[], modifierId: string) =>
+    setSelectedModifierIds((prev) => {
+      const withoutGroup = prev.filter((x) => !groupModifierIds.includes(x));
+      return prev.includes(modifierId) ? withoutGroup : [...withoutGroup, modifierId];
+    });
 
   const productQuery = useFetch(
     () => api.get<MenuItemDetail>(`/api/menu/${id}`),
@@ -58,6 +65,7 @@ export default function ProductDetailScreen() {
   }
 
   const product = productQuery.data;
+  const modifierGroups = product.modifierGroups ?? [];
   const allergens = allergensQuery.data?.items ?? [];
   const productAllergens = allergens.filter((a) =>
     product.allergenIds.includes(a.id),
@@ -121,6 +129,34 @@ export default function ProductDetailScreen() {
           </View>
         )}
 
+        {modifierGroups.map((group) => (
+          <View key={group.id} className="mb-4">
+            <Text className="text-sm text-muted mb-2">{group.name}</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {group.modifiers.map((m) => {
+                const selected = selectedModifierIds.includes(m.id);
+                const groupModifierIds = group.modifiers.map((x) => x.id);
+                return (
+                  <Pressable
+                    key={m.id}
+                    onPress={() => selectModifier(groupModifierIds, m.id)}
+                    className={
+                      "rounded-full px-3 py-1.5 border " +
+                      (selected
+                        ? "bg-accent border-accent"
+                        : "bg-white border-accent")
+                    }
+                  >
+                    <Text className={selected ? "text-white text-sm" : "text-accent text-sm"}>
+                      {m.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+
         <View className="flex-row items-center gap-4 mb-4">
           <Text className="text-ink">Ilość</Text>
           <Pressable
@@ -141,11 +177,16 @@ export default function ProductDetailScreen() {
         <Button
           label="Dodaj do zamówienia"
           onPress={() => {
+            const modifiers = modifierGroups
+              .flatMap((g) => g.modifiers)
+              .filter((m) => selectedModifierIds.includes(m.id))
+              .map((m) => ({ id: m.id, name: m.name }));
             add({
               productId: product.id,
               productName: product.name,
               unitPrice: product.price,
               quantity,
+              modifiers,
             });
             if (router.canGoBack()) router.back();
             else router.replace("/(tabs)/menu");
