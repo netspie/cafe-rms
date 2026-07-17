@@ -11,6 +11,7 @@ package "Auth" #F5F5F5 {
         +Email : string
         +FirstName : string
         +LastName : string
+        +AccountType : AccountType
         +CreatedAt : DateTimeOffset
     }
 
@@ -21,21 +22,21 @@ package "Auth" #F5F5F5 {
 }
 
 package "Organization" #F0F8FF {
-    class Company {
-        +Id : Guid
-        +Name : string
-        +Address : string
-        +TaxId : string
-        +Currency : string
-        +TimeZone : string
-    }
-
     class Outlet {
         +Id : Guid
-        +Name : string
-        +Address : string
-        +CompanyId : Guid
+        +DisplayName : string
+        +StreetAddress : string
+        +Phone : string
+        +TimeZone : string
         +Currency : Currency
+        +LogoUrl : string?
+        +LegalName : string
+        +TaxId : string
+        +InvoicingAddress : string
+        +BillingEmail : string
+        +BillingPhone : string
+        +DefaultPriceGroupId : Guid?
+        +DefaultProductListId : Guid?
     }
 
     class Table {
@@ -110,7 +111,7 @@ package "Products & Menu" #F0FFF0 {
         +Id : Guid
         +ProductId : Guid
         +PriceGroupId : Guid
-        +Net : decimal
+        +Gross : decimal
     }
 
     class ModifierGroup {
@@ -147,13 +148,14 @@ package "Orders" #FFF0F0 {
         +TableId : Guid?
         +SalesChannelId : Guid?
         +UserId : Guid?
+        +PromotionCodeId : Guid?
         +ClosedAt : DateTimeOffset?
         +CancelledAt : DateTimeOffset?
+        +CancellationReason : string?
         +Discount : decimal
         +LoyaltyPointsUsed : int
         +EventId : Guid?
-        +IsClosed : bool «computed»
-        +IsCancelled : bool «computed»
+        +Status : OrderStatus «computed»
     }
 
     class OrderLine {
@@ -163,12 +165,17 @@ package "Orders" #FFF0F0 {
         +Quantity : int
         +NetPerOne : decimal
         +VatPerOne : decimal
+        +SelectedModifiers : string?
     }
 
     class PromotionCode {
         +Id : Guid
         +Code : string
         +DiscountPercentage : decimal
+        +ValidFrom : DateTimeOffset?
+        +ValidUntil : DateTimeOffset?
+        +MaxUses : int?
+        +UsesCount : int
     }
 }
 
@@ -180,6 +187,11 @@ package "Events" #F8F0FF {
         +ImageUrl : string?
         +ProductListId : Guid?
         +PriceGroupId : Guid?
+        +PublishedAt : DateTimeOffset?
+        +ClosedAt : DateTimeOffset?
+        +CancelledAt : DateTimeOffset?
+        +CancellationReason : string?
+        +Status : EventStatus «computed»
     }
 
     class EventDay {
@@ -214,7 +226,9 @@ package "Printouts" #F5F5F5 {
     class PrintoutTemplate {
         +Id : Guid
         +Name : string
-        +TemplateFileUrl : string
+        +FileName : string
+        +ContentType : string
+        +FileContent : byte[]
     }
 }
 
@@ -225,8 +239,9 @@ AppUser "*" -- "*" AppRole
 AppUser "1" -- "0..1" UserSettings
 
 ' Organization
-Company "1" -- "*" Outlet
 Outlet "1" -- "*" Table
+Outlet "*" -- "0..1" PriceGroup
+Outlet "*" -- "0..1" ProductList
 
 ' Products
 Product "*" -- "1" TaxRate
@@ -255,6 +270,7 @@ Order "*" -- "0..1" Table
 Order "*" -- "0..1" SalesChannel
 Order "*" -- "0..1" AppUser
 Order "*" -- "0..1" Event
+Order "*" -- "0..1" PromotionCode
 
 ' Events
 Event "1" -- "*" EventDay
