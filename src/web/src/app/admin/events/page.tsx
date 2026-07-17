@@ -1,17 +1,19 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Eye, Plus } from "lucide-react"
+import { Download, Eye, Plus, Trash2 } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
-import { api, type PagedResult } from "@/lib/server-api"
-import { requirePermissionFor } from "@/features/auth/access"
+import { api, postFormData, type PagedResult } from "@/lib/server-api"
+import { getMyPermissions, requirePermissionFor } from "@/features/auth/access"
+import { PlaceholderReference } from "@/features/printout/placeholders"
 
 type EventStatus = "Draft" | "Published" | "Closed" | "Cancelled"
 
 interface EventItem { id: string; name: string; status: EventStatus; createdAt: string }
 interface NamedRow { id: string; name: string }
+interface TemplateRow { id: string; name: string; fileName: string }
 
 const PAGE_SIZE = 20
 
@@ -35,6 +37,40 @@ async function createEvent(formData: FormData) {
   redirect(`/admin/events/${created.id}`)
 }
 
+const CONFIRMATION_TEMPLATE_NAME = "Potwierdzenie wydarzenia"
+
+async function replaceTemplate(formData: FormData) {
+  "use server"
+  const templateId = formData.get("templateId") as string
+  const templateName = formData.get("templateName") as string
+  const file = formData.get("file") as File | null
+  if (!templateId || !file || file.size === 0) return
+  const upload = new FormData()
+  upload.append("name", templateName)
+  upload.append("file", file)
+  await postFormData(`/api/printout-templates/${templateId}`, upload, "PUT")
+  revalidatePath("/admin/events")
+}
+
+async function addTemplate(formData: FormData) {
+  "use server"
+  const file = formData.get("file") as File | null
+  if (!file || file.size === 0) return
+  const upload = new FormData()
+  upload.append("name", CONFIRMATION_TEMPLATE_NAME)
+  upload.append("file", file)
+  await postFormData("/api/printout-templates", upload)
+  revalidatePath("/admin/events")
+}
+
+async function deleteTemplate(formData: FormData) {
+  "use server"
+  const templateId = formData.get("templateId") as string
+  if (!templateId) return
+  await api.delete(`/api/printout-templates/${templateId}`)
+  revalidatePath("/admin/events")
+}
+
 export default async function EventsListPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; sort?: string }> }) {
   await requirePermissionFor("/admin/events")
   const sp = await searchParams
@@ -51,6 +87,13 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
   const preserve: Record<string, string> = {}
   if (filter) preserve.q = filter
+
+  const permissions = await getMyPermissions()
+  const canManageTemplate = permissions.includes("PrintoutTemplatesManage")
+  const templates = canManageTemplate
+    ? await api.get<PagedResult<TemplateRow>>(`/api/printout-templates?page=1&pageSize=1&sort=name`)
+    : null
+  const template = templates?.items[0] ?? null
 
   return (
     <div className="space-y-6">
@@ -131,6 +174,53 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
           {page < totalPages ? <Link href={{ query: { ...preserve, sort, page: page + 1 } }} className="inline-flex h-8 items-center rounded-md border px-3 text-sm hover:bg-accent">Next</Link> : <span className="inline-flex h-8 items-center rounded-md border px-3 text-sm opacity-50">Next</span>}
         </div>
       </div>
+
+      {canManageTemplate && (
+        <section id="confirmation-template" className="scroll-mt-6 rounded-lg border bg-card p-4">
+          <h2 className="mb-1 text-base font-semibold">Confirmation template</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            The Word (<span className="font-mono">.docx</span>) template merged with an event&apos;s data by the
+            Download confirmation button. Shared by every event — replacing it here changes the confirmation for all of them.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {template ? (
+              <div className="space-y-3">
+                <form action={replaceTemplate} className="space-y-3">
+                  <input type="hidden" name="templateId" value={template.id} />
+                  <input type="hidden" name="templateName" value={template.name} />
+                  <Field label="Current file">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-muted-foreground">{template.fileName}</span>
+                      <a href={`/admin/printout-templates/download/${template.id}`} className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm hover:bg-accent">
+                        <Download className="h-4 w-4" />Download
+                      </a>
+                    </div>
+                  </Field>
+                  <Field label="Replace file (.docx)">
+                    <input name="file" type="file" accept=".docx" required className="h-9 w-full rounded-md border bg-transparent px-3 py-1.5 text-sm outline-none file:mr-3 file:rounded file:border-0 file:bg-accent file:px-2 file:py-1 file:text-sm" />
+                  </Field>
+                  <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Upload new template</button>
+                </form>
+                <form action={deleteTemplate}>
+                  <input type="hidden" name="templateId" value={template.id} />
+                  <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md border border-destructive/40 px-3 text-sm font-medium text-destructive hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4" />Delete template
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <form action={addTemplate} className="space-y-3">
+                <p className="text-sm text-muted-foreground">No template — Download confirmation will fail until you add one.</p>
+                <Field label="Template file (.docx)">
+                  <input name="file" type="file" accept=".docx" required className="h-9 w-full rounded-md border bg-transparent px-3 py-1.5 text-sm outline-none file:mr-3 file:rounded file:border-0 file:bg-accent file:px-2 file:py-1 file:text-sm" />
+                </Field>
+                <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Add template</button>
+              </form>
+            )}
+            <PlaceholderReference />
+          </div>
+        </section>
+      )}
     </div>
   )
 }

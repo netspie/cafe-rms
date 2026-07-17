@@ -48,7 +48,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T
 }
 
-export async function postFormData<T>(path: string, form: FormData): Promise<T> {
+export async function postFormData<T>(path: string, form: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
   const store = await cookies()
   const token = store.get(TOKEN_COOKIE)?.value
   const companyId = store.get(COMPANY_COOKIE)?.value
@@ -56,7 +56,7 @@ export async function postFormData<T>(path: string, form: FormData): Promise<T> 
   if (token) headers.Authorization = `Bearer ${token}`
   if (companyId) headers["X-Company-Id"] = companyId
 
-  const response = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: form, cache: "no-store" })
+  const response = await fetch(`${API_BASE}${path}`, { method, headers, body: form, cache: "no-store" })
 
   if (response.status === 401) redirect("/login")
 

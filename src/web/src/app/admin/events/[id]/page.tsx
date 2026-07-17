@@ -1,8 +1,9 @@
+import Link from "next/link"
 import { revalidatePath } from "next/cache"
-import { Download, Trash2, Package } from "lucide-react"
+import { Download, FilePlus, Trash2, Package } from "lucide-react"
 import { Field } from "@/components/field"
 import { api, type PagedResult } from "@/lib/server-api"
-import { requirePermissionFor } from "@/features/auth/access"
+import { getMyPermissions, requirePermissionFor } from "@/features/auth/access"
 
 type EventStatus = "Draft" | "Published" | "Closed" | "Cancelled"
 
@@ -43,6 +44,12 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   const isDraft = event.status === "Draft"
   const isPublished = event.status === "Published"
   const isPublishable = isDraft && event.days.length > 0
+
+  const permissions = await getMyPermissions()
+  const canManageTemplate = permissions.includes("PrintoutTemplatesManage")
+  const hasTemplate = canManageTemplate
+    ? (await api.get<PagedResult<{ id: string }>>(`/api/printout-templates?page=1&pageSize=1`)).items.length > 0
+    : true
 
   async function updateBasics(formData: FormData) {
     "use server"
@@ -100,12 +107,21 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <a
-            href={`/admin/events/${id}/confirmation`}
-            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-accent"
-          >
-            <Download className="h-4 w-4" />Pobierz potwierdzenie
-          </a>
+          {hasTemplate ? (
+            <a
+              href={`/admin/events/${id}/confirmation`}
+              className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-accent"
+            >
+              <Download className="h-4 w-4" />Download confirmation
+            </a>
+          ) : (
+            <Link
+              href="/admin/events#confirmation-template"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-dashed px-3 text-sm text-muted-foreground hover:bg-accent"
+            >
+              <FilePlus className="h-4 w-4" />Add confirmation template
+            </Link>
+          )}
           <a
             href={`/admin/reports/products?eventId=${id}`}
             className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-accent"
