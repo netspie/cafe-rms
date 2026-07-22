@@ -1,7 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   ScrollView,
   Text,
   View,
@@ -18,22 +20,33 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
+  const goBack = () =>
+    router.canGoBack() ? router.back() : router.replace("/(tabs)/events");
+
+  const headerBack = () => (
+    <Pressable onPress={goBack} className="pl-2 pr-3 py-1">
+      <Ionicons name="chevron-back" size={26} color="#E1741E" />
+    </Pressable>
+  );
+
   const query = useFetch(() => api.get<EventDetail>(`/api/events/${id}`), [id]);
 
   if (query.isPending || !query.data) {
     return (
       <View className="flex-1 bg-bg">
-        <Stack.Screen options={{ headerShown: true, title: "" }} />
+        <Stack.Screen options={{ headerShown: true, title: "", headerLeft: headerBack }} />
         <ActivityIndicator className="mt-8" />
       </View>
     );
   }
 
   const event = query.data;
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const isHappeningToday = event.days.some((d) => d.date.slice(0, 10) === todayStr);
 
   return (
     <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
-      <Stack.Screen options={{ headerShown: true, title: event.name }} />
+      <Stack.Screen options={{ headerShown: true, title: event.name, headerLeft: headerBack }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }}>
         {event.imageUrl && (
           <Image
@@ -64,7 +77,7 @@ export default function EventDetailScreen() {
           </View>
         )}
 
-        {event.status === "Published" && (
+        {event.status === "Published" && isHappeningToday && (
           <Button
             label="Przeglądaj menu"
             onPress={() => router.push("/(tabs)/menu")}
