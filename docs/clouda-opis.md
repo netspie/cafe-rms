@@ -1,0 +1,7 @@
+System zarządzania działalnością gastronomiczną z obsługą zamówień online, zaprojektowany z myślą o małych, tematycznych kawiarniach łączących ofertę gastronomiczną z organizacją wydarzeń. Składa się z panelu konfiguracyjnego dla pracowników, aplikacji mobilnej dla klientów oraz wspólnego API.
+
+Panel konfiguracyjny obejmuje zarządzanie ofertą, na którą składają się produkty, modyfikatory oraz przełączalne listy menu, a także pełną konfigurację sprzedaży: ceny i grupy cenowe, podatki, stoliki, kanały sprzedaży i kody promocyjne. Umożliwia organizację wydarzeń z odrębnym cennikiem i listą produktów oraz generowanie potwierdzeń na podstawie edytowalnych szablonów, bieżącą obsługę zamówień z powiadomieniami w czasie rzeczywistym, punkty lojalnościowe oraz raporty biznesowe. Dostęp do poszczególnych obszarów panelu regulują role i uprawnienia użytkowników.
+
+Aplikacja mobilna pozwala klientowi przeglądać menu i składać zamówienia online, korzystając z punktów lojalnościowych oraz kodów promocyjnych. Umożliwia także przeglądanie nadchodzących wydarzeń, oznaczanie ulubionych produktów oraz śledzenie historii zamówień i salda punktów.
+
+Wykorzystane technologie: .NET, C#, ASP.NET Core, PostgreSQL, Entity Framework Core, ASP.NET Core Identity, JWT, FluentValidation, QuestPDF, ClosedXML, OpenAPI/Scalar, Next.js, React, TypeScript, Tailwind CSS, React Native, Expo, NativeWind, Zustand, Docker, Docker Compose.
