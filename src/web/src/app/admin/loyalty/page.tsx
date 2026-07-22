@@ -7,7 +7,7 @@ import { api, type PagedResult } from "@/lib/server-api"
 import { requirePermissionFor } from "@/features/auth/access"
 
 interface LoyaltyEntry { id: string; userId: string; points: number; reason: string | null; createdAt: string }
-interface UserRow { id: string; firstName: string; lastName: string; email: string }
+interface UserRow { id: string; firstName: string; lastName: string; email: string; balance: number }
 
 const PAGE_SIZE = 20
 
@@ -34,7 +34,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
 
   const [entries, users] = await Promise.all([
     api.get<PagedResult<LoyaltyEntry>>(`/api/loyalty/entries?${search}`),
-    api.get<UserRow[]>("/api/users?accountType=Guest"),
+    api.get<UserRow[]>("/api/loyalty/customers"),
   ])
   const userName = (id: string) => {
     const u = users.find((x) => x.id === id)
@@ -47,6 +47,32 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Loyalty</h1>
       </div>
+
+      {users.length > 0 && (
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="mb-4 text-base font-semibold">Customer balances</h2>
+          <div className="overflow-hidden rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Customer</th>
+                  <th className="px-3 py-2 font-medium">Email</th>
+                  <th className="px-3 py-2 text-right font-medium">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-t">
+                    <td className="px-3 py-2 font-medium">{u.firstName} {u.lastName}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{u.email}</td>
+                    <td className="px-3 py-2 text-right font-mono font-semibold">{u.balance}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-lg border bg-card p-4 lg:col-span-2">

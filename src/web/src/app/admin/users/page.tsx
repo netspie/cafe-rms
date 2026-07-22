@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { api } from "@/lib/server-api"
-import { requirePermissionFor } from "@/features/auth/access"
+import { getMyPermissions, requirePermissionFor } from "@/features/auth/access"
 
 interface UserItem {
   id: string
@@ -13,6 +13,7 @@ interface UserItem {
   firstName: string
   lastName: string
   accountType: string
+  loyaltyPoints: number
   roles: string[]
 }
 
@@ -43,13 +44,15 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
   const nameFilter = sp.q ?? ""
   const roleFilter = sp.role ?? ""
 
+  const canManageRoles = (await getMyPermissions()).includes("RolesManage")
+
   const queryString = new URLSearchParams({ accountType })
   if (nameFilter) queryString.set("q", nameFilter)
   if (roleFilter && accountType === "Staff") queryString.set("role", roleFilter)
 
   const [users, roles] = await Promise.all([
     api.get<UserItem[]>(`/api/users?${queryString}`),
-    accountType === "Staff" ? api.get<RoleItem[]>("/api/roles") : Promise.resolve([] as RoleItem[]),
+    accountType === "Staff" && canManageRoles ? api.get<RoleItem[]>("/api/roles") : Promise.resolve([] as RoleItem[]),
   ])
 
   const onStaffTab = accountType === "Staff"
@@ -74,7 +77,7 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
             className="h-9 w-64 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
           />
         </Field>
-        {onStaffTab && (
+        {onStaffTab && canManageRoles && (
           <Field label="Role">
             <select
               name="role"
@@ -116,13 +119,14 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
               <th className="px-3 py-2 font-medium">Name</th>
               <th className="px-3 py-2 font-medium">Email</th>
               {onStaffTab && <th className="px-3 py-2 font-medium">Roles</th>}
+              {!onStaffTab && <th className="px-3 py-2 text-right font-medium">Loyalty points</th>}
               <th className="w-20 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {users.length === 0 && (
               <tr>
-                <td colSpan={onStaffTab ? 4 : 3} className="px-3 py-12">
+                <td colSpan={4} className="px-3 py-12">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <ShibaMark className="h-10 w-10 opacity-60" />
                     <p>{onStaffTab ? "No staff users match this filter." : "No guest customers match this filter."}</p>
@@ -142,6 +146,7 @@ export default async function UsersListPage({ searchParams }: { searchParams: Pr
                     </div>
                   </td>
                 )}
+                {!onStaffTab && <td className="px-3 py-2 text-right font-mono font-medium">{u.loyaltyPoints}</td>}
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
                     {onStaffTab && (

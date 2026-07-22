@@ -27,6 +27,7 @@ public static class ListUsers
         string FirstName,
         string LastName,
         string AccountType,
+        int LoyaltyPoints,
         IReadOnlyList<string> Roles);
 
     public static async Task<IReadOnlyList<Item>> Execute(
@@ -67,6 +68,12 @@ public static class ListUsers
                 (x, y) => new { x.UserId, RoleName = y.Name ?? "" })
             .ToListAsync();
 
+        var balances = await db.LoyaltyPointLogs
+            .Where(x => userIds.Contains(x.UserId))
+            .GroupBy(x => x.UserId)
+            .Select(g => new { UserId = g.Key, Points = g.Sum(e => e.Points) })
+            .ToListAsync();
+
         var items = users
             .Select(x => new Item(
                 x.Id,
@@ -74,6 +81,7 @@ public static class ListUsers
                 x.FirstName,
                 x.LastName,
                 x.AccountType.ToString(),
+                balances.FirstOrDefault(y => y.UserId == x.Id)?.Points ?? 0,
                 assignments.Where(y => y.UserId == x.Id).Select(y => y.RoleName).ToList()))
             .ToList();
 
