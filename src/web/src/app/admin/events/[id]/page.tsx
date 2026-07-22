@@ -56,7 +56,6 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     await api.put(`/api/events/${id}`, {
       name: formData.get("name") as string,
       description: (formData.get("description") as string) || null,
-      imageUrl: (formData.get("imageUrl") as string) || null,
       productListId: (formData.get("productListId") as string) || null,
       priceGroupId: (formData.get("priceGroupId") as string) || null,
     })
@@ -152,17 +151,14 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           <Field label="Description">
             <input name="description" defaultValue={event.description ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60" />
           </Field>
-          <Field label="Image URL">
-            <input name="imageUrl" defaultValue={event.imageUrl ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60" />
-          </Field>
           <Field label="Product list">
-            <select name="productListId" defaultValue={event.productListId ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60">
+            <select name="productListId" key={`pl-${event.productListId ?? "none"}`} defaultValue={event.productListId ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60">
               <option value="">— No special list —</option>
               {productLists.items.map((pl) => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
             </select>
           </Field>
           <Field label="Price group">
-            <select name="priceGroupId" defaultValue={event.priceGroupId ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60">
+            <select name="priceGroupId" key={`pg-${event.priceGroupId ?? "none"}`} defaultValue={event.priceGroupId ?? ""} disabled={isClosedOrCancelled} className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60">
               <option value="">— Default pricing —</option>
               {priceGroups.items.map((pg) => <option key={pg.id} value={pg.id}>{pg.name}</option>)}
             </select>

@@ -29,7 +29,6 @@ async function createEvent(formData: FormData) {
   const created = await api.post<{ id: string }>("/api/events", {
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || null,
-    imageUrl: (formData.get("imageUrl") as string) || null,
     productListId: (formData.get("productListId") as string) || null,
     priceGroupId: (formData.get("priceGroupId") as string) || null,
   })
@@ -112,9 +111,6 @@ export default async function EventsListPage({ searchParams }: { searchParams: P
         </Field>
         <Field label="Description">
           <input name="description" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
-        <Field label="Image URL">
-          <input name="imageUrl" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
         <Field label="Product list">
           <select name="productListId" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30">
