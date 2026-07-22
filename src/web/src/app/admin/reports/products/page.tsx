@@ -96,10 +96,11 @@ export default async function ProductsReportPage({
             <span className="block text-xs font-medium text-muted-foreground">Event</span>
             <select
               name="eventId"
+              key={`ev-${eventId || "all"}`}
               defaultValue={eventId}
               className="h-9 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
             >
-              <option value="">All events</option>
+              <option value="">All sales (no event filter)</option>
               {events.items.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.name}
