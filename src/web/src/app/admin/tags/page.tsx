@@ -10,7 +10,6 @@ import { requirePermissionFor } from "@/features/auth/access"
 interface TagItem {
   id: string
   name: string
-  imageUrl: string | null
   createdAt: string
 }
 
@@ -19,8 +18,7 @@ const PAGE_SIZE = 20
 async function createTag(formData: FormData) {
   "use server"
   const name = formData.get("name") as string
-  const imageUrl = (formData.get("imageUrl") as string) || null
-  await api.post("/api/tags", { name, imageUrl })
+  await api.post("/api/tags", { name })
   revalidatePath("/admin/tags")
 }
 
@@ -64,9 +62,6 @@ export default async function TagsListPage({ searchParams }: { searchParams: Pro
         <Field label="Name">
           <input name="name" required className="h-9 w-48 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
         </Field>
-        <Field label="Image URL">
-          <input name="imageUrl" className="h-9 w-72 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" />
-        </Field>
         <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">
           <Plus className="h-4 w-4" />Add tag
         </button>
@@ -77,14 +72,13 @@ export default async function TagsListPage({ searchParams }: { searchParams: Pro
           <thead className="bg-muted/50 text-left">
             <tr>
               <SortableTh label="Name" field="name" currentSort={sort} preserve={preserve} />
-              <th className="px-3 py-2 font-medium">Image</th>
               <SortableTh label="Created" field="createdAt" currentSort={sort} preserve={preserve} />
               <th className="w-20 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {data.items.length === 0 && (
-              <tr><td colSpan={4} className="px-3 py-12">
+              <tr><td colSpan={3} className="px-3 py-12">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <ShibaMark className="h-10 w-10 opacity-60" />
                   <p>No tags match this filter.</p>
@@ -94,9 +88,6 @@ export default async function TagsListPage({ searchParams }: { searchParams: Pro
             {data.items.map((t) => (
               <tr key={t.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{t.name}</td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {t.imageUrl ? <span className="font-mono text-xs">{t.imageUrl}</span> : "—"}
-                </td>
                 <td className="px-3 py-2 text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</td>
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
