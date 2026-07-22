@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache"
 import { Field } from "@/components/field"
 import { ShibaMark } from "@/components/shiba-mark"
 import { SortableTh } from "@/components/sortable-th"
-import { api, type PagedResult } from "@/lib/server-api"
+import { redirect } from "next/navigation"
+import { api, ApiError, type PagedResult } from "@/lib/server-api"
 import { requirePermissionFor } from "@/features/auth/access"
 
 interface ModifierGroupItem { id: string; name: string; createdAt: string }
@@ -19,7 +20,13 @@ async function createModifierGroup(formData: FormData) {
 
 async function deleteModifierGroup(id: string) {
   "use server"
-  await api.delete(`/api/modifier-groups/${id}`)
+  try {
+    await api.delete(`/api/modifier-groups/${id}`)
+  } catch (e) {
+    if (e instanceof ApiError)
+      redirect(`/admin/modifier-groups?error=${encodeURIComponent(e.message)}`)
+    throw e
+  }
   revalidatePath("/admin/modifier-groups")
 }
 

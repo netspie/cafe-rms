@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache"
 import { api, type PagedResult } from "@/lib/server-api"
-import { requirePermissionFor } from "@/features/auth/access"
+import { getMyPermissions, requirePermissionFor } from "@/features/auth/access"
 
 type OrderStatus = "Placed" | "Closed" | "Cancelled"
 
@@ -43,6 +43,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     api.get<PagedResult<ProductRow>>(`/api/products?page=1&pageSize=200&sort=name`),
   ])
   const productName = (productId: string) => products.items.find((p) => p.id === productId)?.name ?? `${productId.slice(0, 8)}…`
+  const canManage = (await getMyPermissions()).includes("OrdersManage")
   const isPlaced = order.status === "Placed"
   const subtotal = order.lines.reduce((s, l) => s + l.quantity * (l.netPerOne + l.vatPerOne), 0)
   const total = Math.max(0, subtotal - order.discount - order.loyaltyPointsUsed)
@@ -80,7 +81,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {order.cancelledAt && `, Cancelled ${new Date(order.cancelledAt).toLocaleString()}`}
           </p>
         </div>
-        {isPlaced && (
+        {isPlaced && canManage && (
           <div className="flex gap-2">
             <form action={closeOrder}>
               <button type="submit" className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90">Close order</button>
@@ -138,7 +139,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </table>
       </section>
 
-      {isPlaced && (
+      {isPlaced && canManage && (
         <section className="rounded-lg border bg-card p-4">
           <h2 className="mb-2 text-base font-semibold">Cancel this order</h2>
           <p className="mb-4 text-sm text-muted-foreground">Optional reason — appears on the order record afterwards.</p>
