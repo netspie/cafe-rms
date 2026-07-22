@@ -103,7 +103,10 @@ export default function CheckoutScreen() {
   const pointsEntered = parseInt(loyaltyPointsUsed, 10) || 0;
   const loyaltyExceeded = pointsEntered > maxRedeemablePoints;
   const pointsApplied = Math.min(Math.max(pointsEntered, 0), maxRedeemablePoints);
-  const finalTotal = Math.max(0, totalGross - pointsApplied);
+  const promoDiscount = promoValidation?.valid
+    ? Math.round(totalGross * ((promoValidation.discountPercentage ?? 0) / 100) * 100) / 100
+    : 0;
+  const finalTotal = Math.max(0, totalGross - promoDiscount - pointsApplied);
 
   return (
     <SafeAreaView edges={["bottom"]} className="flex-1 bg-bg">
@@ -156,7 +159,10 @@ export default function CheckoutScreen() {
           <View className="flex-row gap-2">
             <TextInput
               value={promotionCode}
-              onChangeText={setPromotionCode}
+              onChangeText={(text) => {
+                setPromotionCode(text);
+                setPromoValidation(null);
+              }}
               autoCapitalize="characters"
               placeholder="WELCOME10"
               placeholderTextColor="#6B6B6B"
@@ -211,6 +217,12 @@ export default function CheckoutScreen() {
             <Text className="text-muted">Suma częściowa</Text>
             <Text className="text-ink">{totalGross.toFixed(2)} PLN</Text>
           </View>
+          {promoDiscount > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-muted">Rabat ({promotionCode})</Text>
+              <Text className="text-accent">−{promoDiscount.toFixed(2)} PLN</Text>
+            </View>
+          )}
           {pointsApplied > 0 && (
             <View className="flex-row justify-between">
               <Text className="text-muted">Lojalność ({pointsApplied} pkt)</Text>
